@@ -19,6 +19,7 @@ import { TIMEZONE } from "@/utils/dates";
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "@/modules/finance/constants";
 import { borrarAsistentes, exportarAsistentes } from "@/lib/asistentes/estado";
 import { EditorAsistentes } from "@/modules/asistentes/EditorAsistentes";
+import { borrarProgreso, exportarProgreso } from "@/modules/asistentes/Gamificacion";
 
 type Seccion = "perfil" | "apariencia" | "asistentes" | "datos";
 const SECCIONES: { value: Seccion; label: string }[] = [
@@ -223,7 +224,7 @@ function StorageCard() {
   const total = TABLES.reduce((n, t) => n + db[t].length, 0);
 
   const exportJSON = () => {
-    const blob = new Blob([JSON.stringify({ exported_at: new Date().toISOString(), profile, data: db, asistentes: exportarAsistentes() }, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify({ exported_at: new Date().toISOString(), profile, data: db, asistentes: exportarAsistentes(), progreso: exportarProgreso() }, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -243,6 +244,7 @@ function StorageCard() {
     if (!ok) return;
     await clearAll();
     borrarAsistentes();
+    borrarProgreso();
     toast("Datos borrados.");
   };
 

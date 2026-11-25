@@ -1,0 +1,387 @@
+/**
+ * XP, niveles, vínculos, racha y logros (lógica pura, sin React).
+ *
+ * Los módulos no se tocan: `reconciliar` compara los datos actuales con los eventos de XP guardados.
+ * Cada evento lleva el `refId` del elemento que lo originó (movimiento, registro de hábito, tarea…):
+ *  - si el elemento se borra o se desmarca, el evento desaparece y su XP se revierte;
+ *  - el mismo refId nunca suma dos veces;
+ *  - los topes diarios se respetan por grupo de acción.
+ * La fecha de un evento es la del registro (created_at), no la que el usuario escribe, para que no
+ * se pueda rellenar el pasado.
+ */
+import type { Database } from "@/types/db";
+import { isScheduled } from "@/modules/habits/selectors";
+import { addDays, addMonths, monthKey, weekdayMon } from "@/utils/dates";
+import { sum } from "@/utils/money";
+import { ASISTENTE_IDS, type AsistenteId } from "./tipos";
+
+/* ═════════ Tabla de XP ═════════ */
+export type TipoAccion =
+  | "movimiento"
+  | "habito"
+  | "dia-perfecto"
+  | "tarea"
+  | "tarea-a-tiempo"
+  | "proyecto"
+  | "aporte-ahorro"
+  | "meta-ahorro"
+  | "avance-objetivo"
+  | "objetivo"
+  | "compra-planificada"
+  | "revision-semanal";
+
+export const TABLA_XP: Record<TipoAccion, { xp: number; label: string; asistente: AsistenteId | "principal"; grupo: string; tope?: number }> = {
+  movimiento: { xp: 5, label: "Registrar un movimiento", asistente: "centavo", grupo: "movimiento", tope: 30 },
+  habito: { xp: 10, label: "Completar un hábito", asistente: "brote", grupo: "habito" },
+  "dia-perfecto": { xp: 20, label: "Día perfecto", asistente: "brote", grupo: "dia-perfecto", tope: 20 },
+  tarea: { xp: 10, label: "Completar una tarea", asistente: "tuerca", grupo: "tarea", tope: 80 },
+  "tarea-a-tiempo": { xp: 5, label: "Tarea a tiempo (bonus)", asistente: "tic", grupo: "tarea", tope: 80 },
+  proyecto: { xp: 50, label: "Terminar un proyecto", asistente: "tuerca", grupo: "proyecto" },
+  "aporte-ahorro": { xp: 15, label: "Aporte a una meta de ahorro", asistente: "centavo", grupo: "aporte-ahorro", tope: 15 },
+  "meta-ahorro": { xp: 100, label: "Meta de ahorro completada", asistente: "centavo", grupo: "meta-ahorro" },
+  "avance-objetivo": { xp: 15, label: "Avance en un objetivo 2027", asistente: "cima", grupo: "avance-objetivo", tope: 15 },
+  objetivo: { xp: 150, label: "Objetivo 2027 completado", asistente: "cima", grupo: "objetivo" },
+  "compra-planificada": { xp: 30, label: "Comprar un deseo con su meta lista", asistente: "antojo", grupo: "compra-planificada" },
+  "revision-semanal": { xp: 25, label: "Revisión semanal", asistente: "principal", grupo: "revision-semanal" },
+};
+
+export type EventoXP = { id: string; tipo: TipoAccion; xp: number; fecha: string; refId: string; asistente: AsistenteId };
+
+/* ═════════ Logros ═════════ */
+export type LogroId =
+  | "primer-movimiento"
+  | "racha-7"
+  | "racha-30"
+  | "racha-100"
+  | "mes-verde"
+  | "habitos-50"
+  | "dia-perfecto"
+  | "primer-proyecto"
+  | "diez-tareas"
+  | "sin-vencidas"
+  | "agenda-al-dia"
+  | "cero-tarde"
+  | "primer-objetivo"
+  | "primera-meta-ahorro"
+  | "compra-planificada"
+  | "nivel-10"
+  | "nivel-20"
+  | "leyenda";
+
+export interface Progreso {
+  version: 1;
+  /** Fuente de verdad: el XP total, los niveles y los vínculos se derivan de aquí */
+  eventos: EventoXP[];
+  racha: { actual: number; mejor: number; ultimoDia: string; protectores: number; diasActivos: string[]; usados: string[] };
+  logros: Partial<Record<LogroId, string>>;
+  ajustes: { gamificacion: boolean; celebraciones: "todas" | "solo-grandes" | "ninguna"; negativas: boolean };
+  /** Último valor visto de ahorro y avance (para detectar aportes y avances) */
+  snap: { ahorro: Record<string, number>; objetivos: Record<string, number> };
+  /** Eventos de más de 90 días compactados por mes y tipo:asistente */
+  historico: Record<string, Record<string, number>>;
+  compactados: string[];
+  ui: { ultimaNegativa?: string; ultimaRevision?: string; iniciado?: string };
+}
+
+export function progresoVacio(): Progreso {
+  return {
+    version: 1,
+    eventos: [],
+    racha: { actual: 0, mejor: 0, ultimoDia: "", protectores: 0, diasActivos: [], usados: [] },
+    logros: {},
+    ajustes: { gamificacion: true, celebraciones: "todas", negativas: true },
+    snap: { ahorro: {}, objetivos: {} },
+    historico: {},
+    compactados: [],
+    ui: {},
+  };
+}
+
+/* ═════════ Niveles: 30 en 6 etapas ═════════
+ * XP para pasar del nivel n al n+1 = round(90 · n^1.05).
+ * Con un uso normal (~110 XP al día) el nivel 5 llega en unos 9 días y el 30 en poco más de un año. */
+export const ETAPAS = ["Base", "Rutina", "Ritmo", "Disciplina", "Maestría", "Leyenda"] as const;
+export type Etapa = (typeof ETAPAS)[number];
+export const NIVEL_MAX = 30;
+export const xpParaSubir = (n: number) => Math.round(90 * Math.pow(n, 1.05));
+export const etapaDe = (nivel: number): Etapa => ETAPAS[Math.min(5, Math.floor((nivel - 1) / 5))];
+
+export function nivelDeXP(total: number) {
+  let nivel = 1;
+  let restante = total;
+  while (nivel < NIVEL_MAX && restante >= xpParaSubir(nivel)) {
+    restante -= xpParaSubir(nivel);
+    nivel += 1;
+  }
+  const meta = nivel >= NIVEL_MAX ? 0 : xpParaSubir(nivel);
+  return { nivel, etapa: etapaDe(nivel), xpEnNivel: nivel >= NIVEL_MAX ? 0 : restante, xpParaSiguiente: meta, total };
+}
+
+/* ═════════ Vínculo por asistente (1 a 10) ═════════ */
+export const xpVinculo = (v: number) => (v <= 1 ? 0 : Math.round(100 * Math.pow(v - 1, 1.6)));
+export function vinculoDeXP(xp: number) {
+  let v = 1;
+  while (v < 10 && xp >= xpVinculo(v + 1)) v += 1;
+  const desde = xpVinculo(v);
+  const hasta = v >= 10 ? desde : xpVinculo(v + 1);
+  return { nivel: v, xp, desde, hasta, pct: v >= 10 ? 100 : Math.round(((xp - desde) / (hasta - desde)) * 100) };
+}
+
+/** Lo que desbloquea cada nivel de vínculo en el editor */
+export type Desbloqueo = { vinculo: number; tipo: "combinacion" | "accesorio" | "pose"; valor: string; label: string };
+export const DESBLOQUEOS: Desbloqueo[] = [
+  { vinculo: 2, tipo: "combinacion", valor: "1", label: "Segunda combinación de color" },
+  { vinculo: 3, tipo: "accesorio", valor: "gafas", label: "Gafas" },
+  { vinculo: 4, tipo: "combinacion", valor: "2", label: "Tercera combinación de color" },
+  { vinculo: 5, tipo: "accesorio", valor: "gorro", label: "Gorro" },
+  { vinculo: 6, tipo: "accesorio", valor: "audifonos", label: "Audífonos" },
+  { vinculo: 7, tipo: "accesorio", valor: "bufanda", label: "Bufanda" },
+  { vinculo: 8, tipo: "pose", valor: "idle-alterna", label: "Pose normal alternativa" },
+  { vinculo: 9, tipo: "combinacion", valor: "3", label: "Cuarta combinación de color" },
+  { vinculo: 10, tipo: "combinacion", valor: "dorada", label: "Combinación dorada" },
+];
+export const vinculoRequerido = (tipo: Desbloqueo["tipo"], valor: string) => DESBLOQUEOS.find((d) => d.tipo === tipo && d.valor === valor)?.vinculo ?? 1;
+
+/* ═════════ Derivados ═════════ */
+export function xpTotal(p: Progreso) {
+  return sum(p.eventos.map((e) => e.xp)) + sum(Object.values(p.historico).flatMap((m) => Object.values(m)));
+}
+export function xpPorAsistente(p: Progreso): Record<AsistenteId, number> {
+  const r = Object.fromEntries(ASISTENTE_IDS.map((id) => [id, 0])) as Record<AsistenteId, number>;
+  for (const e of p.eventos) r[e.asistente] += e.xp;
+  for (const m of Object.values(p.historico))
+    for (const [k, v] of Object.entries(m)) {
+      const a = k.split(":")[1] as AsistenteId;
+      if (a in r) r[a] += v;
+    }
+  return r;
+}
+
+/** Racha global: un día cuenta si hubo al menos una acción. Protector: 1 cada 7 días, máx. 2. */
+export function calcularRacha(diasActivos: string[], today: string, mejorPrevio = 0): Progreso["racha"] {
+  const set = new Set(diasActivos);
+  const ordenados = [...set].sort();
+  if (!ordenados.length) return { actual: 0, mejor: mejorPrevio, ultimoDia: "", protectores: 0, diasActivos: [], usados: [] };
+  let actual = 0;
+  let mejor = mejorPrevio;
+  let protectores = 0;
+  let consecutivos = 0;
+  const usados: string[] = [];
+  for (let d = ordenados[0]; d <= today; d = addDays(d, 1)) {
+    if (set.has(d)) {
+      actual += 1;
+      consecutivos += 1;
+      if (consecutivos % 7 === 0 && protectores < 2) protectores += 1;
+    } else if (d === today) {
+      // Hoy todavía no termina: no rompe la racha
+    } else if (protectores > 0 && actual > 0) {
+      protectores -= 1;
+      usados.push(d);
+      consecutivos = 0;
+    } else {
+      actual = 0;
+      consecutivos = 0;
+    }
+    mejor = Math.max(mejor, actual);
+  }
+  return { actual, mejor, ultimoDia: ordenados.at(-1)!, protectores, diasActivos: ordenados.slice(-200), usados: usados.slice(-60) };
+}
+
+/* ═════════ Reconciliar datos → eventos ═════════ */
+type Candidato = { refId: string; tipo: TipoAccion; fecha: string; asistente?: AsistenteId };
+const fechaDe = (iso: string | undefined, today: string) => (iso ? iso.slice(0, 10) : today);
+
+function candidatos(db: Database, prev: Progreso, today: string): { lista: Candidato[]; snap: Progreso["snap"]; vivos: Set<string> } {
+  const lista: Candidato[] = [];
+  const vivos = new Set<string>(); // prefijos de elementos que siguen existiendo
+  for (const t of db.transactions) lista.push({ refId: `tx:${t.id}`, tipo: "movimiento", fecha: fechaDe(t.created_at, today) });
+  for (const l of db.habit_logs) lista.push({ refId: `hl:${l.id}`, tipo: "habito", fecha: fechaDe(l.created_at, today) });
+  // Día perfecto: todos los hábitos programados de ese día marcados
+  const porDia = new Map<string, Set<string>>();
+  for (const l of db.habit_logs) porDia.set(l.date, (porDia.get(l.date) ?? new Set()).add(l.habit_id));
+  for (const [d, hechos] of porDia) {
+    const prog = db.habits.filter((h) => isScheduled(h, d));
+    if (prog.length && prog.every((h) => hechos.has(h.id))) lista.push({ refId: `dp:${d}`, tipo: "dia-perfecto", fecha: d > today ? today : d });
+  }
+  const yaVisto = (ref: string) => prev.eventos.find((e) => e.refId === ref)?.fecha;
+  for (const t of db.tasks) {
+    if (t.status !== "completada") continue;
+    const f = yaVisto(`tk:${t.id}`) ?? today;
+    lista.push({ refId: `tk:${t.id}`, tipo: "tarea", fecha: f });
+    if (t.due_date && t.due_date >= f) lista.push({ refId: `tka:${t.id}`, tipo: "tarea-a-tiempo", fecha: f });
+  }
+  for (const p of db.projects) if (p.status === "completado") lista.push({ refId: `pj:${p.id}`, tipo: "proyecto", fecha: yaVisto(`pj:${p.id}`) ?? today });
+
+  const snap: Progreso["snap"] = { ahorro: {}, objetivos: {} };
+  for (const g of db.savings_goals) {
+    vivos.add(`ah:${g.id}`);
+    snap.ahorro[g.id] = g.current_amount;
+    const antes = prev.snap.ahorro[g.id];
+    if (antes !== undefined && g.current_amount > antes) lista.push({ refId: `ah:${g.id}:${today}`, tipo: "aporte-ahorro", fecha: today });
+    if (g.target_amount > 0 && g.current_amount >= g.target_amount) lista.push({ refId: `ahc:${g.id}`, tipo: "meta-ahorro", fecha: yaVisto(`ahc:${g.id}`) ?? today });
+  }
+  for (const g of db.annual_goals) {
+    vivos.add(`ob:${g.id}`);
+    snap.objetivos[g.id] = g.progress;
+    const antes = prev.snap.objetivos[g.id];
+    if (antes !== undefined && g.progress > antes) lista.push({ refId: `ob:${g.id}:${today}`, tipo: "avance-objetivo", fecha: today });
+    if (g.progress >= 100) lista.push({ refId: `obc:${g.id}`, tipo: "objetivo", fecha: yaVisto(`obc:${g.id}`) ?? today });
+  }
+  for (const w of db.wishlist_items) {
+    if (w.status !== "comprado" || !w.savings_goal_id) continue;
+    const g = db.savings_goals.find((x) => x.id === w.savings_goal_id);
+    if (yaVisto(`ws:${w.id}`) || (g && g.current_amount >= w.price)) lista.push({ refId: `ws:${w.id}`, tipo: "compra-planificada", fecha: yaVisto(`ws:${w.id}`) ?? today });
+  }
+  return { lista, snap, vivos };
+}
+
+let seq = 0;
+const nuevoId = () => `xp${Date.now().toString(36)}${(seq++).toString(36)}`;
+
+/**
+ * Devuelve el progreso actualizado y los eventos nuevos (para reaccionar en la interfaz).
+ * `principal` recibe el XP de la revisión semanal.
+ */
+export function reconciliar(prev: Progreso, db: Database, today: string, principal: AsistenteId): { next: Progreso; nuevos: EventoXP[]; quitados: EventoXP[] } {
+  const { lista, snap, vivos } = candidatos(db, prev, today);
+  const validos = new Set(lista.map((c) => c.refId));
+  const compactados = new Set(prev.compactados);
+
+  // 1) Quitar eventos cuyo elemento ya no existe o ya no cumple
+  const quitados: EventoXP[] = [];
+  const conservados = prev.eventos.filter((e) => {
+    if (e.tipo === "revision-semanal" || e.refId.startsWith("demo:")) return true;
+    if (e.tipo === "aporte-ahorro" || e.tipo === "avance-objetivo") {
+      const ok = vivos.has(e.refId.split(":").slice(0, 2).join(":"));
+      if (!ok) quitados.push(e);
+      return ok;
+    }
+    const ok = validos.has(e.refId);
+    if (!ok) quitados.push(e);
+    return ok;
+  });
+
+  // 2) Agregar candidatos nuevos con su tope diario
+  const existentes = new Set(conservados.map((e) => e.refId));
+  const eventos = [...conservados];
+  const nuevos: EventoXP[] = [];
+  for (const c of lista.sort((a, b) => a.fecha.localeCompare(b.fecha))) {
+    if (existentes.has(c.refId) || compactados.has(c.refId)) continue;
+    const cfg = TABLA_XP[c.tipo];
+    let xp = cfg.xp;
+    if (cfg.tope) {
+      const usado = sum(eventos.filter((e) => e.fecha === c.fecha && TABLA_XP[e.tipo].grupo === cfg.grupo).map((e) => e.xp));
+      xp = Math.max(0, Math.min(xp, cfg.tope - usado));
+    }
+    const asistente = cfg.asistente === "principal" ? principal : cfg.asistente;
+    const ev: EventoXP = { id: nuevoId(), tipo: c.tipo, xp, fecha: c.fecha, refId: c.refId, asistente };
+    eventos.push(ev);
+    existentes.add(c.refId);
+    nuevos.push(ev);
+  }
+
+  const racha = calcularRacha(
+    [...eventos.map((e) => e.fecha), ...prev.racha.diasActivos.filter((d) => d < addDays(today, -90))],
+    today,
+    prev.racha.mejor,
+  );
+  const next = compactar({ ...prev, eventos, snap, racha }, today);
+  return { next, nuevos, quitados };
+}
+
+/** Agrega un evento manual (p. ej. la revisión semanal). */
+export function agregarEvento(prev: Progreso, tipo: TipoAccion, refId: string, today: string, asistente: AsistenteId): { next: Progreso; ev: EventoXP | null } {
+  if (prev.eventos.some((e) => e.refId === refId)) return { next: prev, ev: null };
+  const ev: EventoXP = { id: nuevoId(), tipo, xp: TABLA_XP[tipo].xp, fecha: today, refId, asistente };
+  const eventos = [...prev.eventos, ev];
+  return { next: { ...prev, eventos, racha: calcularRacha(eventos.map((e) => e.fecha).concat(prev.racha.diasActivos), today, prev.racha.mejor) }, ev };
+}
+
+/** Compacta eventos de más de 90 días en totales por mes y tipo. */
+export function compactar(p: Progreso, today: string): Progreso {
+  const limite = addDays(today, -90);
+  const viejos = p.eventos.filter((e) => e.fecha < limite);
+  if (!viejos.length) return p;
+  const historico = { ...p.historico };
+  for (const e of viejos) {
+    const mes = e.fecha.slice(0, 7);
+    const k = `${e.tipo}:${e.asistente}`;
+    historico[mes] = { ...(historico[mes] ?? {}), [k]: (historico[mes]?.[k] ?? 0) + e.xp };
+  }
+  return {
+    ...p,
+    eventos: p.eventos.filter((e) => e.fecha >= limite),
+    historico,
+    compactados: [...p.compactados, ...viejos.map((e) => e.refId)],
+  };
+}
+
+/* ═════════ Logros ═════════ */
+export interface LogroDef {
+  id: LogroId;
+  titulo: string;
+  condicion: string;
+  asistente: AsistenteId | "todos";
+  grande?: boolean;
+}
+
+export const LOGROS: LogroDef[] = [
+  { id: "primer-movimiento", titulo: "Primer movimiento", condicion: "Registra tu primer movimiento", asistente: "centavo" },
+  { id: "racha-7", titulo: "Semana constante", condicion: "Mantén 7 días de racha", asistente: "brote" },
+  { id: "racha-30", titulo: "Mes constante", condicion: "Mantén 30 días de racha", asistente: "brote", grande: true },
+  { id: "racha-100", titulo: "Cien días", condicion: "Mantén 100 días de racha", asistente: "brote", grande: true },
+  { id: "mes-verde", titulo: "Mes en verde", condicion: "Cierra un mes con gastos por debajo de los ingresos", asistente: "centavo" },
+  { id: "habitos-50", titulo: "50 hábitos", condicion: "Cumple 50 hábitos", asistente: "brote" },
+  { id: "dia-perfecto", titulo: "Día perfecto", condicion: "Cumple todos los hábitos de un día", asistente: "brote" },
+  { id: "primer-proyecto", titulo: "Obra terminada", condicion: "Termina tu primer proyecto", asistente: "tuerca", grande: true },
+  { id: "diez-tareas", titulo: "Diez tareas", condicion: "Completa 10 tareas", asistente: "tuerca" },
+  { id: "sin-vencidas", titulo: "Sin vencidas", condicion: "Ten 3 tareas completadas y ninguna vencida", asistente: "tuerca" },
+  { id: "agenda-al-dia", titulo: "Agenda al día", condicion: "Planea 5 eventos en tu calendario", asistente: "tic" },
+  { id: "cero-tarde", titulo: "Cero tarde", condicion: "Completa 5 tareas antes de su fecha", asistente: "tic" },
+  { id: "primer-objetivo", titulo: "Primera cumbre", condicion: "Completa un objetivo 2027", asistente: "cima", grande: true },
+  { id: "primera-meta-ahorro", titulo: "Meta de ahorro", condicion: "Completa una meta de ahorro", asistente: "centavo", grande: true },
+  { id: "compra-planificada", titulo: "Compra planificada", condicion: "Compra un deseo con su meta lista", asistente: "antojo" },
+  { id: "nivel-10", titulo: "Nivel 10", condicion: "Llega al nivel 10", asistente: "todos", grande: true },
+  { id: "nivel-20", titulo: "Nivel 20", condicion: "Llega al nivel 20", asistente: "todos", grande: true },
+  { id: "leyenda", titulo: "Leyenda", condicion: "Llega a la etapa Leyenda (nivel 26)", asistente: "todos", grande: true },
+];
+
+export function evaluarLogros(db: Database, p: Progreso, today: string): LogroId[] {
+  const nivel = nivelDeXP(xpTotal(p)).nivel;
+  const cuenta = (tipo: TipoAccion) => p.eventos.filter((e) => e.tipo === tipo).length;
+  const key = monthKey(today);
+  const mesVerde = [1, 2, 3, 4, 5, 6].some((i) => {
+    const k = addMonths(key, -i);
+    const g = sum(db.transactions.filter((t) => t.type === "gasto" && t.date.startsWith(k)).map((t) => t.amount));
+    const ing = sum(db.transactions.filter((t) => t.type === "ingreso" && t.date.startsWith(k)).map((t) => t.amount));
+    return g > 0 && ing > g;
+  });
+  const hechas = db.tasks.filter((t) => t.status === "completada").length;
+  const vencidas = db.tasks.filter((t) => t.status !== "completada" && t.due_date && t.due_date < today).length;
+  const ok: Record<LogroId, boolean> = {
+    "primer-movimiento": db.transactions.length > 0,
+    "racha-7": p.racha.mejor >= 7,
+    "racha-30": p.racha.mejor >= 30,
+    "racha-100": p.racha.mejor >= 100,
+    "mes-verde": mesVerde,
+    "habitos-50": db.habit_logs.length >= 50,
+    "dia-perfecto": cuenta("dia-perfecto") > 0,
+    "primer-proyecto": db.projects.some((x) => x.status === "completado"),
+    "diez-tareas": hechas >= 10,
+    "sin-vencidas": hechas >= 3 && vencidas === 0,
+    "agenda-al-dia": db.calendar_events.length >= 5,
+    "cero-tarde": cuenta("tarea-a-tiempo") >= 5,
+    "primer-objetivo": db.annual_goals.some((g) => g.progress >= 100),
+    "primera-meta-ahorro": db.savings_goals.some((g) => g.target_amount > 0 && g.current_amount >= g.target_amount),
+    "compra-planificada": cuenta("compra-planificada") > 0,
+    "nivel-10": nivel >= 10,
+    "nivel-20": nivel >= 20,
+    leyenda: nivel >= 26,
+  };
+  return (Object.keys(ok) as LogroId[]).filter((id) => ok[id] && !p.logros[id]);
+}
+
+/** Semana ISO simple (lunes a domingo) para la revisión semanal */
+export function semanaDe(today: string) {
+  return addDays(today, -weekdayMon(today));
+}

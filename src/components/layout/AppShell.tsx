@@ -12,6 +12,7 @@ import { BottomNav, MobileDrawer, MobileTopbar } from "./MobileNav";
 import { WelcomeModal, isOnboardingDone } from "./WelcomeModal";
 import { GlobalSearch } from "./GlobalSearch";
 import { Avatar, NotificationsButton } from "./HeaderActions";
+import { GamificacionProvider } from "@/modules/asistentes/Gamificacion";
 
 const RAIL_KEY = "lifeos:ui:rail-expanded";
 
@@ -47,6 +48,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const closeDrawer = useCallback(() => setDrawer(false), []);
 
   return (
+    <GamificacionProvider>
     <div className="min-h-dvh bg-bg lg:bg-canvas lg:p-4">
       <div className="flex min-h-dvh bg-bg lg:min-h-[calc(100dvh-32px)] lg:rounded-[32px]">
         <Sidebar expanded={expanded} onToggle={toggle} />
@@ -98,6 +100,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <BottomNav onMore={() => setDrawer(true)} />
       {status === "ready" && profile && !profile.full_name && !onboarded ? <WelcomeModal onDone={() => setOnboarded(true)} /> : null}
     </div>
+    </GamificacionProvider>
   );
 }
 
