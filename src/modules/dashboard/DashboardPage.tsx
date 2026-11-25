@@ -1,13 +1,23 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { CalendarDays } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { QuickAdd } from "@/components/layout/HeaderActions";
 import { Select } from "@/components/ui/Field";
 import { useData } from "@/lib/store/DataProvider";
 import { useToday } from "@/hooks/useToday";
 import { addMonths, bogotaHour, formatLongDate, monthKey, monthLabel } from "@/utils/dates";
-import { ActivityWidget, BalanceWidget, IncomeExpenseWidget, SavingsWidget } from "./widgets/FinanceWidgets";
-import { CalendarWidget, HabitsWidget, ProjectsWidget, TasksWidget, WishlistWidget } from "./widgets/LifeWidgets";
+import {
+  ActivityCard,
+  CalendarCard,
+  HabitsWeekCard,
+  KpiRow,
+  ProjectsCard,
+  SavingsCard,
+  TasksCard,
+  WishlistCard,
+} from "./DashboardWidgets";
 
 function greeting() {
   const h = bogotaHour();
@@ -28,39 +38,54 @@ export function DashboardPage() {
     <>
       <PageHeader
         eyebrow={formatLongDate(today)}
-        title={firstName ? `${greeting()}, ${firstName}` : greeting()}
-        subtitle="Este es el resumen de tu vida hoy."
+        title={
+          firstName ? (
+            <>
+              {greeting()},
+              <br />
+              {firstName}
+            </>
+          ) : (
+            greeting()
+          )
+        }
       >
-        <label className="sr-only" htmlFor="periodo">
-          Periodo
-        </label>
-        <Select
-          id="periodo"
-          value={refMonth}
-          onChange={(e) => setRefMonth(e.target.value)}
-          className="h-10 w-auto min-w-[180px] bg-card text-[13.5px]"
-        >
-          {months.map((m) => (
-            <option key={m} value={m}>
-              {m === current ? `Este mes · ${monthLabel(m)}` : monthLabel(m)}
-            </option>
-          ))}
-        </Select>
+        <div className="w-[210px]">
+          <Select
+            aria-label="Periodo"
+            value={refMonth}
+            onChange={(e) => setRefMonth(e.target.value)}
+            className="rounded-full bg-card"
+            renderIcon={() => <CalendarDays size={17} />}
+          >
+            {months.map((m) => (
+              <option key={m} value={m}>
+                {monthLabel(m)}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <QuickAdd />
       </PageHeader>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-12 xl:gap-5">
-        <BalanceWidget refMonth={refMonth} className="md:col-span-1 xl:col-span-4" />
-        <IncomeExpenseWidget refMonth={refMonth} className="md:col-span-1 xl:col-span-5" />
-        <SavingsWidget className="md:col-span-2 xl:col-span-3" />
+      <div className="flex flex-col gap-3">
+        <KpiRow refMonth={refMonth} />
 
-        <ActivityWidget className="md:col-span-2 xl:col-span-8" />
-        <HabitsWidget className="md:col-span-1 xl:col-span-4" />
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-12">
+          <ActivityCard className="md:col-span-2 xl:col-span-7" />
+          <HabitsWeekCard className="md:col-span-2 xl:col-span-5" />
+        </div>
 
-        <TasksWidget className="md:col-span-1 xl:col-span-5" />
-        <ProjectsWidget className="md:col-span-2 xl:col-span-7" />
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-12">
+          <SavingsCard className="xl:col-span-4" />
+          <TasksCard className="xl:col-span-4" />
+          <CalendarCard className="md:col-span-2 xl:col-span-4" />
+        </div>
 
-        <CalendarWidget className="md:col-span-1 xl:col-span-5" />
-        <WishlistWidget className="md:col-span-1 xl:col-span-7" />
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-12">
+          <ProjectsCard className="xl:col-span-7" />
+          <WishlistCard className="xl:col-span-5" />
+        </div>
       </div>
     </>
   );

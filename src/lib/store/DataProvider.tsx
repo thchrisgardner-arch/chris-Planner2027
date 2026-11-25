@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { localAdapter } from "@/services/localAdapter";
 import { supabaseAdapter } from "@/services/supabaseAdapter";
-import { demoAdapter } from "@/services/demoAdapter";
+import { demoAdapter, setDemoVariant } from "@/services/demoAdapter";
 import type { DataAdapter, DataMode } from "@/services/types";
 import {
   CASCADES,
@@ -48,9 +48,11 @@ function getAdapter(): DataAdapter {
   if (typeof window === "undefined") return isSupabaseConfigured ? supabaseAdapter : localAdapter;
   if (chosen) return chosen;
   const q = new URLSearchParams(window.location.search).get("demo");
-  if (q === "1") sessionStorage.setItem("lifeos-demo", "1");
+  if (q === "1" || q === "vacio") sessionStorage.setItem("lifeos-demo", q);
   if (q === "0") sessionStorage.removeItem("lifeos-demo");
-  const demo = sessionStorage.getItem("lifeos-demo") === "1";
+  const flag = sessionStorage.getItem("lifeos-demo");
+  const demo = flag === "1" || flag === "vacio";
+  if (demo) setDemoVariant(flag === "vacio" ? "vacio" : "completo");
   chosen = demo ? demoAdapter : isSupabaseConfigured ? supabaseAdapter : localAdapter;
   return chosen;
 }
@@ -78,9 +80,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [status, setStatus] = useState<Status>("loading");
   const [error, setError] = useState<string | null>(null);
+  // El modo se fija al cargar en el navegador (en el servidor no se conoce el modo demo)
+  const [mode, setMode] = useState<DataMode>(isSupabaseConfigured ? "supabase" : "local");
 
   const reload = useCallback(async () => {
     try {
+      setMode(getAdapter().mode);
       const [data, prof] = await Promise.all([getAdapter().loadAll(), getAdapter().loadProfile()]);
       setDb(data);
       setProfile(prof);
@@ -154,7 +159,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       profile,
       status,
       error,
-      mode: getAdapter().mode,
+      mode,
       insert,
       update,
       remove,
@@ -163,7 +168,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       clearAll,
       signOut,
     }),
-    [db, profile, status, error, insert, update, remove, saveProfile, reload, clearAll, signOut],
+    [db, profile, status, error, mode, insert, update, remove, saveProfile, reload, clearAll, signOut],
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

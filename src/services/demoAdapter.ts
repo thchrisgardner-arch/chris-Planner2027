@@ -150,7 +150,18 @@ function seed(): { db: Database; profile: Profile } {
 }
 
 let state: { db: Database; profile: Profile } | null = null;
-const get = () => (state ??= seed());
+let variant: "completo" | "vacio" = "completo";
+/** ?demo=vacio muestra la app sin datos (para revisar los estados vacíos). */
+export function setDemoVariant(v: "completo" | "vacio") {
+  if (v !== variant) state = null;
+  variant = v;
+}
+function emptySeed(): { db: Database; profile: Profile } {
+  const s = seed();
+  const db = Object.fromEntries(Object.keys(s.db).map((k) => [k, []])) as unknown as Database;
+  return { db, profile: s.profile };
+}
+const get = () => (state ??= variant === "vacio" ? emptySeed() : seed());
 
 export const demoAdapter: DataAdapter = {
   mode: "demo",
@@ -189,7 +200,7 @@ export const demoAdapter: DataAdapter = {
     drop(table, rowId);
   },
   async clearAll() {
-    state = seed();
+    state = null;
   },
 };
 

@@ -20,7 +20,7 @@ import { formatCOP, pct, sum } from "@/utils/money";
 import { cn } from "@/utils/cn";
 import { StoreLogo } from "@/components/ui/StoreLogo";
 import { detectStoreInText } from "@/modules/other/stores";
-import { ActivityWidget } from "@/modules/dashboard/widgets/FinanceWidgets";
+import { ActivityCard as ActivityWidget } from "@/modules/dashboard/DashboardWidgets";
 import { CATEGORY_COLORS, EXPENSE_CATEGORIES, INCOME_CATEGORIES, accountTypeLabel } from "./constants";
 import { accountBalance, expensesByBeneficiary, expensesByCategory, monthTotals, totalBalance } from "./selectors";
 

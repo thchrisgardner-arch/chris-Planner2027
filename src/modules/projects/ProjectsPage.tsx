@@ -16,7 +16,7 @@ import type { Project, ProjectStatus, Task } from "@/types/db";
 import { relativeDay } from "@/utils/dates";
 import { formatCOP } from "@/utils/money";
 import { cn } from "@/utils/cn";
-import { CheckCircle, useToggleTask } from "@/modules/dashboard/widgets/LifeWidgets";
+import { CheckCircle, useToggleTask } from "@/modules/dashboard/DashboardWidgets";
 import {
   PROJECT_STATUSES,
   priorityLabel,
