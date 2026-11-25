@@ -208,7 +208,8 @@ export function ReaccionNegativa() {
   const [visible, setVisible] = useState<null | { id: AsistenteId; texto: string; accion: { label: string; href: string }; pose: "triste" | "molesto" }>(null);
 
   useEffect(() => {
-    if (!g.activo || !g.progreso.ajustes.negativas || g.negativaHoy() || !g.progreso.ui.iniciado) return;
+    const forzada = g.demo && g.negativaDemo > 0;
+    if (!g.activo || !g.progreso.ajustes.negativas || (!forzada && g.negativaHoy()) || !g.progreso.ui.iniciado) return;
     const ayer = addDays(today, -1);
     const pago = db.calendar_events.find((e) => (e.type === "pago" || e.type === "vencimiento") && e.date < today && e.date >= addDays(today, -7));
     const r = g.progreso.racha;
@@ -225,7 +226,7 @@ export function ReaccionNegativa() {
     }
     // Solo al abrir la app
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [g.progreso.ui.iniciado]);
+  }, [g.progreso.ui.iniciado, g.negativaDemo]);
 
   if (!visible) return null;
   const a = estado.ajustes[visible.id];

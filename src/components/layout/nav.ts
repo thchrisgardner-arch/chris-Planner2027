@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Settings,
   Target,
+  Trophy,
   UserRound,
   Wallet,
   type LucideIcon,
@@ -26,6 +27,7 @@ export const MAIN_NAV: NavItem[] = [
   { href: "/wishlist", label: "Wishlist", icon: Gift },
   { href: "/objetivos", label: "Objetivos", icon: Target },
   { href: "/calendario", label: "Calendario", icon: CalendarDays },
+  { href: "/progreso", label: "Progreso", icon: Trophy },
 ];
 
 export const SECONDARY_NAV: NavItem[] = [

@@ -109,6 +109,8 @@ interface Valor {
   sumarXPDemo: (xp: number, asistente: AsistenteId) => void;
   celebrarDemo: (c: Celebracion) => void;
   romperRachaDemo: (conProtector: boolean) => void;
+  /** Sube para forzar la reacción negativa en modo demo */
+  negativaDemo: number;
 }
 
 const Ctx = createContext<Valor | null>(null);
@@ -125,6 +127,7 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
   const [celebraciones, setCelebraciones] = useState<Celebracion[]>([]);
   const [forzarSalud, setForzarSalud] = useState<Partial<Record<AsistenteId, number | null>>>({});
   const [revisionOculta, setRevisionOculta] = useState(false);
+  const [negativaDemo, setNegativaDemo] = useState(0);
   const seqR = useRef(0);
   const principal = estado.principal;
 
@@ -268,18 +271,14 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
     romperRachaDemo: (conProtector) => {
       if (mode !== "demo") return;
       const prev = leer();
-      // Simula 10 días seguidos que terminan hace 2 días (ayer sin actividad)
-      const dias: string[] = [];
-      for (let i = 11; i >= 2; i--) dias.push(new Date(Date.parse(today) - i * 86_400_000).toISOString().slice(0, 10));
-      const extra: EventoXP[] = dias.map((d, i) => ({ id: `demo-r${i}`, tipo: "habito", xp: 10, fecha: d, refId: `demo:racha:${d}`, asistente: "brote" }));
-      const eventos = [...prev.eventos.filter((e) => !e.refId.startsWith("demo:racha:") && e.fecha !== new Date(Date.parse(today) - 86_400_000).toISOString().slice(0, 10)), ...extra];
-      const sinProtector = !conProtector;
-      const racha = { ...prev.racha };
-      const base = { ...prev, eventos };
-      const calc = reconciliar(base, db, today, principal).next.racha;
-      guardar({ ...base, racha: sinProtector ? { ...calc, actual: 0, protectores: 0, usados: [] } : calc });
-      void racha;
+      const ayer = new Date(Date.parse(today) - 86_400_000).toISOString().slice(0, 10);
+      const racha = conProtector
+        ? { ...prev.racha, actual: Math.max(prev.racha.actual, 9), mejor: Math.max(prev.racha.mejor, 9), protectores: 0, usados: [...prev.racha.usados, ayer] }
+        : { ...prev.racha, actual: 0, mejor: Math.max(prev.racha.mejor, 10), protectores: 0, diasActivos: prev.racha.diasActivos.filter((d) => d !== ayer && d !== today) };
+      guardar({ ...prev, racha, ui: { ...prev.ui, ultimaNegativa: undefined } });
+      if (!conProtector) setNegativaDemo((n) => n + 1);
     },
+    negativaDemo,
   };
 
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;
