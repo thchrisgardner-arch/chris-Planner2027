@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CornerDownRight, Plus, Search } from "lucide-react";
+import Link from "next/link";
+import { ArrowUpRight, CornerDownRight, Plus, Search } from "lucide-react";
 import { AsistenteModulo, useVacioAsistente } from "@/modules/asistentes/Presencia";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -105,7 +106,7 @@ export function ProjectsPage() {
 }
 
 /* ───────── Fila de tarea (con subtareas) ───────── */
-function TaskRow({ task, depth = 0 }: { task: Task; depth?: number }) {
+export function TaskRow({ task, depth = 0 }: { task: Task; depth?: number }) {
   const { db } = useData();
   const open = useForms();
   const toggle = useToggleTask();
@@ -184,7 +185,12 @@ function ListView({ projects, loose }: { projects: Project[]; loose: Task[] }) {
               <div className="flex min-w-0 flex-1 items-start gap-3">
                 <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: p.color }} aria-hidden />
                 <div className="min-w-0">
-                  <h2 className="truncate text-[19px]">{p.name}</h2>
+                  <h2 className="truncate text-[19px]">
+                    <Link href={`/proyectos/${p.id}`} className="focus-ring group inline-flex max-w-full items-center gap-1.5 rounded-[8px] hover:underline">
+                      <span className="truncate">{p.name}</span>
+                      <ArrowUpRight size={17} className="shrink-0 text-dim group-hover:text-fg" aria-hidden />
+                    </Link>
+                  </h2>
                   <ProjectMeta p={p} />
                   {p.description ? <p className="mt-2 text-[13px] text-muted">{p.description}</p> : null}
                 </div>
@@ -260,7 +266,6 @@ function ListView({ projects, loose }: { projects: Project[]; loose: Task[] }) {
 
 function KanbanView({ projects }: { projects: Project[] }) {
   const { db, update } = useData();
-  const open = useForms();
   const today = useToday();
 
   return (
@@ -281,7 +286,7 @@ function KanbanView({ projects }: { projects: Project[] }) {
                   const prog = projectProgress(p, db.tasks);
                   return (
                     <div key={p.id} className="rounded-[18px] bg-bg-2 p-3.5">
-                      <button className="block w-full cursor-pointer text-left" onClick={() => open({ kind: "project", record: p })}>
+                      <Link href={`/proyectos/${p.id}`} className="focus-ring block w-full rounded-[12px] text-left" aria-label={`Abrir ${p.name}`}>
                         <div className="flex items-center gap-2">
                           <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: p.color }} />
                           <p className="truncate text-[14px] font-medium">{p.name}</p>
@@ -290,7 +295,7 @@ function KanbanView({ projects }: { projects: Project[] }) {
                           {p.due_date ? relativeDay(p.due_date, today) : "Sin fecha"} · {prog.done}/{prog.total} tareas
                         </p>
                         <Progress value={prog.pct} className="mt-3" label={`Progreso de ${p.name}`} />
-                      </button>
+                      </Link>
                       <Select
                         value={p.status}
                         aria-label={`Mover ${p.name}`}
