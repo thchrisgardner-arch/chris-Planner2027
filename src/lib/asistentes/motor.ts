@@ -11,6 +11,8 @@ import { addDays, addMonths, bogotaHour, formatTime, monthKey, monthLabel, relat
 import { formatKpiCOP, sum } from "@/utils/money";
 import { FICHAS, type Datos, type Tono } from "./definiciones";
 import type { AsistenteId, Expresion } from "./tipos";
+import { animoDePuntaje, calcularSalud, poseDeAnimo, type Animo } from "./animo";
+import { FRASES_ANIMO } from "./frasesAnimo";
 
 export interface Mensaje {
   texto: string;
@@ -18,6 +20,9 @@ export interface Mensaje {
   /** 0 = informativo · 1 = útil · 2 = aviso · 3 = urgente */
   prioridad: number;
   accion?: { label: string; href: string };
+  /** Ánimo y salud del módulo (0 a 100, null sin datos) */
+  animo?: Animo;
+  salud?: number | null;
 }
 
 export interface ContextoAsistente {
@@ -26,6 +31,8 @@ export interface ContextoAsistente {
   tono: Tono;
   /** Minutos desde la medianoche en Bogotá (para la agenda) */
   ahoraMin?: number;
+  /** Solo modo demo: fuerza la salud de un módulo para probar ánimos */
+  forzarSalud?: Partial<Record<AsistenteId, number | null>>;
 }
 
 export interface MotorAsistentes {
@@ -218,9 +225,20 @@ const SALUDO: Record<Tono, (n: string) => string> = {
 
 const normalizar = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
+/** Ánimos que hablan por sí mismos cuando no hay un aviso más importante */
+const ANIMO_HABLA: Animo[] = ["radiante", "preocupado", "triste", "dormido"];
+
 export const motorLocal: MotorAsistentes = {
   mensaje(id, ctx) {
-    return REGLAS[id](ctx);
+    const regla = REGLAS[id](ctx);
+    const forzada = ctx.forzarSalud && id in ctx.forzarSalud;
+    const salud = forzada ? (ctx.forzarSalud![id] ?? null) : calcularSalud(id, ctx.db, ctx.today).puntaje;
+    const animo = animoDePuntaje(salud);
+    const pose = poseDeAnimo(animo, ctx.today);
+    // Los avisos (prioridad 2 o más) mandan; si no, el asistente habla y posa según su ánimo
+    if (regla.prioridad >= 2 && !forzada) return { ...regla, animo, salud };
+    if (ANIMO_HABLA.includes(animo) || forzada) return { texto: FRASES_ANIMO[id][animo][ctx.tono], expresion: pose, prioridad: animo === "dormido" ? 0 : 1, accion: regla.accion, animo, salud };
+    return { ...regla, expresion: regla.expresion === "idle" ? pose : regla.expresion, animo, salud };
   },
   responder(id, pregunta, ctx) {
     const q = normalizar(pregunta.trim());
