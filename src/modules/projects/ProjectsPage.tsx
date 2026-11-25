@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CornerDownRight, FolderKanban, ListTodo, Plus, Search } from "lucide-react";
+import { CornerDownRight, Plus, Search } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -51,28 +51,24 @@ export function ProjectsPage() {
   return (
     <>
       <PageHeader title="Proyectos" subtitle="Proyectos personales, tareas y subtareas con progreso automático.">
-        <Button onClick={() => open({ kind: "task" })}>
-          <ListTodo size={18} /> Tarea
-        </Button>
-        <Button variant="primary" className="lg:hidden" onClick={() => open({ kind: "project" })}>
-          <Plus size={18} /> Proyecto
+        <Button variant="primary" className="max-md:hidden" onClick={() => open({ kind: "project" })}>
+          <Plus size={18} /> Nuevo proyecto
         </Button>
       </PageHeader>
 
       {db.projects.length === 0 && db.tasks.length === 0 ? (
         <EmptyState
-          icon={<FolderKanban size={22} />}
           title="Aún no tienes proyectos"
           description="Crea un proyecto y divídelo en tareas. El progreso se calcula solo."
           action={
-            <Button variant="primary" onClick={() => open({ kind: "project" })}>
-              <Plus size={18} /> Crear proyecto
+            <Button variant="ghost" onClick={() => open({ kind: "task" })}>
+              <Plus size={18} /> O agrega una tarea suelta
             </Button>
           }
         />
       ) : (
         <>
-          <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search size={18} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-dim" />
               <Input placeholder="Buscar proyectos o tareas" className="pl-10" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar" />
@@ -87,6 +83,7 @@ export function ProjectsPage() {
             </Select>
             <Segmented
               size="md"
+              label="Vista"
               value={view}
               onChange={setView}
               options={[
@@ -115,13 +112,13 @@ function TaskRow({ task, depth = 0 }: { task: Task; depth?: number }) {
 
   return (
     <>
-      <li className={cn("group flex items-center gap-3 rounded-[12px] px-2 py-2 hover:bg-bg-2", depth && "ml-8")}>
+      <li className={cn("group flex items-center gap-3 rounded-[16px] px-2 py-2 hover:bg-bg-2", depth && "ml-8")}>
         {depth ? <CornerDownRight size={14} className="-ml-5 shrink-0 text-dim" /> : null}
         <CheckCircle checked={done} onToggle={() => toggle(task)} label={`${done ? "Reabrir" : "Completar"} ${task.name}`} />
         <div className="min-w-0 flex-1">
           <p className={cn("truncate text-[14px]", done && "text-dim line-through")}>{task.name}</p>
           <p className="text-[12px] text-muted">
-            {task.due_date ? <span className={cn(overdue && "text-warn")}>{relativeDay(task.due_date, today)}</span> : "Sin fecha"}
+            {task.due_date ? <span className={cn(overdue && "text-danger")}>{relativeDay(task.due_date, today)}</span> : "Sin fecha"}
             {subs.length ? <span className="text-dim"> · {subs.filter((s) => s.status === "completada").length}/{subs.length} subtareas</span> : null}
           </p>
         </div>
@@ -171,18 +168,18 @@ function ListView({ projects, loose }: { projects: Project[]; loose: Task[] }) {
   const { toast } = useFeedback();
 
   return (
-    <div className="flex flex-col gap-4">
-      {projects.length === 0 ? <EmptyState compact icon={<Search size={20} />} title="Ningún proyecto coincide con los filtros" /> : null}
+    <div className="flex flex-col gap-3">
+      {projects.length === 0 ? <EmptyState title="Ningún proyecto coincide con los filtros" /> : null}
       {projects.map((p) => {
         const prog = projectProgress(p, db.tasks);
         const tasks = db.tasks.filter((t) => t.project_id === p.id && !t.parent_task_id);
         return (
-          <Card key={p.id} className="p-5 sm:p-6">
+          <Card key={p.id}>
             <div className="flex flex-col gap-4 md:flex-row md:items-start">
               <div className="flex min-w-0 flex-1 items-start gap-3">
-                <span className="mt-1.5 h-3 w-3 shrink-0 rounded-full" style={{ background: p.color }} />
+                <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: p.color }} aria-hidden />
                 <div className="min-w-0">
-                  <h3 className="truncate text-[18px] font-medium">{p.name}</h3>
+                  <h2 className="truncate text-[19px]">{p.name}</h2>
                   <ProjectMeta p={p} />
                   {p.description ? <p className="mt-2 text-[13px] text-muted">{p.description}</p> : null}
                 </div>
@@ -191,7 +188,7 @@ function ListView({ projects, loose }: { projects: Project[]; loose: Task[] }) {
                 <Select
                   value={p.status}
                   aria-label={`Estado de ${p.name}`}
-                  className="h-9 w-[150px] text-[13px]"
+                  className="h-10 w-[160px] rounded-full bg-bg-2 text-[13px]"
                   onChange={async (e) => {
                     await update("projects", p.id, { status: e.target.value as ProjectStatus });
                     toast(`${p.name}: ${projectStatusLabel(e.target.value as ProjectStatus)}`);
@@ -210,11 +207,19 @@ function ListView({ projects, loose }: { projects: Project[]; loose: Task[] }) {
                 />
               </div>
             </div>
-            <div className="mt-5 flex items-center gap-3">
-              <Progress value={prog.pct} color={p.color} className="h-2" label={`Progreso de ${p.name}`} />
-              <span className="num w-12 shrink-0 text-right text-[13px] font-medium text-fg">
-                {Math.round(prog.pct)} %
-              </span>
+            <div className="mt-6 flex items-end gap-5">
+              <p className={cn("figure shrink-0 text-[52px]", prog.pct === 0 && "text-dim")}>
+                {Math.round(prog.pct)}
+                <span className="text-[22px] text-muted"> %</span>
+              </p>
+              <div className="min-w-0 flex-1 pb-2.5">
+                <p className="mb-2 text-right text-[12.5px] text-muted">
+                  {prog.done}/{prog.total} {prog.total === 1 ? "tarea" : "tareas"}
+                </p>
+                <div className="h-3 overflow-hidden rounded-full bg-bg-2" role="progressbar" aria-label={`Progreso de ${p.name}`} aria-valuenow={Math.round(prog.pct)} aria-valuemin={0} aria-valuemax={100}>
+                  <div className={cn("h-full rounded-full", prog.pct >= 100 ? "bg-brand" : "bg-fg")} style={{ width: `${prog.pct}%` }} />
+                </div>
+              </div>
             </div>
             <ul className="-mx-2 mt-4 flex flex-col">
               {tasks.map((t) => (
@@ -228,15 +233,22 @@ function ListView({ projects, loose }: { projects: Project[]; loose: Task[] }) {
         );
       })}
       {loose.length ? (
-        <Card className="p-5 sm:p-6">
-          <h3 className="text-[17px] font-medium">Tareas sin proyecto</h3>
+        <Card>
+          <h2 className="text-[17px]">Tareas sin proyecto</h2>
           <ul className="-mx-2 mt-3 flex flex-col">
             {loose.map((t) => (
               <TaskRow key={t.id} task={t} />
             ))}
           </ul>
+          <Button size="sm" variant="ghost" className="mt-2" onClick={() => open({ kind: "task" })}>
+            <Plus size={17} /> Agregar tarea
+          </Button>
         </Card>
-      ) : null}
+      ) : (
+        <Button variant="ghost" className="self-start" onClick={() => open({ kind: "task" })}>
+          <Plus size={17} /> Agregar tarea sin proyecto
+        </Button>
+      )}
     </div>
   );
 }
@@ -252,7 +264,7 @@ function KanbanView({ projects }: { projects: Project[] }) {
         {PROJECT_STATUSES.map((col) => {
           const items = projects.filter((p) => p.status === col.value);
           return (
-            <div key={col.value} className="rounded-[22px] bg-bg-2 p-3">
+            <div key={col.value} className="rounded-[24px] bg-card p-3">
               <div className="mb-3 flex items-center justify-between px-1">
                 <Badge tone={projectStatusTone(col.value)} dot>
                   {col.label}
@@ -263,7 +275,7 @@ function KanbanView({ projects }: { projects: Project[] }) {
                 {items.map((p) => {
                   const prog = projectProgress(p, db.tasks);
                   return (
-                    <div key={p.id} className="rounded-[16px] border border-line bg-card p-3.5">
+                    <div key={p.id} className="rounded-[18px] bg-bg-2 p-3.5">
                       <button className="block w-full cursor-pointer text-left" onClick={() => open({ kind: "project", record: p })}>
                         <div className="flex items-center gap-2">
                           <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: p.color }} />
@@ -272,12 +284,12 @@ function KanbanView({ projects }: { projects: Project[] }) {
                         <p className="mt-1 text-[11.5px] text-muted">
                           {p.due_date ? relativeDay(p.due_date, today) : "Sin fecha"} · {prog.done}/{prog.total} tareas
                         </p>
-                        <Progress value={prog.pct} color={p.color} className="mt-3" label={`Progreso de ${p.name}`} />
+                        <Progress value={prog.pct} className="mt-3" label={`Progreso de ${p.name}`} />
                       </button>
                       <Select
                         value={p.status}
                         aria-label={`Mover ${p.name}`}
-                        className="mt-3 h-8 rounded-[9px] text-[12px]"
+                        className="mt-3 h-9 rounded-full text-[12px]"
                         onChange={(e) => update("projects", p.id, { status: e.target.value as ProjectStatus })}
                       >
                         {PROJECT_STATUSES.map((s) => (

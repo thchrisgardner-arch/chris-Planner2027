@@ -2,78 +2,73 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
-import { ArrowLeftRight, Download, PiggyBank, Plus, Search, Wallet } from "lucide-react";
+import { ArrowLeftRight, Download, PiggyBank, Plus, Search } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Field";
-import { Badge, EmptyState, Progress } from "@/components/ui/misc";
-import { ModuleTabs, RowActions, useDeleteRecord } from "@/components/ui/RowActions";
+import { Badge, EmptyState } from "@/components/ui/misc";
+import { RowActions, useDeleteRecord } from "@/components/ui/RowActions";
+import { Segmented } from "@/components/ui/misc";
 import { useForms } from "@/components/providers/FormsProvider";
 import { useFeedback } from "@/components/providers/FeedbackProvider";
 import { useData } from "@/lib/store/DataProvider";
 import { useToday } from "@/hooks/useToday";
 import type { Transaction } from "@/types/db";
 import { endOfMonth, formatShortDate, monthKey, monthLabel, addMonths, relativeDay } from "@/utils/dates";
-import { formatCOP, pct, sum } from "@/utils/money";
+import { formatCOP, formatKpiCOP, pct, sum } from "@/utils/money";
 import { cn } from "@/utils/cn";
 import { StoreLogo } from "@/components/ui/StoreLogo";
 import { detectStoreInText } from "@/modules/other/stores";
 import { ActivityCard as ActivityWidget } from "@/modules/dashboard/DashboardWidgets";
-import { CATEGORY_COLORS, EXPENSE_CATEGORIES, INCOME_CATEGORIES, accountTypeLabel } from "./constants";
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, accountTypeLabel } from "./constants";
 import { accountBalance, expensesByBeneficiary, expensesByCategory, monthTotals, totalBalance } from "./selectors";
 
-type Tab = "resumen" | "movimientos" | "cuentas" | "ahorros" | "presupuestos" | "deudas" | "analisis";
+type Tab = "resumen" | "movimientos" | "cuentas" | "ahorros";
 
-const TABS: { value: Tab; label: string; soon?: boolean }[] = [
+const TABS: { value: Tab; label: string }[] = [
   { value: "resumen", label: "Resumen" },
   { value: "movimientos", label: "Movimientos" },
   { value: "cuentas", label: "Cuentas" },
   { value: "ahorros", label: "Ahorros" },
-  { value: "presupuestos", label: "Presupuestos", soon: true },
-  { value: "deudas", label: "Deudas", soon: true },
-  { value: "analisis", label: "Análisis", soon: true },
 ];
 
 export function FinancePage() {
   const params = useSearchParams();
   const router = useRouter();
   const raw = params.get("tab") as Tab | null;
-  const tab: Tab = raw && TABS.some((t) => t.value === raw && !t.soon) ? raw : "resumen";
+  const tab: Tab = raw && TABS.some((t) => t.value === raw) ? raw : "resumen";
   const open = useForms();
   const { db } = useData();
 
   return (
     <>
-      <PageHeader title="Finanzas" subtitle="Ingresos, gastos, cuentas y ahorros en COP.">
-        <Button onClick={() => open({ kind: "account" })}>
-          <Wallet size={18} /> Cuenta
-        </Button>
-        <Button
-          variant="primary"
-          className="lg:hidden"
-          onClick={() => open(db.accounts.length ? { kind: "transaction" } : { kind: "account" })}
-        >
-          <Plus size={18} /> Movimiento
+      <PageHeader title="Finanzas" subtitle="Ingresos, gastos, cuentas y ahorros.">
+        <Button variant="primary" className="max-md:hidden" onClick={() => open(db.accounts.length ? { kind: "transaction" } : { kind: "account" })}>
+          <Plus size={18} /> Nuevo movimiento
         </Button>
       </PageHeader>
-      <ModuleTabs value={tab} onChange={(v) => router.replace(`/finanzas?tab=${v}`, { scroll: false })} tabs={TABS} />
+      <div className="-mx-4 mb-6 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <Segmented size="md" label="Secciones de finanzas" value={tab} onChange={(v) => router.replace(`/finanzas?tab=${v}`, { scroll: false })} options={TABS} />
+      </div>
       {tab === "resumen" && <Summary />}
       {tab === "movimientos" && <Movements />}
       {tab === "cuentas" && <Accounts />}
       {tab === "ahorros" && <Savings />}
+      <p className="mt-8 text-center text-[13px] text-dim">Próximamente: presupuestos, deudas y análisis.</p>
     </>
   );
 }
 
 /* ───────── Resumen ───────── */
-function Kpi({ label, value, tone, hint }: { label: string; value: number; tone?: string; hint?: string }) {
+function Kpi({ label, value, hint, inverse }: { label: string; value: number; hint?: string; inverse?: boolean }) {
   return (
-    <Card className="p-5 sm:p-5">
-      <p className="label">{label}</p>
-      <p className={cn("num mt-2 truncate text-[24px] font-medium leading-none md:text-[26px]", tone)}>{formatCOP(value)}</p>
-      {hint ? <p className="mt-2 text-[11.5px] text-dim">{hint}</p> : null}
+    <Card variant={inverse ? "inverse" : "default"} className="flex min-h-[140px] flex-col">
+      <h2 className={cn("text-[14px]", inverse ? "text-on-fg" : "text-fg")}>{label}</h2>
+      <p className={cn("figure mt-auto pt-5 text-[32px] sm:text-[38px]", inverse ? "text-on-fg" : value === 0 ? "text-dim" : "text-fg")} title={formatCOP(value)}>
+        {formatKpiCOP(value)}
+      </p>
+      {hint ? <p className={cn("mt-1.5 text-[12.5px]", inverse ? "text-on-fg/60" : "text-muted")}>{hint}</p> : null}
     </Card>
   );
 }
@@ -95,84 +90,70 @@ function Summary() {
   const benTotal = byBen.para_mi + byBen.otras_personas + byBen.compartido + byBen.sin_clasificar;
 
   return (
-    <div className="grid gap-4 xl:gap-5">
-      <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 md:grid-cols-3 min-[1700px]:grid-cols-6">
-        <Kpi label="Ingresos del mes" value={m.income} tone="text-brand-soft" hint={monthLabel(key)} />
-        <Kpi label="Gastos del mes" value={m.expense} tone="text-warn" hint={monthLabel(key)} />
-        <Kpi label="Balance neto" value={m.net} tone={m.net >= 0 ? "text-fg" : "text-warn"} hint="Ingresos − gastos" />
-        <Kpi label="Dinero disponible" value={available} hint="Todas las cuentas" />
+    <div className="grid gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+        <Kpi inverse label="Dinero disponible" value={available} hint="Todas las cuentas" />
+        <Kpi label="Ingresos del mes" value={m.income} hint={monthLabel(key)} />
+        <Kpi label="Gastos del mes" value={m.expense} hint={monthLabel(key)} />
+        <Kpi label="Balance neto" value={m.net} hint="Ingresos − gastos" />
         <Kpi label="Ahorro acumulado" value={saved} hint="En tus metas" />
         <Kpi label="Deuda en tarjetas" value={Math.abs(cardDebt)} hint="Saldo negativo de tarjetas" />
       </div>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-12 xl:gap-5">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-12">
         <ActivityWidget className="md:col-span-2 xl:col-span-7" />
         <Card className="xl:col-span-5">
           <CardHeader title="Gastos por categoría" subtitle={monthLabel(key)} />
           {byCat.length === 0 ? (
-            <EmptyState compact icon={<Wallet size={21} />} title="Sin gastos este mes" />
+            <EmptyState title="Sin gastos este mes" />
           ) : (
-            <div className="flex flex-col items-center gap-5 sm:flex-row">
-              <div className="h-[180px] w-[180px] shrink-0">
-                <ResponsiveContainer>
-                  <PieChart>
-                    <Pie data={byCat} dataKey="value" nameKey="name" innerRadius={58} outerRadius={84} paddingAngle={2} stroke="none">
-                      {byCat.map((c, i) => (
-                        <Cell key={c.name} fill={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      content={({ active, payload }) =>
-                        active && payload?.[0] ? (
-                          <div className="rounded-[12px] border border-line bg-elev px-3 py-2 text-[12.5px]">
-                            {payload[0].name}: <span className="num font-medium">{formatCOP(Number(payload[0].value))}</span>
-                          </div>
-                        ) : null
-                      }
+            <ul className="flex flex-col gap-3">
+              {byCat.slice(0, 7).map((c, i) => (
+                <li key={c.name}>
+                  <div className="mb-1.5 flex items-baseline justify-between gap-3 text-[13.5px]">
+                    <span className="truncate text-fg">{c.name}</span>
+                    <span className="num shrink-0 text-muted">
+                      {formatCOP(c.value)} <span className="text-dim">· {Math.round(pct(c.value, m.expense))} %</span>
+                    </span>
+                  </div>
+                  <div className="h-3 overflow-hidden rounded-full bg-elev">
+                    <div
+                      className={cn("h-full rounded-full transition-[width] duration-500", i === 0 ? "bg-brand" : "bg-line-strong")}
+                      style={{ width: `${Math.max(4, pct(c.value, byCat[0].value))}%` }}
                     />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <ul className="w-full space-y-2">
-                {byCat.slice(0, 6).map((c, i) => (
-                  <li key={c.name} className="flex items-center gap-2.5 text-[13px]">
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }} />
-                    <span className="flex-1 truncate text-muted">{c.name}</span>
-                    <span className="num font-medium">{formatCOP(c.value)}</span>
-                    <span className="num w-10 text-right text-[11.5px] text-dim">{Math.round(pct(c.value, m.expense))} %</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
         </Card>
         <Card className="md:col-span-2 xl:col-span-12">
           <CardHeader title="¿Para quién fue el gasto?" subtitle="Distribución del mes, solo informativa" />
           {benTotal === 0 ? (
-            <EmptyState compact icon={<Wallet size={21} />} title="Sin gastos clasificados este mes" />
+            <EmptyState title="Sin gastos clasificados este mes" />
           ) : (
             <>
               <div className="flex h-3 overflow-hidden rounded-full bg-elev">
                 {[
-                  { v: byBen.para_mi, c: "#2ee56b" },
-                  { v: byBen.otras_personas, c: "#9b82f6" },
-                  { v: byBen.compartido, c: "#66a9f7" },
-                  { v: byBen.sin_clasificar, c: "var(--color-line-strong)" },
+                  { v: byBen.para_mi, c: "var(--color-fg)" },
+                  { v: byBen.otras_personas, c: "var(--color-muted)" },
+                  { v: byBen.compartido, c: "var(--color-line-strong)" },
+                  { v: byBen.sin_clasificar, c: "var(--color-elev)" },
                 ].map((s, i) => (
                   <div key={i} style={{ width: `${pct(s.v, benTotal)}%`, background: s.c }} className="h-full transition-[width] duration-500" />
                 ))}
               </div>
               <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
                 {[
-                  { k: "Para mí", v: byBen.para_mi, c: "#2ee56b" },
-                  { k: "Para otras personas", v: byBen.otras_personas, c: "#9b82f6" },
-                  { k: "Compartido", v: byBen.compartido, c: "#66a9f7" },
-                  { k: "Sin clasificar", v: byBen.sin_clasificar, c: "var(--color-line-strong)" },
+                  { k: "Para mí", v: byBen.para_mi, c: "var(--color-fg)" },
+                  { k: "Para otras personas", v: byBen.otras_personas, c: "var(--color-muted)" },
+                  { k: "Compartido", v: byBen.compartido, c: "var(--color-line-strong)" },
+                  { k: "Sin clasificar", v: byBen.sin_clasificar, c: "var(--color-elev)" },
                 ].map((s) => (
                   <div key={s.k} className="rounded-[22px] bg-bg-2 px-4 py-3">
                     <p className="label flex items-center gap-1.5">
                       <span className="h-2 w-2 rounded-full" style={{ background: s.c }} /> {s.k}
                     </p>
-                    <p className="num mt-1.5 text-[17px] font-medium">{formatCOP(s.v)}</p>
+                    <p className={cn("figure mt-2 text-[24px]", s.v === 0 && "text-dim")}>{formatKpiCOP(s.v)}</p>
                     <p className="num text-[11.5px] text-dim">{Math.round(pct(s.v, benTotal))} %</p>
                   </div>
                 ))}
@@ -255,13 +236,14 @@ function Movements() {
   if (db.transactions.length === 0) {
     return (
       <EmptyState
-        icon={<ArrowLeftRight size={22} />}
         title="Aún no registras movimientos"
-        description={db.accounts.length ? "Registra ingresos, gastos o transferencias entre tus cuentas." : "Primero crea una cuenta."}
+        description={db.accounts.length ? "Registra ingresos, gastos o transferencias entre tus cuentas." : "Primero agrega una cuenta."}
         action={
-          <Button variant="primary" onClick={() => open(db.accounts.length ? { kind: "transaction" } : { kind: "account" })}>
-            <Plus size={18} /> {db.accounts.length ? "Registrar movimiento" : "Crear cuenta"}
-          </Button>
+          db.accounts.length ? undefined : (
+            <Button onClick={() => open({ kind: "account" })}>
+              <Plus size={18} /> Agregar cuenta
+            </Button>
+          )
         }
       />
     );
@@ -367,12 +349,11 @@ function Accounts() {
   if (db.accounts.length === 0) {
     return (
       <EmptyState
-        icon={<Wallet size={22} />}
-        title="Crea tu primera cuenta"
+        title="Agrega tu primera cuenta"
         description="Banco, efectivo, billetera digital, ahorros o tarjeta de crédito."
         action={
-          <Button variant="primary" onClick={() => open({ kind: "account" })}>
-            <Plus size={18} /> Crear cuenta
+          <Button onClick={() => open({ kind: "account" })}>
+            <Plus size={18} /> Agregar cuenta
           </Button>
         }
       />
@@ -380,7 +361,7 @@ function Accounts() {
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {db.accounts.map((a) => {
         const balance = accountBalance(a, db.transactions);
         const count = db.transactions.filter((t) => t.account_id === a.id || t.to_account_id === a.id).length;
@@ -406,12 +387,12 @@ function Accounts() {
                 }
               />
             </div>
-            <p className={cn("num mt-6 text-[30px] font-medium leading-none", balance < 0 && "text-warn")}>{formatCOP(balance)}</p>
+            <p className={cn("figure mt-8 text-[38px]", balance < 0 ? "text-danger" : balance === 0 ? "text-dim" : "text-fg")}>{formatCOP(balance)}</p>
             <p className="mt-2 text-[12px] text-dim">
               Saldo inicial {formatCOP(a.initial_balance)} · {count} movimientos
             </p>
             <div className="mt-5 flex gap-2">
-              <Button size="sm" onClick={() => open({ kind: "transaction", defaults: { account_id: a.id } })}>
+              <Button size="sm" variant="secondary" className="bg-bg-2" onClick={() => open({ kind: "transaction", defaults: { account_id: a.id } })}>
                 <Plus size={14} /> Movimiento
               </Button>
               <Button
@@ -441,11 +422,10 @@ function Savings() {
   if (db.savings_goals.length === 0) {
     return (
       <EmptyState
-        icon={<PiggyBank size={22} />}
         title="Sin objetivos de ahorro"
         description="Define cuánto quieres ahorrar y para cuándo."
         action={
-          <Button variant="primary" onClick={() => open({ kind: "savings" })}>
+          <Button onClick={() => open({ kind: "savings" })}>
             <Plus size={18} /> Crear objetivo
           </Button>
         }
@@ -455,12 +435,12 @@ function Savings() {
 
   return (
     <>
-      <div className="mb-4 flex justify-end">
-        <Button onClick={() => open({ kind: "savings" })}>
+      <div className="mb-3 flex justify-end">
+        <Button variant="ghost" onClick={() => open({ kind: "savings" })}>
           <Plus size={18} /> Nuevo objetivo
         </Button>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {db.savings_goals.map((g) => {
           const p = pct(g.current_amount, g.target_amount);
           return (
@@ -478,15 +458,20 @@ function Savings() {
                   onDelete={() => del("savings_goals", g.id, `¿Eliminar ${g.name}?`)}
                 />
               </div>
-              <div className="mt-6 flex items-end justify-between gap-2">
-                <p className="num text-[26px] font-medium leading-none">{formatCOP(g.current_amount)}</p>
-                <p className="num text-[13px] font-medium text-brand-soft">{Math.round(p)} %</p>
+              <div className="mt-8 flex items-end justify-between gap-2">
+                <p className={cn("figure text-[52px]", p === 0 && "text-dim")}>
+                  {Math.round(p)}
+                  <span className="text-[24px] text-muted"> %</span>
+                </p>
+                <p className="num pb-2 text-[14px] text-fg">{formatCOP(g.current_amount)}</p>
               </div>
-              <Progress value={p} className="mt-3 h-2" label={`Progreso de ${g.name}`} />
+              <div className="mt-3 h-3 overflow-hidden rounded-full bg-bg-2" role="progressbar" aria-label={`Progreso de ${g.name}`} aria-valuenow={Math.round(p)} aria-valuemin={0} aria-valuemax={100}>
+                <div className={cn("h-full rounded-full", p >= 100 ? "bg-brand" : "bg-fg")} style={{ width: `${Math.min(100, p)}%` }} />
+              </div>
               <p className="mt-2 text-[12px] text-dim">
                 Faltan {formatCOP(Math.max(0, g.target_amount - g.current_amount))} de {formatCOP(g.target_amount)}
               </p>
-              <Button size="sm" variant="primary" className="mt-5 self-start" onClick={() => open({ kind: "deposit", record: g })}>
+              <Button size="sm" variant="secondary" className="mt-5 self-start bg-bg-2" onClick={() => open({ kind: "deposit", record: g })}>
                 <PiggyBank size={14} /> Abonar / retirar
               </Button>
             </Card>

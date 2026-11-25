@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Cloud, Download, HardDrive, Monitor, Moon, Plus, Sun, Trash2, X } from "lucide-react";
+import { Check, Cloud, Download, FlaskConical, UserRound, HardDrive, Monitor, Moon, Plus, Sun, Trash2, X } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -20,7 +20,7 @@ export function SettingsPage() {
   return (
     <>
       <PageHeader title="Configuración" subtitle="Perfil, preferencias y tus datos." />
-      <div className="grid gap-4 xl:grid-cols-2 xl:gap-5">
+      <div className="grid gap-3 xl:grid-cols-2">
         <ProfileCard />
         <AppearanceCard />
         <StorageCard />
@@ -41,11 +41,11 @@ const THEME_OPTIONS: { value: ThemePref; label: string; hint: string; Icon: type
 function ThemePreview({ mode }: { mode: "light" | "dark" }) {
   const c =
     mode === "light"
-      ? { bg: "#f3f4f1", card: "#ffffff", line: "#e3e6e0", fg: "#111412", soft: "#ececea" }
-      : { bg: "#0f1110", card: "#161917", line: "#2a2f2c", fg: "#f2f4f2", soft: "#242826" };
+      ? { bg: "#f4f4f2", card: "#ffffff", fg: "#0a0a0a", soft: "#e6e6e6" }
+      : { bg: "#000000", card: "#1a1a1a", fg: "#f5f5f5", soft: "#262626" };
   return (
     <div className="flex h-full w-full gap-1.5 p-2" style={{ background: c.bg }}>
-      <div className="w-[26%] rounded-[8px] p-1.5" style={{ background: c.card, border: `1px solid ${c.line}` }}>
+      <div className="w-[26%] rounded-[8px] p-1.5" style={{ background: c.card }}>
         <div className="mb-1.5 h-1.5 w-3/4 rounded-full" style={{ background: c.fg, opacity: 0.85 }} />
         {[0, 1, 2].map((i) => (
           <div key={i} className="mb-1 h-1 rounded-full" style={{ background: c.soft }} />
@@ -54,11 +54,11 @@ function ThemePreview({ mode }: { mode: "light" | "dark" }) {
       <div className="flex flex-1 flex-col gap-1.5">
         <div className="h-1.5 w-1/2 rounded-full" style={{ background: c.fg, opacity: 0.85 }} />
         <div className="flex flex-1 gap-1.5">
-          <div className="flex-1 rounded-[8px] p-1.5" style={{ background: c.card, border: `1px solid ${c.line}` }}>
+          <div className="flex-1 rounded-[8px] p-1.5" style={{ background: c.card }}>
             <div className="h-1 w-2/3 rounded-full" style={{ background: c.soft }} />
-            <div className="mt-2 h-2 w-1/2 rounded-full" style={{ background: "#2ee56b" }} />
+            <div className="mt-2 h-2 w-1/2 rounded-full" style={{ background: "#5ce65c" }} />
           </div>
-          <div className="flex-1 rounded-[8px]" style={{ background: c.card, border: `1px solid ${c.line}` }} />
+          <div className="flex-1 rounded-[8px]" style={{ background: c.card }} />
         </div>
       </div>
     </div>
@@ -88,8 +88,8 @@ function AppearanceCard() {
             >
               <div
                 className={cn(
-                  "relative aspect-[4/3] overflow-hidden rounded-[16px] border transition-all duration-200",
-                  active ? "border-fg ring-2 ring-fg ring-offset-2 ring-offset-card" : "border-line group-hover:border-line-strong",
+                  "relative aspect-[4/3] overflow-hidden rounded-[16px] transition-all duration-200",
+                  active ? "ring-2 ring-fg ring-offset-2 ring-offset-card" : "ring-1 ring-line group-hover:ring-line-strong",
                 )}
               >
                 {o.value === "sistema" ? (
@@ -110,7 +110,7 @@ function AppearanceCard() {
               </div>
               <div className="mt-2.5 flex items-center gap-1.5 px-0.5">
                 <o.Icon size={16} />
-                <span className={cn("text-[13.5px]", active ? "font-medium" : "font-medium")}>{o.label}</span>
+                <span className="text-[13.5px]">{o.label}</span>
               </div>
               <p className="px-0.5 text-[11.5px] text-muted">{o.hint}</p>
             </button>
@@ -146,17 +146,17 @@ function ProfileCard() {
     <Card id="perfil" className="scroll-mt-24">
       <CardHeader title="Perfil" subtitle="Cómo te saluda LIFE OS" />
       <div className="mb-5 flex items-center gap-4">
-        <span className="grid h-16 w-16 place-items-center rounded-full border border-line bg-gradient-to-b from-bg-2 to-elev text-[20px] font-medium text-brand-soft">
-          {initials(name || profile?.full_name)}
+        <span className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-brand text-[20px] text-[#0a0a0a]" aria-hidden>
+          {initials(name || profile?.full_name) || <UserRound size={26} />}
         </span>
-        <p className="text-[12.5px] leading-relaxed text-muted">El avatar usa tus iniciales. La foto de perfil llega cuando se conecte el almacenamiento de Supabase.</p>
+        <p className="text-[13px] leading-relaxed text-muted">Tu avatar usa tus iniciales. Pronto podrás subir tu foto.</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Nombre" error={error}>
           {(id) => <Input id={id} value={name} onChange={(e) => setName(e.target.value)} />}
         </Field>
-        <Field label="Correo" hint={mode === "local" ? "Se define al crear tu cuenta en Supabase." : undefined}>
-          {(id) => <Input id={id} value={profile?.email ?? ""} placeholder="Sin cuenta conectada" disabled />}
+        <Field label="Correo" hint={mode === "supabase" ? undefined : "Lo podrás agregar cuando llegue la sincronización."}>
+          {(id) => <Input id={id} value={profile?.email ?? ""} placeholder="Sin correo" disabled />}
         </Field>
         <Field label="Moneda principal" hint="LIFE OS trabaja en pesos colombianos.">
           {(id) => (
@@ -208,19 +208,21 @@ function StorageCard() {
   return (
     <Card id="datos" className="scroll-mt-24">
       <CardHeader title="Tus datos" subtitle={`${total} registros guardados`} />
-      <div className="flex items-start gap-3 rounded-[14px] border border-line bg-bg-2 p-4">
-        {mode === "local" ? <HardDrive size={20} className="mt-0.5 text-warn" /> : <Cloud size={20} className="mt-0.5 text-brand-soft" />}
-        <div className="text-[13px] leading-relaxed">
-          <p className="font-medium">{mode === "local" ? "Modo local (sin nube)" : "Supabase conectado"}</p>
+      <div className="flex items-start gap-3 rounded-[20px] bg-bg-2 p-4">
+        {mode === "local" ? <HardDrive size={20} className="mt-0.5 shrink-0" /> : mode === "demo" ? <FlaskConical size={20} className="mt-0.5 shrink-0" /> : <Cloud size={20} className="mt-0.5 shrink-0" />}
+        <div className="text-[13.5px] leading-relaxed">
+          <p className="text-fg">{mode === "local" ? "Guardado en este dispositivo" : mode === "demo" ? "Datos de ejemplo" : "Sincronizado"}</p>
           <p className="text-muted">
             {mode === "local"
-              ? "Todo se guarda solo en este navegador y este dispositivo. No hay sincronización hasta conectar Supabase (ver README del proyecto)."
-              : "Tus datos viven en PostgreSQL con políticas RLS: solo tu usuario puede leerlos y modificarlos."}
+              ? "Por ahora tus datos se guardan solo en este dispositivo. La sincronización entre dispositivos llegará pronto."
+              : mode === "demo"
+                ? "Estás viendo datos de ejemplo. Nada de lo que hagas aquí se guarda."
+                : "Tus datos se sincronizan entre tus dispositivos y solo tú puedes verlos."}
           </p>
         </div>
       </div>
       <div className="mt-5 flex flex-wrap gap-2">
-        <Button onClick={exportJSON}>
+        <Button variant="secondary" className="bg-bg-2" onClick={exportJSON}>
           <Download size={18} /> Exportar mis datos (JSON)
         </Button>
         {mode === "local" ? (
@@ -266,16 +268,16 @@ function CategoriesCard() {
       />
       <div className="mt-4 flex flex-wrap gap-1.5">
         {base.map((c) => (
-          <span key={c} className="rounded-full border border-line px-3 py-1 text-[12.5px] text-muted">
+          <span key={c} className="rounded-full bg-bg-2 px-3 py-1 text-[12.5px] text-muted">
             {c}
           </span>
         ))}
         {custom.map((c) => (
-          <span key={c.id} className="flex items-center gap-1 rounded-full border border-brand/30 bg-brand/10 py-1 pl-3 pr-1.5 text-[12.5px] text-brand-soft">
+          <span key={c.id} className="flex items-center gap-1 rounded-full bg-brand py-1 pl-3 pr-1 text-[12.5px] text-[#0a0a0a]">
             {c.name}
             <button
               aria-label={`Eliminar ${c.name}`}
-              className="grid h-5 w-5 cursor-pointer place-items-center rounded-full hover:bg-brand/20"
+              className="focus-ring grid h-6 w-6 cursor-pointer place-items-center rounded-full hover:bg-black/10"
               onClick={async () => {
                 if (await confirm({ title: `¿Eliminar la categoría ${c.name}?`, description: "Los movimientos que ya la usan la conservan.", confirmLabel: "Eliminar", destructive: true })) {
                   await remove("transaction_categories", c.id);
@@ -293,7 +295,7 @@ function CategoriesCard() {
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={kind === "gasto" ? "Ej. Mascotas" : "Ej. Arriendos"} aria-label="Nueva categoría" aria-invalid={!!error || undefined} />
           {error ? <p className="mt-1 text-[12px] text-danger">{error}</p> : null}
         </div>
-        <Button type="submit">
+        <Button type="submit" variant="secondary" className="bg-bg-2">
           <Plus size={18} /> Agregar
         </Button>
       </form>

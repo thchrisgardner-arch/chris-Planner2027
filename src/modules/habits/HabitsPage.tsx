@@ -1,66 +1,46 @@
 "use client";
 
 import { useState } from "react";
-import { Flame, Plus, Repeat } from "lucide-react";
+import { Plus } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/misc";
-import { ModuleTabs, RowActions, useDeleteRecord } from "@/components/ui/RowActions";
+import { RowActions, useDeleteRecord } from "@/components/ui/RowActions";
 import { useForms } from "@/components/providers/FormsProvider";
 import { useFeedback } from "@/components/providers/FeedbackProvider";
 import { useData } from "@/lib/store/DataProvider";
 import { useToday } from "@/hooks/useToday";
 import type { Habit } from "@/types/db";
-import { WEEKDAYS_MED, WEEKDAYS_SHORT, addDays, monthKey, monthLabel, parseISO, startOfWeek, daysInMonth } from "@/utils/dates";
+import { WEEKDAYS_MED, WEEKDAYS_SHORT, addDays, monthKey, monthLabel, parseISO, startOfWeek, daysInMonth, weekdayMon } from "@/utils/dates";
 import { cn } from "@/utils/cn";
 import { completion, isScheduled, logFor, streak } from "./selectors";
-
-type Tab = "habitos" | "entrenamiento" | "alimentacion";
 
 export function HabitsPage() {
   const { db } = useData();
   const open = useForms();
-  const [tab, setTab] = useState<Tab>("habitos");
   const today = useToday();
 
   return (
     <>
       <PageHeader title="Salud y hábitos" subtitle="Seguimiento diario, rachas y cumplimiento.">
-        <Button variant="primary" className="lg:hidden" onClick={() => open({ kind: "habit" })}>
-          <Plus size={18} /> Hábito
-        </Button>
-        <Button className="hidden lg:inline-flex" onClick={() => open({ kind: "habit" })}>
-          <Repeat size={18} /> Nuevo hábito
+        <Button variant="primary" className="max-md:hidden" onClick={() => open({ kind: "habit" })}>
+          <Plus size={18} /> Nuevo hábito
         </Button>
       </PageHeader>
-      <ModuleTabs
-        value={tab}
-        onChange={setTab}
-        tabs={[
-          { value: "habitos", label: "Hábitos" },
-          { value: "entrenamiento", label: "Entrenamiento", soon: true },
-          { value: "alimentacion", label: "Alimentación", soon: true },
-        ]}
-      />
       {db.habits.length === 0 ? (
         <EmptyState
-          icon={<Repeat size={22} />}
           title="Crea tu primer hábito"
-          description="Elige los días en que quieres cumplirlo y márcalo desde aquí o desde el dashboard."
-          action={
-            <Button variant="primary" onClick={() => open({ kind: "habit" })}>
-              <Plus size={18} /> Nuevo hábito
-            </Button>
-          }
+          description="Elige los días en que quieres cumplirlo y márcalo desde aquí o desde el inicio."
         />
       ) : (
-        <div className="grid gap-4 xl:grid-cols-2">
+        <div className="grid gap-3 xl:grid-cols-2">
           {db.habits.map((h) => (
             <HabitCard key={h.id} habit={h} today={today} />
           ))}
         </div>
       )}
+      <p className="mt-8 text-center text-[13px] text-dim">Próximamente: entrenamiento y alimentación.</p>
     </>
   );
 }
@@ -98,9 +78,9 @@ function HabitCard({ habit, today }: { habit: Habit; today: string }) {
     <Card>
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: habit.color }} />
+          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: habit.color }} aria-hidden />
           <div className="min-w-0">
-            <h3 className="truncate text-[17px] font-medium">{habit.name}</h3>
+            <h2 className="truncate text-[17px]">{habit.name}</h2>
             <p className="text-[12px] text-muted">
               {habit.days.length === 7 ? "Todos los días" : habit.days.map((d) => WEEKDAYS_MED[d]).join(" · ")}
             </p>
@@ -113,26 +93,29 @@ function HabitCard({ habit, today }: { habit: Habit; today: string }) {
         />
       </div>
 
-      <div className="mt-5 grid grid-cols-3 gap-2">
-        <div className="rounded-[22px] bg-bg-2 px-3 py-2.5">
-          <p className="label">Racha</p>
-          <p className="num mt-1 flex items-center gap-1 text-[20px] font-medium">
-            {s} <Flame size={18} className={s ? "text-warn" : "text-dim"} />
+      <div className="mt-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <div>
+          <p className={cn("figure text-[56px]", s === 0 && "text-dim")}>
+            {s}
+            <span className="ml-1.5 text-[18px] text-muted">{s === 1 ? "día" : "días"}</span>
           </p>
+          <p className="mt-1 text-[13px] text-muted">Racha actual</p>
         </div>
-        <div className="rounded-[22px] bg-bg-2 px-3 py-2.5">
-          <p className="label">Esta semana</p>
-          <p className="num mt-1 text-[20px] font-medium">{Math.round(weekStats.pct)} %</p>
-        </div>
-        <div className="rounded-[22px] bg-bg-2 px-3 py-2.5">
-          <p className="label">{monthLabel(key).split(" ")[0]}</p>
-          <p className="num mt-1 text-[20px] font-medium">
-            {monthStats.completed}/{monthStats.scheduled}
-          </p>
-        </div>
+        <dl className="flex gap-6 pb-1 text-right">
+          <div>
+            <dt className="text-[12.5px] text-muted">Esta semana</dt>
+            <dd className={cn("num mt-0.5 text-[18px]", weekStats.pct === 0 && "text-dim")}>{Math.round(weekStats.pct)} %</dd>
+          </div>
+          <div>
+            <dt className="text-[12.5px] capitalize text-muted">{monthLabel(key).split(" ")[0]}</dt>
+            <dd className={cn("num mt-0.5 text-[18px]", monthStats.completed === 0 && "text-dim")}>
+              {monthStats.completed}/{monthStats.scheduled}
+            </dd>
+          </div>
+        </dl>
       </div>
 
-      <p className="label mb-2 mt-5">Semana actual · toca un día para marcarlo</p>
+      <p className="mb-2 mt-6 text-[12.5px] text-muted">Semana actual · toca un día para marcarlo</p>
       <div className="grid grid-cols-7 gap-1.5">
         {week.map((d, i) => {
           const scheduled = isScheduled(habit, d);
@@ -146,12 +129,11 @@ function HabitCard({ habit, today }: { habit: Habit; today: string }) {
               aria-pressed={done}
               aria-label={`${WEEKDAYS_MED[i]} ${parseISO(d).getUTCDate()}`}
               className={cn(
-                "focus-ring flex h-14 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-[12px] border text-[11px] transition-all disabled:cursor-not-allowed",
-                done ? "border-transparent text-[#06240f]" : scheduled ? "border-line bg-bg-2 text-muted hover:border-line-strong" : "border-dashed border-line text-dim",
-                d === today && !done && "ring-1 ring-fg/30",
+                "focus-ring flex h-14 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-[16px] text-[11px] transition-all disabled:cursor-not-allowed",
+                done ? "bg-brand text-[#0a0a0a]" : scheduled ? "bg-bg-2 text-muted hover:bg-elev" : "border border-dashed border-line-strong text-dim",
+                d === today && !done && "ring-[1.5px] ring-fg",
                 future && "opacity-40",
               )}
-              style={done ? { background: habit.color } : undefined}
             >
               <span>{WEEKDAYS_SHORT[i]}</span>
               <span className="num text-[14px] font-medium">{parseISO(d).getUTCDate()}</span>
@@ -160,17 +142,31 @@ function HabitCard({ habit, today }: { habit: Habit; today: string }) {
         })}
       </div>
 
-      <p className="label mb-2 mt-5">Calendario de cumplimiento · {monthLabel(key)}</p>
-      <div className="flex flex-wrap gap-1">
+      <p className="mb-2 mt-6 text-[12.5px] text-muted">Cumplimiento de {monthLabel(key).toLowerCase()}</p>
+      <div className="grid grid-cols-7 gap-1.5">
+        {WEEKDAYS_SHORT.map((w, i) => (
+          <span key={`h${i}`} className="text-center text-[11px] text-dim" aria-hidden>
+            {w}
+          </span>
+        ))}
+        {Array.from({ length: weekdayMon(monthDays[0]) }, (_, i) => (
+          <span key={`pad${i}`} aria-hidden />
+        ))}
         {monthDays.map((d) => {
           const done = !!logFor(db.habit_logs, habit.id, d);
           const scheduled = isScheduled(habit, d);
+          const n = parseISO(d).getUTCDate();
+          const state = done ? "cumplido" : d > today ? "pendiente" : scheduled ? "no cumplido" : "no programado";
           return (
             <span
               key={d}
-              title={`${d}${done ? " · cumplido" : scheduled ? "" : " · no programado"}`}
-              className={cn("h-4 w-4 rounded-[4px]", !done && (scheduled ? "bg-elev" : "bg-bg-2"), d > today && "opacity-40")}
-              style={done ? { background: habit.color } : undefined}
+              title={`Día ${n}: ${state}`}
+              aria-label={`Día ${n}: ${state}`}
+              className={cn(
+                "h-6 rounded-[8px]",
+                done ? "bg-brand" : !scheduled ? "border border-dashed border-line-strong" : d > today ? "bg-bg-2" : "bg-elev",
+                d === today && "ring-[1.5px] ring-fg",
+              )}
             />
           );
         })}

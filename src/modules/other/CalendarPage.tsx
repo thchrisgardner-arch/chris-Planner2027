@@ -152,18 +152,22 @@ export function CalendarPage() {
 
   return (
     <>
-      <PageHeader title="Calendario" subtitle="Eventos, entrenamientos, pagos, vencimientos, tareas y metas." />
+      <PageHeader title="Calendario" subtitle="Eventos, entrenamientos, pagos, vencimientos, tareas y metas.">
+        <Button variant="primary" className="max-md:hidden" onClick={() => open({ kind: "event", defaults: { date: view === "mes" ? today : cursor } })}>
+          <Plus size={18} /> Nuevo evento
+        </Button>
+      </PageHeader>
 
       <div className="card overflow-hidden">
         {/* Barra de herramientas */}
         <div className="flex flex-col gap-4 border-b border-line p-4 sm:p-5">
           <div className="flex flex-wrap items-center gap-3">
-            <h2 className="num mr-1 text-[22px] font-medium tracking-[-0.02em] sm:text-[26px]">{title}</h2>
+            <h2 className="num mr-1 text-[22px] tracking-[-0.02em] first-letter:uppercase sm:text-[26px]" aria-live="polite">{title}</h2>
             <div className="flex items-center gap-1">
-              <Button size="icon-sm" variant="ghost" onClick={() => move(-1)} aria-label="Anterior">
+              <Button size="icon" variant="ghost" onClick={() => move(-1)} aria-label="Periodo anterior">
                 <ChevronLeft size={20} />
               </Button>
-              <Button size="icon-sm" variant="ghost" onClick={() => move(1)} aria-label="Siguiente">
+              <Button size="icon" variant="ghost" onClick={() => move(1)} aria-label="Periodo siguiente">
                 <ChevronRight size={20} />
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setCursor(today)}>
@@ -173,6 +177,7 @@ export function CalendarPage() {
             <div className="ml-auto flex items-center gap-2">
               <Segmented
                 size="md"
+                label="Vista del calendario"
                 value={view}
                 onChange={setView}
                 options={[
@@ -181,9 +186,6 @@ export function CalendarPage() {
                   { value: "mes", label: "Mes" },
                 ]}
               />
-              <Button variant="primary" className="hidden sm:inline-flex" onClick={() => open({ kind: "event", defaults: { date: view === "mes" ? today : cursor } })}>
-                <Plus size={18} /> Nuevo evento
-              </Button>
             </div>
           </div>
           <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 sm:mx-0 sm:px-0">
@@ -228,13 +230,6 @@ export function CalendarPage() {
           <TimeGrid db={db} days={days} today={today} filter={filter} />
         )}
       </div>
-
-      <button
-        onClick={() => open({ kind: "event", defaults: { date: view === "mes" ? today : cursor } })}
-        className="mt-4 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-fg text-[14.5px] font-medium text-on-fg sm:hidden"
-      >
-        <Plus size={19} /> Nuevo evento
-      </button>
     </>
   );
 }
@@ -275,7 +270,7 @@ function TimeGrid({ db, days, today, filter }: { db: Database; days: string[]; t
           <div />
           {days.map((d) => (
             <div key={d} className="flex justify-center px-1 py-3">
-              <span className={cn("num rounded-full px-3 py-1 text-[13px] font-medium", d === today ? "bg-fg text-on-fg" : "text-fg")}>
+              <span aria-current={d === today ? "date" : undefined} className={cn("num rounded-full px-3 py-1 text-[13px]", d === today ? "bg-fg text-on-fg" : "text-fg")}>
                 {parseISO(d).getUTCDate()} · {WEEKDAYS_MED[weekdayMon(d)]}
               </span>
             </div>
@@ -292,8 +287,8 @@ function TimeGrid({ db, days, today, filter }: { db: Database; days: string[]; t
                   <button
                     key={it.id}
                     onClick={() => it.form && open(it.form)}
-                    className="cursor-pointer truncate rounded-[10px] px-2 py-1 text-left text-[11.5px] font-medium transition-opacity hover:opacity-80"
-                    style={{ background: it.bg, color: it.fg }}
+                    className="cursor-pointer truncate rounded-[10px] border-l-[3px] bg-elev px-2 py-1 text-left text-[11.5px] text-fg transition-colors hover:bg-line-strong/50"
+                    style={{ borderLeftColor: it.dot }}
                     title={`${it.kind}: ${it.title}`}
                   >
                     {it.title}
@@ -346,20 +341,19 @@ function TimeGrid({ db, days, today, filter }: { db: Database; days: string[]; t
                       <button
                         key={item.id}
                         onClick={() => item.form && open(item.form)}
-                        className="absolute flex cursor-pointer flex-col overflow-hidden rounded-[14px] px-2.5 py-1.5 text-left transition-[filter] duration-200 hover:brightness-[0.97]"
+                        className="absolute flex cursor-pointer flex-col overflow-hidden rounded-[12px] border-l-[3px] bg-elev px-2.5 py-1.5 text-left text-fg transition-colors duration-200 hover:bg-line-strong/50"
                         style={{
                           top,
                           height,
                           left: `calc(${(lane / lanes) * 100}% + 4px)`,
                           width: `calc(${100 / lanes}% - 8px)`,
-                          background: item.bg,
-                          color: item.fg,
+                          borderLeftColor: item.dot,
                         }}
                         title={`${item.title} · ${formatTime(minToTime(s))}`}
                       >
-                        <span className={cn("truncate font-medium", short ? "text-[11.5px]" : "text-[12.5px]")}>{item.title}</span>
+                        <span className={cn("truncate", short ? "text-[11.5px]" : "text-[12.5px]")}>{item.title}</span>
                         {!short ? (
-                          <span className="num truncate text-[11px] opacity-75">
+                          <span className="num truncate text-[11px] text-muted">
                             {formatTime(minToTime(s))} – {formatTime(minToTime(e))}
                           </span>
                         ) : null}
@@ -418,12 +412,14 @@ function MonthGrid({
             <button
               key={d}
               onClick={() => onPick(d)}
+              aria-current={d === today ? "date" : undefined}
+              aria-label={`${parseISO(d).toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" })}${items.length ? `, ${items.length} ${items.length === 1 ? "elemento" : "elementos"}` : ""}`}
               className={cn(
                 "focus-ring flex min-h-[64px] cursor-pointer flex-col rounded-[16px] p-1.5 text-left transition-colors sm:min-h-[104px] sm:p-2",
                 inMonth ? "bg-bg-2 hover:bg-elev" : "opacity-35",
               )}
             >
-              <span className={cn("num grid h-7 w-7 place-items-center rounded-full text-[12.5px] font-medium", d === today && "bg-fg text-on-fg")}>
+              <span className={cn("num grid h-7 w-7 place-items-center rounded-full text-[12.5px]", d === today && "bg-fg text-on-fg")}>
                 {parseISO(d).getUTCDate()}
               </span>
               <span className="mt-1 flex flex-wrap gap-0.5 sm:hidden">
@@ -433,7 +429,7 @@ function MonthGrid({
               </span>
               <span className="mt-1 hidden flex-col gap-1 sm:flex">
                 {items.slice(0, 3).map((it) => (
-                  <span key={it.id} className="truncate rounded-[8px] px-1.5 py-0.5 text-[11px] font-medium" style={{ background: it.bg, color: it.fg }}>
+                  <span key={it.id} className="truncate rounded-[8px] border-l-[3px] bg-bg px-1.5 py-0.5 text-[11px] text-fg dark:bg-elev" style={{ borderLeftColor: it.dot }}>
                     {it.title}
                   </span>
                 ))}

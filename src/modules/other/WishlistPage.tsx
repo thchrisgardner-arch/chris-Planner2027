@@ -13,8 +13,9 @@ import { useData } from "@/lib/store/DataProvider";
 import { useToday } from "@/hooks/useToday";
 import type { WishStatus } from "@/types/db";
 import { formatShortDate, relativeDay } from "@/utils/dates";
-import { formatCOP, pct, sum } from "@/utils/money";
+import { formatCOP, formatKpiCOP, pct, sum } from "@/utils/money";
 import { priorityLabel } from "@/modules/projects/constants";
+import { cn } from "@/utils/cn";
 import { StoreLogo } from "@/components/ui/StoreLogo";
 import { STORES, findStore } from "./stores";
 import { WISH_CATEGORIES, WISH_CLASSIFICATIONS, WISH_STATUSES, wishStatusLabel, wishStatusTone } from "./constants";
@@ -45,35 +46,28 @@ export function WishlistPage() {
   return (
     <>
       <PageHeader title="Wishlist" subtitle="Tu biblioteca de compras y deseos.">
-        <Button variant="primary" className="lg:hidden" onClick={() => open({ kind: "wish" })}>
-          <Plus size={18} /> Deseo
-        </Button>
-        <Button className="hidden lg:inline-flex" onClick={() => open({ kind: "wish" })}>
-          <Gift size={18} /> Agregar deseo
+        <Button variant="primary" className="max-md:hidden" onClick={() => open({ kind: "wish" })}>
+          <Plus size={18} /> Agregar deseo
         </Button>
       </PageHeader>
 
       {db.wishlist_items.length === 0 ? (
         <EmptyState
-          icon={<Gift size={22} />}
           title="Tu wishlist está vacía"
           description="Guarda productos, viajes o experiencias con su precio estimado y asócialos a una meta de ahorro."
-          action={
-            <Button variant="primary" onClick={() => open({ kind: "wish" })}>
-              <Plus size={18} /> Agregar deseo
-            </Button>
-          }
         />
       ) : (
         <>
           <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-            <Card className="p-5 sm:p-5">
-              <p className="label">Valor de lo pendiente</p>
-              <p className="num mt-2 text-[22px] font-medium">{formatCOP(activeTotal)}</p>
+            <Card className="flex min-h-[120px] flex-col p-5 sm:p-5">
+              <h2 className="text-[14px]">Valor de lo pendiente</h2>
+              <p className={cn("figure mt-auto pt-4 text-[30px]", activeTotal === 0 && "text-dim")} title={formatCOP(activeTotal)}>
+                {formatKpiCOP(activeTotal)}
+              </p>
             </Card>
-            <Card className="p-5 sm:p-5">
-              <p className="label">Comprados</p>
-              <p className="num mt-2 text-[22px] font-medium">{bought}</p>
+            <Card className="flex min-h-[120px] flex-col p-5 sm:p-5">
+              <h2 className="text-[14px]">Comprados</h2>
+              <p className={cn("figure mt-auto pt-4 text-[30px]", bought === 0 && "text-dim")}>{bought}</p>
             </Card>
             <Select value={status} onChange={(e) => setStatus(e.target.value as typeof status)} aria-label="Estado" className="self-center">
               <option value="activos">Pendientes</option>
