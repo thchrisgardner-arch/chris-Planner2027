@@ -6,7 +6,10 @@ import { AsistenteModulo, useCelebracion, useVacioAsistente } from "@/modules/as
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { EmptyCard } from "@/components/ui/misc";
+import { EmptyCard, Segmented } from "@/components/ui/misc";
+import { useRouter, useSearchParams } from "next/navigation";
+import { EntrenamientoPanel } from "@/modules/salud/EntrenamientoPanel";
+import { AlimentacionPanel } from "@/modules/salud/AlimentacionPanel";
 import { RowActions, useDeleteRecord } from "@/components/ui/RowActions";
 import { useForms } from "@/components/providers/FormsProvider";
 import { useFeedback } from "@/components/providers/FeedbackProvider";
@@ -17,10 +20,22 @@ import { WEEKDAYS_MED, WEEKDAYS_SHORT, addDays, monthKey, monthLabel, parseISO, 
 import { cn } from "@/utils/cn";
 import { completion, isScheduled, logFor, streak } from "./selectors";
 
+type Vista = "habitos" | "entrenamiento" | "alimentacion";
+const VISTAS: { value: Vista; label: string }[] = [
+  { value: "habitos", label: "Hábitos" },
+  { value: "entrenamiento", label: "Entrenamiento" },
+  { value: "alimentacion", label: "Alimentación" },
+];
+
 export function HabitsPage() {
   const { db } = useData();
   const open = useForms();
   const today = useToday();
+  const params = useSearchParams();
+  const router = useRouter();
+  const raw = params.get("vista");
+  const vista: Vista = VISTAS.some((v) => v.value === raw) ? (raw as Vista) : "habitos";
+  const elegir = (v: Vista) => router.replace(v === "habitos" ? "/salud" : `/salud?vista=${v}`, { scroll: false });
 
   const vacio = useVacioAsistente("brote");
   // Brote celebra cada vez que se marca un hábito de hoy
@@ -28,12 +43,21 @@ export function HabitsPage() {
 
   return (
     <>
-      <PageHeader title="Salud y hábitos" subtitle="Seguimiento diario, rachas y cumplimiento." asistente={<AsistenteModulo id="brote" celebrar={celebrar} oculto={db.habits.length === 0} />}>
-        <Button variant="primary" className="max-md:hidden" onClick={() => open({ kind: "habit" })}>
-          <Plus size={18} /> Nuevo hábito
-        </Button>
+      <PageHeader title="Salud y hábitos" subtitle="Hábitos, rutina de entrenamiento y alimentación." asistente={<AsistenteModulo id="brote" celebrar={celebrar} oculto={db.habits.length === 0} />}>
+        {vista === "habitos" ? (
+          <Button variant="primary" className="max-md:hidden" onClick={() => open({ kind: "habit" })}>
+            <Plus size={18} /> Nuevo hábito
+          </Button>
+        ) : null}
       </PageHeader>
-      {db.habits.length === 0 ? (
+      <div className="-mx-4 mb-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <Segmented size="md" label="Secciones de salud" value={vista} onChange={elegir} options={VISTAS} />
+      </div>
+      {vista === "entrenamiento" ? (
+        <EntrenamientoPanel />
+      ) : vista === "alimentacion" ? (
+        <AlimentacionPanel />
+      ) : db.habits.length === 0 ? (
         <EmptyCard
           ghost="grid"
           title={vacio.frase}
@@ -52,7 +76,6 @@ export function HabitsPage() {
           ))}
         </div>
       )}
-      <p className="mt-8 text-center text-[13px] text-dim">Próximamente: entrenamiento y alimentación.</p>
     </>
   );
 }

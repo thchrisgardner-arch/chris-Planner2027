@@ -117,7 +117,7 @@ export function AsistenteModulo({ id, celebrar, oculto }: { id: AsistenteId; cel
             onClick={() => setAbierto((o) => !o)}
             aria-expanded={abierto}
             className={cn(
-              "focus-ring relative block min-w-0 max-w-[520px] cursor-pointer rounded-[18px] bg-card px-3.5 py-2 text-left text-[13.5px] leading-snug text-fg transition-colors hover:bg-elev",
+              "focus-ring relative block min-w-0 max-w-[min(520px,100%)] cursor-pointer rounded-[18px] bg-card px-3.5 py-2 text-left text-[13.5px] leading-snug text-fg transition-colors hover:bg-elev",
               !abierto && "truncate",
             )}
           >
