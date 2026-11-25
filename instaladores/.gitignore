@@ -1,0 +1,4 @@
+# Instaladores (archivos pesados, se regeneran)
+*.exe
+*.apk
+*.aab

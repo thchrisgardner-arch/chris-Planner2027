@@ -1,0 +1,22 @@
+LIFE for LIFE · Instaladores (versión 1.0.0, 25 de noviembre de 2026)
+
+WINDOWS
+  LIFE-for-LIFE-Windows-1.0.0.exe
+  Doble clic para instalar. Si aparece "Windows protegió tu PC":
+  Más información → Ejecutar de todas formas.
+  Para volver a generarlo: carpeta escritorio\ → npm run instalador
+
+ANDROID
+  LIFE-for-LIFE-Android-1.0.0.apk
+  Pásalo al celular y ábrelo. Permite "Instalar apps desconocidas" cuando lo pida.
+  LIFE-for-LIFE-GooglePlay-1.0.0.aab → solo para publicar en Google Play.
+  La llave de firma está en android\llave-privada\ (guárdala en un lugar seguro:
+  sin ella no se puede actualizar la app ni publicarla).
+
+IPHONE
+  No usa archivo instalable. Abre https://chris-planner2027.vercel.app en Safari →
+  Compartir → "Agregar a inicio".
+
+Todas las apps abren la versión publicada en Vercel: se actualizan solas.
+Tus datos viven en cada dispositivo; para pasarlos usa Configuración → Datos →
+Exportar / Importar respaldo.
