@@ -2,26 +2,37 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, X } from "lucide-react";
+import Link from "next/link";
 import { useData } from "@/lib/store/DataProvider";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/misc";
 import { Sidebar } from "./Sidebar";
 import { BottomNav, MobileDrawer, MobileTopbar } from "./MobileNav";
-import { WelcomeModal } from "./WelcomeModal";
+import { WelcomeModal, isOnboardingDone } from "./WelcomeModal";
+import { GlobalSearch } from "./GlobalSearch";
+import { Avatar, NotificationsButton } from "./HeaderActions";
 
-const SIDEBAR_KEY = "lifeos:ui:sidebar-collapsed";
+const RAIL_KEY = "lifeos:ui:rail-expanded";
 
+/**
+ * Estructura de la app:
+ *  ≥1024 px  contenedor blanco redondeado (32 px) sobre el lienzo, con riel de íconos.
+ *  768–1023  riel de íconos sin contenedor exterior.
+ *  <768      barra superior + barra inferior flotante con botón "+".
+ */
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { status, error, reload, profile } = useData();
+  const { status, error, reload, profile, mode } = useData();
   const router = useRouter();
-  const [collapsed, setCollapsed] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [drawer, setDrawer] = useState(false);
+  const [onboarded, setOnboarded] = useState(true);
 
   useEffect(() => {
-    // Preferencia guardada del sidebar
+    // Preferencias guardadas en este navegador
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCollapsed(localStorage.getItem(SIDEBAR_KEY) === "1");
+    setExpanded(localStorage.getItem(RAIL_KEY) === "1");
+    setOnboarded(isOnboardingDone());
   }, []);
 
   useEffect(() => {
@@ -29,36 +40,60 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [status, router]);
 
   const toggle = () =>
-    setCollapsed((c) => {
-      localStorage.setItem(SIDEBAR_KEY, c ? "0" : "1");
-      return !c;
+    setExpanded((e) => {
+      localStorage.setItem(RAIL_KEY, e ? "0" : "1");
+      return !e;
     });
   const closeDrawer = useCallback(() => setDrawer(false), []);
 
   return (
-    <div className="flex min-h-dvh">
-      <Sidebar collapsed={collapsed} onToggle={toggle} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <MobileTopbar onMenu={() => setDrawer(true)} />
-        <main className="mx-auto w-full max-w-[1480px] flex-1 px-4 pb-28 pt-6 sm:px-6 md:pb-12 lg:px-8 lg:pt-8 xl:px-10">
-          {status === "ready" ? (
-            children
-          ) : status === "error" ? (
-            <div className="card mx-auto mt-16 max-w-md p-8 text-center">
-              <p className="text-[17px] font-medium">No se pudieron cargar tus datos</p>
-              <p className="mt-2 text-[13px] text-muted">{error}</p>
-              <Button className="mt-5" onClick={() => reload()}>
-                <RefreshCw size={18} /> Reintentar
-              </Button>
+    <div className="min-h-dvh bg-bg lg:bg-canvas lg:p-4">
+      <div className="flex min-h-dvh bg-bg lg:min-h-[calc(100dvh-32px)] lg:rounded-[32px]">
+        <Sidebar expanded={expanded} onToggle={toggle} />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <MobileTopbar />
+          {/* Encabezado (≥768 px): buscador, notificaciones y avatar */}
+          <div className="sticky top-0 z-40 hidden items-center gap-3 bg-bg/90 px-6 pb-2 pt-5 backdrop-blur-md md:flex lg:top-4 lg:rounded-t-[32px] lg:px-8">
+            <GlobalSearch className="w-full max-w-[360px]" />
+            <div className="ml-auto flex items-center gap-2">
+              <div className="hidden lg:block">
+                <NotificationsButton pill />
+              </div>
+              <div className="lg:hidden">
+                <NotificationsButton />
+              </div>
+              <Avatar size={44} />
             </div>
-          ) : (
-            <ShellSkeleton />
-          )}
-        </main>
+          </div>
+          {mode === "demo" ? (
+            <div className="mx-4 mt-3 flex items-center gap-3 rounded-full bg-warn-fill px-4 py-2 text-[13px] text-[#0a0a0a] md:mx-6 lg:mx-8">
+              <span className="font-medium">Modo demo</span>
+              <span className="hidden truncate sm:inline">Datos de ejemplo; nada de esto se guarda y tus datos reales no se tocan.</span>
+              <Link href="/?demo=0" className="ml-auto flex shrink-0 items-center gap-1 font-medium underline-offset-4 hover:underline" onClick={() => setTimeout(() => window.location.reload(), 50)}>
+                Salir <X size={14} />
+              </Link>
+            </div>
+          ) : null}
+          <main className="mx-auto w-full max-w-[1440px] flex-1 px-4 pb-32 pt-5 sm:px-6 md:pb-12 md:pt-4 lg:px-8">
+            {status === "ready" ? (
+              children
+            ) : status === "error" ? (
+              <div className="card mx-auto mt-16 max-w-md p-8 text-center">
+                <p className="text-[17px] font-medium">No se pudieron cargar tus datos</p>
+                <p className="mt-2 text-[13px] text-muted">{error}</p>
+                <Button className="mt-5" onClick={() => reload()}>
+                  <RefreshCw size={18} /> Reintentar
+                </Button>
+              </div>
+            ) : (
+              <ShellSkeleton />
+            )}
+          </main>
+        </div>
       </div>
       <MobileDrawer open={drawer} onClose={closeDrawer} />
       <BottomNav onMore={() => setDrawer(true)} />
-      {status === "ready" && profile && !profile.full_name ? <WelcomeModal /> : null}
+      {status === "ready" && profile && !profile.full_name && !onboarded ? <WelcomeModal onDone={() => setOnboarded(true)} /> : null}
     </div>
   );
 }
@@ -66,14 +101,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 function ShellSkeleton() {
   return (
     <div aria-busy="true" aria-label="Cargando">
-      <Skeleton className="h-9 w-72" />
-      <Skeleton className="mt-3 h-4 w-52" />
-      <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-12">
-        {["xl:col-span-4", "xl:col-span-5", "xl:col-span-3", "xl:col-span-8", "xl:col-span-4"].map((span, i) => (
-          <div key={i} className={`card h-[220px] p-6 ${span}`}>
+      <Skeleton className="h-4 w-40" />
+      <Skeleton className="mt-3 h-12 w-80" />
+      <div className="mt-8 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-12">
+        {["xl:col-span-4", "xl:col-span-4", "xl:col-span-4", "xl:col-span-7", "xl:col-span-5"].map((span, i) => (
+          <div key={i} className={`card h-[200px] p-6 ${span}`}>
             <Skeleton className="h-4 w-32" />
-            <Skeleton className="mt-6 h-10 w-48" />
-            <Skeleton className="mt-8 h-16 w-full" />
+            <Skeleton className="mt-10 h-12 w-48" />
           </div>
         ))}
       </div>

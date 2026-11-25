@@ -17,6 +17,8 @@ import {
   Target,
   Wallet,
   PiggyBank,
+  UserRound,
+  ArrowUpRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { MenuItem, Popover } from "@/components/ui/Popover";
@@ -29,7 +31,7 @@ import { LOCAL_LOGIN_ENABLED } from "@/services/localAuth";
 import { StorageChip } from "./Sidebar";
 
 export function initials(name: string | null | undefined) {
-  if (!name) return "·";
+  if (!name) return "";
   return name
     .split(/\s+/)
     .filter(Boolean)
@@ -56,7 +58,7 @@ export function RingAvatar({ size = 40 }: { size?: number }) {
           className="grid h-full w-full place-items-center rounded-full bg-gradient-to-br from-elev to-line font-medium text-fg"
           style={{ fontSize: Math.max(11, size * 0.32) }}
         >
-          {initials(profile?.full_name)}
+          {initials(profile?.full_name) || <UserRound size={Math.round(size * 0.45)} aria-hidden />}
         </span>
       </span>
     </span>
@@ -140,19 +142,33 @@ function MenuLink({
   );
 }
 
-export function NotificationsButton() {
+export function NotificationsButton({ pill }: { pill?: boolean }) {
   const items = useNotifications();
   return (
     <Popover
       className="w-[min(340px,calc(100vw-32px))]"
-      trigger={({ toggle, open }) => (
-        <Button size="icon" variant="secondary" onClick={toggle} aria-label="Notificaciones" aria-expanded={open} className="relative">
-          <Bell size={20} />
-          {items.length ? (
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-warn ring-2 ring-elev" aria-hidden />
-          ) : null}
-        </Button>
-      )}
+      trigger={({ toggle, open }) =>
+        pill ? (
+          <button
+            type="button"
+            onClick={toggle}
+            aria-label={`Notificaciones${items.length ? `, ${items.length} activas` : ""}`}
+            aria-expanded={open}
+            className="focus-ring flex h-11 cursor-pointer items-center gap-2.5 rounded-full bg-card pl-4 pr-1.5 text-[14px] text-fg transition-colors hover:bg-elev"
+          >
+            <Bell size={18} />
+            Notificaciones
+            <span className={cn("num grid h-8 min-w-8 place-items-center rounded-full px-2 text-[12.5px] font-medium", items.length ? "bg-fg text-on-fg" : "bg-bg text-dim")}>
+              {items.length}
+            </span>
+          </button>
+        ) : (
+          <Button size="icon" variant="secondary" onClick={toggle} aria-label={`Notificaciones${items.length ? `, ${items.length} activas` : ""}`} aria-expanded={open} className="relative">
+            <Bell size={20} />
+            {items.length ? <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-fg ring-2 ring-card" aria-hidden /> : null}
+          </Button>
+        )
+      }
     >
       {(close) => (
         <div>
@@ -217,8 +233,11 @@ export function QuickAdd({ compact, fab }: { compact?: boolean; fab?: boolean })
             <Plus size={21} />
           </Button>
         ) : (
-          <Button variant="primary" onClick={toggle} aria-expanded={isOpen}>
-            <Plus size={19} /> Nuevo
+          <Button variant="primary" onClick={toggle} aria-expanded={isOpen} className="pr-2">
+            Nuevo
+            <span className="grid h-7 w-7 place-items-center rounded-full bg-on-fg text-fg">
+              <ArrowUpRight size={16} />
+            </span>
           </Button>
         )
       }
