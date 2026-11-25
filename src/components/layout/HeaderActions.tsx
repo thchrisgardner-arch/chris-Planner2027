@@ -88,13 +88,13 @@ export function Avatar({ size = 40 }: { size?: number }) {
             </span>
             <RingAvatar size={44} />
           </div>
-          <MenuLink href="/configuracion#perfil" icon={<BadgeCheck size={20} />} onClick={close}>
+          <MenuLink href="/configuracion?seccion=perfil" icon={<BadgeCheck size={20} />} onClick={close}>
             Perfil
           </MenuLink>
           <MenuLink href="/configuracion" icon={<Settings size={20} />} onClick={close}>
             Configuración
           </MenuLink>
-          <MenuLink href="/configuracion#datos" icon={<DataIcon size={20} />} onClick={close} right={<StorageChip />}>
+          <MenuLink href="/configuracion?seccion=datos" icon={<DataIcon size={20} />} onClick={close} right={<StorageChip />}>
             Mis datos
           </MenuLink>
           {canSignOut ? (

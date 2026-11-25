@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Check, Cloud, Download, FlaskConical, UserRound, HardDrive, Monitor, Moon, Plus, Sun, Trash2, X } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ChoiceGroup, Field, Input, Select } from "@/components/ui/Field";
+import { Segmented } from "@/components/ui/misc";
 import { initials } from "@/components/layout/HeaderActions";
 import { useFeedback } from "@/components/providers/FeedbackProvider";
 import { useData } from "@/lib/store/DataProvider";
@@ -18,29 +20,52 @@ import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "@/modules/finance/constan
 import { borrarAsistentes, exportarAsistentes } from "@/lib/asistentes/estado";
 import { EditorAsistentes } from "@/modules/asistentes/EditorAsistentes";
 
+type Seccion = "perfil" | "apariencia" | "asistentes" | "datos";
+const SECCIONES: { value: Seccion; label: string }[] = [
+  { value: "perfil", label: "Perfil" },
+  { value: "apariencia", label: "Apariencia" },
+  { value: "asistentes", label: "Tus asistentes" },
+  { value: "datos", label: "Tus datos" },
+];
+const esSeccion = (v: string | null): v is Seccion => SECCIONES.some((s) => s.value === v);
+
+/** Configuración por secciones: el filtro muestra una sola a la vez (?seccion=perfil|apariencia|asistentes|datos). */
 export function SettingsPage() {
+  const params = useSearchParams();
+  const router = useRouter();
+  const raw = params.get("seccion");
+  const seccion: Seccion = esSeccion(raw) ? raw : "perfil";
+
+  useEffect(() => {
+    // Compatibilidad con enlaces viejos: /configuracion#datos → ?seccion=datos
+    const h = window.location.hash.replace("#", "");
+    if (!raw && esSeccion(h)) router.replace(`/configuracion?seccion=${h}`, { scroll: false });
+  }, [raw, router]);
+
+  const elegir = (s: Seccion) => router.replace(`/configuracion?seccion=${s}`, { scroll: false });
+
   return (
     <>
       <PageHeader title="Configuración" subtitle="Perfil, preferencias, asistentes y tus datos." />
-      <nav aria-label="Secciones de configuración" className="-mx-4 mb-4 flex gap-1.5 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-        {[
-          { href: "#perfil", label: "Perfil" },
-          { href: "#apariencia", label: "Apariencia" },
-          { href: "#asistentes", label: "Tus asistentes" },
-          { href: "#datos", label: "Tus datos" },
-        ].map((x) => (
-          <a key={x.href} href={x.href} className="focus-ring shrink-0 rounded-full bg-card px-4 py-2 text-[13.5px] font-medium hover:bg-elev">
-            {x.label}
-          </a>
-        ))}
-      </nav>
-      <div className="grid gap-3 xl:grid-cols-2 [&>*]:min-w-0">
-        <ProfileCard />
-        <AppearanceCard />
-        <EditorAsistentes />
-        <StorageCard />
-        <CategoriesCard />
+      <div className="-mx-4 mb-5 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <Segmented size="md" label="Secciones de configuración" value={seccion} onChange={elegir} options={SECCIONES} />
       </div>
+      {seccion === "perfil" ? (
+        <div className="max-w-[820px]">
+          <ProfileCard />
+        </div>
+      ) : seccion === "apariencia" ? (
+        <div className="max-w-[820px]">
+          <AppearanceCard />
+        </div>
+      ) : seccion === "asistentes" ? (
+        <EditorAsistentes />
+      ) : (
+        <div className="grid gap-3 xl:grid-cols-2 [&>*]:min-w-0">
+          <StorageCard />
+          <CategoriesCard />
+        </div>
+      )}
     </>
   );
 }
@@ -84,7 +109,7 @@ function AppearanceCard() {
   const { pref, setPref } = useTheme();
   const { toast } = useFeedback();
   return (
-    <Card id="apariencia" className="scroll-mt-24">
+    <Card id="apariencia">
       <CardHeader title="Apariencia" subtitle="Elige cómo se ve LIFE OS en este dispositivo" />
       <div className="grid grid-cols-3 gap-3" role="radiogroup" aria-label="Tema">
         {THEME_OPTIONS.map((o) => {
@@ -158,7 +183,7 @@ function ProfileCard() {
   };
 
   return (
-    <Card id="perfil" className="scroll-mt-24">
+    <Card id="perfil">
       <CardHeader title="Perfil" subtitle="Cómo te saluda LIFE OS" />
       <div className="mb-5 flex items-center gap-4">
         <span className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-brand text-[20px] text-[#0a0a0a]" aria-hidden>
@@ -222,7 +247,7 @@ function StorageCard() {
   };
 
   return (
-    <Card id="datos" className="scroll-mt-24">
+    <Card id="datos">
       <CardHeader title="Tus datos" subtitle={`${total} registros guardados`} />
       <div className="flex items-start gap-3 rounded-[20px] bg-bg-2 p-4">
         {mode === "local" ? <HardDrive size={20} className="mt-0.5 shrink-0" /> : mode === "demo" ? <FlaskConical size={20} className="mt-0.5 shrink-0" /> : <Cloud size={20} className="mt-0.5 shrink-0" />}
@@ -272,7 +297,7 @@ function CategoriesCard() {
   };
 
   return (
-    <Card className="xl:col-span-2">
+    <Card>
       <CardHeader title="Categorías de movimientos" subtitle="Agrega tus propias categorías a las predeterminadas" />
       <ChoiceGroup
         value={kind}

@@ -67,17 +67,12 @@ export function EditorAsistentes() {
   };
 
   return (
-    <section id="asistentes" aria-labelledby="asistentes-titulo" className="min-w-0 scroll-mt-24 xl:col-span-2">
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h2 id="asistentes-titulo" className="text-[22px]">
-            Tus asistentes
-          </h2>
-          <p className="mt-1 text-[14px] text-muted">Elige, nombra y personaliza a quién te acompaña en cada módulo.</p>
-        </div>
-      </div>
+    <section id="asistentes" aria-labelledby="asistentes-titulo" className="min-w-0">
+      <h2 id="asistentes-titulo" className="sr-only">
+        Tus asistentes
+      </h2>
 
-      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_300px] xl:h-[calc(100dvh-13rem)] xl:min-h-[600px] xl:grid-cols-[260px_minmax(0,1fr)_300px] [&>*]:min-w-0 xl:[&>*]:min-h-0">
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_300px] xl:h-[calc(100dvh-19rem)] xl:min-h-[560px] xl:grid-cols-[260px_minmax(0,1fr)_300px] [&>*]:min-w-0 xl:[&>*]:min-h-0">
         {/* Lista: columna en escritorio, carrusel en tablet y móvil */}
         <Lista estado={estado} sel={sel} onSel={elegir} onActivo={(id, v) => {
           if (!actualizar(id, { activo: v })) toast("El asistente principal no se puede desactivar. Elige otro principal primero.", "error");
