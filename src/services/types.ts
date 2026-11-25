@@ -17,5 +17,7 @@ export interface DataAdapter {
   remove(table: TableName, id: string): Promise<void>;
   /** Borra todos los datos del usuario (solo modo local) */
   clearAll?(): Promise<void>;
+  /** Reemplaza todo por un respaldo exportado (solo modo local) */
+  importAll?(data: Database, profile: Profile | null): Promise<void>;
   signOut?(): Promise<void>;
 }

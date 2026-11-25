@@ -117,6 +117,18 @@ export const localAdapter: DataAdapter = {
     cascade(table, id);
   },
 
+  /** Reemplaza todos los datos por los de un respaldo (conserva ids y fechas) */
+  async importAll(data, profile) {
+    for (const t of TABLES) {
+      const filas = Array.isArray((data as Record<string, unknown>)[t]) ? ((data as Record<string, unknown[]>)[t] as BaseRow[]) : [];
+      write(
+        t,
+        filas.filter((r) => r && typeof r.id === "string").map((r) => ({ ...r, user_id: LOCAL_USER_ID })),
+      );
+    }
+    if (profile) write("profile", { ...profile, id: LOCAL_USER_ID });
+  },
+
   async clearAll() {
     for (const t of TABLES) window.localStorage.removeItem(key(t));
     window.localStorage.removeItem(key("profile"));

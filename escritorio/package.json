@@ -1,0 +1,47 @@
+{
+  "name": "life-for-life",
+  "productName": "LIFE for LIFE",
+  "version": "1.0.0",
+  "description": "LIFE for LIFE para Windows: finanzas, hábitos, proyectos y objetivos.",
+  "author": "LIFE for LIFE",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "instalador": "electron-builder --win nsis"
+  },
+  "build": {
+    "appId": "co.lifeforlife.app",
+    "productName": "LIFE for LIFE",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "sin-conexion.html",
+      "build/icon.png"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "LIFE for LIFE",
+      "artifactName": "LIFE-for-LIFE-Instalador-${version}.${ext}"
+    }
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8"
+  },
+  "allowScripts": {
+    "electron@33.4.11": true
+  }
+}

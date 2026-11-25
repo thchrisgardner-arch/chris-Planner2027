@@ -31,6 +31,8 @@ interface DataContextValue {
   saveProfile(patch: Partial<Profile>): Promise<void>;
   reload(): Promise<void>;
   clearAll(): Promise<void>;
+  /** Reemplaza todos los datos por un respaldo (solo modo local) */
+  importAll(data: Database, profile: Profile | null): Promise<void>;
   signOut(): Promise<void>;
 }
 
@@ -144,6 +146,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     await reload();
   }, [reload]);
 
+  const importAll = useCallback(
+    async (data: Database, prof: Profile | null) => {
+      const a = getAdapter();
+      if (!a.importAll) throw new Error("Importar solo está disponible con los datos guardados en este dispositivo.");
+      await a.importAll(data, prof);
+      await reload();
+    },
+    [reload],
+  );
+
   const signOut = useCallback(async () => {
     const a = getAdapter();
     if (!a.signOut) return;
@@ -166,9 +178,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       saveProfile,
       reload,
       clearAll,
+      importAll,
       signOut,
     }),
-    [db, profile, status, error, mode, insert, update, remove, saveProfile, reload, clearAll, signOut],
+    [db, profile, status, error, mode, insert, update, remove, saveProfile, reload, clearAll, importAll, signOut],
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check, Cloud, Download, FlaskConical, GraduationCap, UserRound, HardDrive, Monitor, Moon, Plus, Sun, Trash2, X } from "lucide-react";
+import { Check, Cloud, Download, FlaskConical, GraduationCap, Upload, UserRound, HardDrive, Monitor, Moon, Plus, Sun, Trash2, X } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -12,7 +12,7 @@ import { initials } from "@/components/layout/HeaderActions";
 import { useFeedback } from "@/components/providers/FeedbackProvider";
 import { useData } from "@/lib/store/DataProvider";
 import { useToday } from "@/hooks/useToday";
-import { TABLES } from "@/types/db";
+import { TABLES, type Database, type Profile } from "@/types/db";
 import { useTheme, type ThemePref } from "@/lib/theme";
 import { cn } from "@/utils/cn";
 import { TIMEZONE } from "@/utils/dates";
@@ -29,6 +29,7 @@ const SECCIONES: { value: Seccion; label: string }[] = [
   { value: "apariencia", label: "Apariencia" },
   { value: "asistentes", label: "Tus asistentes" },
   { value: "progreso", label: "Progreso" },
+  { value: "datos", label: "Datos" },
 ];
 const esSeccion = (v: string | null): v is Seccion => SECCIONES.some((s) => s.value === v);
 
@@ -227,21 +228,84 @@ function ProfileCard() {
   );
 }
 
+/** Claves extra del navegador que viajan en el respaldo (perfil físico y espacio de proyectos) */
+const EXTRAS = { salud: "lifeos:salud", espacio: "lifeos:espacio" } as const;
+const leerExtra = (k: string) => {
+  try {
+    const raw = window.localStorage.getItem(k);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
 function StorageCard() {
-  const { db, profile, mode, clearAll } = useData();
+  const { db, profile, mode, clearAll, importAll } = useData();
   const { confirm, toast } = useFeedback();
   const today = useToday();
   const total = TABLES.reduce((n, t) => n + db[t].length, 0);
+  const archivo = useRef<HTMLInputElement>(null);
+  const [importando, setImportando] = useState(false);
 
-  const exportJSON = () => {
-    const blob = new Blob([JSON.stringify({ exported_at: new Date().toISOString(), profile, data: db, asistentes: exportarAsistentes(), progreso: exportarProgreso() }, null, 2)], { type: "application/json" });
+  const exportJSON = (silencioso = false) => {
+    const respaldo = {
+      app: "LIFE for LIFE",
+      exported_at: new Date().toISOString(),
+      profile,
+      data: db,
+      asistentes: exportarAsistentes(),
+      progreso: exportarProgreso(),
+      salud: leerExtra(EXTRAS.salud),
+      espacio: leerExtra(EXTRAS.espacio),
+    };
+    const blob = new Blob([JSON.stringify(respaldo, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `lifeos-datos-${today}.json`;
+    a.download = `life-for-life-respaldo-${today}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    toast(`Exportados ${total} registros.`);
+    if (!silencioso) toast(`Exportados ${total} registros.`);
+  };
+
+  const importar = async (file: File) => {
+    let r: { exported_at?: string; profile?: Profile | null; data?: Record<string, unknown>; asistentes?: unknown; progreso?: unknown; salud?: unknown; espacio?: unknown };
+    try {
+      r = JSON.parse(await file.text());
+    } catch {
+      toast("Ese archivo no es un respaldo válido (no es JSON).", "error");
+      return;
+    }
+    if (!r?.data || !TABLES.some((t) => Array.isArray(r.data![t]))) {
+      toast("Ese archivo no parece un respaldo de LIFE for LIFE.", "error");
+      return;
+    }
+    const nuevos = TABLES.reduce((n, t) => n + (Array.isArray(r.data![t]) ? (r.data![t] as unknown[]).length : 0), 0);
+    const fecha = r.exported_at ? new Intl.DateTimeFormat("es-CO", { day: "numeric", month: "long", year: "numeric" }).format(new Date(r.exported_at)) : "fecha desconocida";
+    const ok = await confirm({
+      title: "¿Reemplazar tus datos con este respaldo?",
+      description: `Respaldo del ${fecha} con ${nuevos} registros. Reemplaza los ${total} registros actuales de este dispositivo.${total ? " Antes te descargamos una copia de lo actual por si acaso." : ""}`,
+      confirmLabel: "Importar respaldo",
+      destructive: true,
+    });
+    if (!ok) return;
+    setImportando(true);
+    try {
+      if (total) exportJSON(true);
+      const escribir = (k: string, v: unknown) => (v == null ? window.localStorage.removeItem(k) : window.localStorage.setItem(k, JSON.stringify(v)));
+      if (r.asistentes) escribir("lifeos:asistentes", r.asistentes);
+      if (r.progreso) escribir("lifeos:progreso", r.progreso);
+      if (r.salud) escribir(EXTRAS.salud, r.salud);
+      if (r.espacio) escribir(EXTRAS.espacio, r.espacio);
+      await importAll(r.data as unknown as Database, r.profile ?? null);
+      toast(`Respaldo importado: ${nuevos} registros.`);
+      // Recarga para que asistentes, progreso y demás partes lean lo importado
+      setTimeout(() => window.location.reload(), 600);
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "No se pudo importar el respaldo.", "error");
+    } finally {
+      setImportando(false);
+    }
   };
 
   const wipe = async () => {
@@ -275,9 +339,27 @@ function StorageCard() {
         </div>
       </div>
       <div className="mt-5 flex flex-wrap gap-2">
-        <Button variant="secondary" className="bg-bg-2" onClick={exportJSON}>
-          <Download size={18} /> Exportar mis datos (JSON)
+        <Button variant="secondary" className="bg-bg-2" onClick={() => exportJSON()}>
+          <Download size={18} /> Exportar respaldo
         </Button>
+        {mode === "local" ? (
+          <>
+            <Button variant="primary" onClick={() => archivo.current?.click()} disabled={importando}>
+              <Upload size={18} /> {importando ? "Importando…" : "Importar respaldo"}
+            </Button>
+            <input
+              ref={archivo}
+              type="file"
+              accept="application/json,.json"
+              hidden
+              onChange={(ev) => {
+                const f = ev.target.files?.[0];
+                ev.target.value = "";
+                if (f) void importar(f);
+              }}
+            />
+          </>
+        ) : null}
         {mode === "local" ? (
           <Button variant="danger" onClick={wipe}>
             <Trash2 size={16} /> Borrar datos locales
