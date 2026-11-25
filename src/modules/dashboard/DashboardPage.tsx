@@ -21,6 +21,7 @@ import {
 import { HeroAsistente } from "@/modules/asistentes/Protagonismo";
 import { InvitacionRevision } from "@/modules/asistentes/Revision";
 import { TuDia } from "@/modules/asistentes/TuDia";
+import { AvisoRepararRacha } from "@/modules/asistentes/RepararRacha";
 
 function greeting() {
   const h = bogotaHour();
@@ -63,6 +64,7 @@ export function DashboardPage() {
 
       <div className="flex flex-col gap-3">
         <InvitacionRevision />
+        <AvisoRepararRacha />
         <HeroAsistente />
         <TuDia />
         <KpiRow refMonth={refMonth} />

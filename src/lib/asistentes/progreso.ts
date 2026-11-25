@@ -34,7 +34,9 @@ export type TipoAccion =
   | "revision-semanal"
   | "mision"
   | "misiones-dia"
-  | "meta-diaria";
+  | "meta-diaria"
+  | "hito-racha"
+  | "reparar-racha";
 
 export const TABLA_XP: Record<TipoAccion, { xp: number; label: string; asistente: AsistenteId | "principal"; grupo: string; tope?: number }> = {
   movimiento: { xp: 5, label: "Registrar un gasto o una transferencia", asistente: "centavo", grupo: "movimiento", tope: 30 },
@@ -55,6 +57,8 @@ export const TABLA_XP: Record<TipoAccion, { xp: number; label: string; asistente
   mision: { xp: 10, label: "Completar una misión del día", asistente: "principal", grupo: "mision" },
   "misiones-dia": { xp: 20, label: "Completar las 3 misiones del día (bonus)", asistente: "principal", grupo: "mision" },
   "meta-diaria": { xp: 10, label: "Cumplir tu meta diaria de XP", asistente: "principal", grupo: "meta-diaria" },
+  "hito-racha": { xp: 0, label: "Llegar a un hito de racha (3, 7, 14, 30… días): de +10 a +500 XP", asistente: "brote", grupo: "racha" },
+  "reparar-racha": { xp: -100, label: "Reparar la racha (por cada día perdido)", asistente: "principal", grupo: "racha" },
 };
 
 /** Tipos que salen de las misiones y la meta: no cuentan para la meta diaria (evita el círculo) */
@@ -89,7 +93,16 @@ export interface Progreso {
   version: 1;
   /** Fuente de verdad: el XP total, los niveles y los vínculos se derivan de aquí */
   eventos: EventoXP[];
-  racha: { actual: number; mejor: number; ultimoDia: string; protectores: number; diasActivos: string[]; usados: string[] };
+  racha: {
+    actual: number;
+    mejor: number;
+    ultimoDia: string;
+    protectores: number;
+    diasActivos: string[];
+    usados: string[];
+    inicio?: string;
+    reparados?: string[];
+  };
   logros: Partial<Record<LogroId, string>>;
   ajustes: { gamificacion: boolean; celebraciones: "todas" | "solo-grandes" | "ninguna"; negativas: boolean; saludo: boolean; metaDiaria: number };
   /** Último valor visto de ahorro y avance (para detectar aportes y avances) */
@@ -203,18 +216,24 @@ export function xpPorAsistente(p: Progreso): Record<AsistenteId, number> {
   return r;
 }
 
-/** Racha global: un día cuenta si hubo al menos una acción. Protector: 1 cada 7 días, máx. 2. */
-export function calcularRacha(diasActivos: string[], today: string, mejorPrevio = 0): Progreso["racha"] {
-  const set = new Set(diasActivos);
+/**
+ * Racha global: un día cuenta si hubo al menos una acción. Protector: 1 cada 7 días, máx. 2.
+ * `reparados`: días perdidos que se recuperaron pagando XP (cuentan como activos).
+ * `inicio`: primer día de la racha actual (sirve para no repetir los premios de hito).
+ */
+export function calcularRacha(diasActivos: string[], today: string, mejorPrevio = 0, reparados: string[] = []): Progreso["racha"] {
+  const set = new Set([...diasActivos, ...reparados]);
   const ordenados = [...set].sort();
-  if (!ordenados.length) return { actual: 0, mejor: mejorPrevio, ultimoDia: "", protectores: 0, diasActivos: [], usados: [] };
+  if (!ordenados.length) return { actual: 0, mejor: mejorPrevio, ultimoDia: "", protectores: 0, diasActivos: [], usados: [], reparados: reparados.slice(-60) };
   let actual = 0;
   let mejor = mejorPrevio;
   let protectores = 0;
   let consecutivos = 0;
+  let inicio = "";
   const usados: string[] = [];
   for (let d = ordenados[0]; d <= today; d = addDays(d, 1)) {
     if (set.has(d)) {
+      if (actual === 0) inicio = d;
       actual += 1;
       consecutivos += 1;
       if (consecutivos % 7 === 0 && protectores < 2) protectores += 1;
@@ -230,7 +249,64 @@ export function calcularRacha(diasActivos: string[], today: string, mejorPrevio 
     }
     mejor = Math.max(mejor, actual);
   }
-  return { actual, mejor, ultimoDia: ordenados.at(-1)!, protectores, diasActivos: ordenados.slice(-200), usados: usados.slice(-60) };
+  return {
+    actual,
+    mejor,
+    ultimoDia: ordenados.at(-1)!,
+    protectores,
+    diasActivos: ordenados.slice(-200),
+    usados: usados.slice(-60),
+    inicio: actual > 0 ? inicio : undefined,
+    reparados: reparados.slice(-60),
+  };
+}
+
+/* ═════════ Hitos de racha ═════════ */
+export const HITOS_RACHA: { dias: number; xp: number }[] = [
+  { dias: 3, xp: 10 },
+  { dias: 7, xp: 25 },
+  { dias: 14, xp: 40 },
+  { dias: 30, xp: 75 },
+  { dias: 50, xp: 100 },
+  { dias: 100, xp: 200 },
+  { dias: 150, xp: 250 },
+  { dias: 200, xp: 250 },
+  { dias: 365, xp: 500 },
+];
+export const proximoHito = (actual: number) => HITOS_RACHA.find((h) => h.dias > actual) ?? null;
+
+/* ═════════ Reparar una racha rota ═════════
+ * Si perdiste 1 o 2 días (sin protector) y la racha anterior era de 3 días o más, durante esos
+ * 2 días puedes recuperarla pagando 100 XP por día perdido. El nivel no baja (tiene piso). */
+export const COSTO_REPARAR_DIA = -TABLA_XP["reparar-racha"].xp;
+
+export function rachaReparable(p: Progreso, today: string): { dias: string[]; anterior: number; costo: number; nueva: number } | null {
+  const reparados = p.racha.reparados ?? [];
+  const activos = new Set([...p.racha.diasActivos, ...reparados]);
+  const protegidos = new Set(p.racha.usados);
+  const cuentaHasta = (d: string) => {
+    let n = 0;
+    for (let x = d; activos.has(x) || protegidos.has(x); x = addDays(x, -1)) if (activos.has(x)) n += 1;
+    return n;
+  };
+  const y1 = addDays(today, -1);
+  const y2 = addDays(today, -2);
+  const y3 = addDays(today, -3);
+  const libre = (d: string) => !activos.has(d) && !protegidos.has(d);
+  let dias: string[] = [];
+  let anterior = 0;
+  if (libre(y1) && activos.has(y2)) {
+    dias = [y1];
+    anterior = cuentaHasta(y2);
+  } else if (libre(y1) && libre(y2) && activos.has(y3)) {
+    dias = [y2, y1];
+    anterior = cuentaHasta(y3);
+  }
+  if (!dias.length || anterior < 3) return null;
+  const costo = dias.length * COSTO_REPARAR_DIA;
+  if (xpTotal(p) < costo) return null;
+  const nueva = anterior + dias.length + (activos.has(today) ? 1 : 0);
+  return { dias, anterior, costo, nueva };
 }
 
 /* ═════════ Reconciliar datos → eventos ═════════ */
@@ -309,7 +385,9 @@ export function reconciliar(prev: Progreso, db: Database, today: string, princip
   const quitados: EventoXP[] = [];
   const conservados = prev.eventos.filter((e) => {
     // Las misiones y la meta del día se revisan en el paso 3
-    if (e.tipo === "revision-semanal" || e.refId.startsWith("demo:") || TIPOS_DEL_DIA.includes(e.tipo)) return true;
+    // Los hitos y las reparaciones de racha ya ganados/pagados no se revierten
+    if (e.tipo === "revision-semanal" || e.refId.startsWith("demo:") || TIPOS_DEL_DIA.includes(e.tipo) || e.tipo === "hito-racha" || e.tipo === "reparar-racha")
+      return true;
     if (e.tipo === "aporte-ahorro" || e.tipo === "avance-objetivo") {
       const ok = vivos.has(e.refId.split(":").slice(0, 2).join(":"));
       if (!ok) quitados.push(e);
@@ -366,7 +444,21 @@ export function reconciliar(prev: Progreso, db: Database, today: string, princip
     [...eventos.map((e) => e.fecha), ...prev.racha.diasActivos.filter((d) => d < addDays(today, -90))],
     today,
     prev.racha.mejor,
+    prev.racha.reparados ?? [],
   );
+
+  // 4) Hitos de racha: una vez por hito en cada racha (la racha se identifica por su día de inicio)
+  if (racha.inicio) {
+    const ya = new Set([...eventos.map((e) => e.refId), ...prev.compactados]);
+    for (const h of HITOS_RACHA) {
+      const refId = `hr:${racha.inicio}:${h.dias}`;
+      if (racha.actual < h.dias || ya.has(refId)) continue;
+      const ev: EventoXP = { id: nuevoId(), tipo: "hito-racha", xp: h.xp, fecha: today, refId, asistente: "brote" };
+      eventos.push(ev);
+      nuevos.push(ev);
+    }
+  }
+
   const next = compactar({ ...prev, eventos, snap, racha, ui: { ...prev.ui, misiones: { fecha: today, ids } } }, today);
   return { next, nuevos, quitados };
 }
@@ -471,7 +563,8 @@ export interface EstadoDia {
 /** Progreso de hoy: XP de acciones (sin contar misiones ni meta) y avance de cada misión */
 export function evaluarDia(eventos: EventoXP[], ids: string[], today: string, meta: number): EstadoDia {
   const deHoy = eventos.filter((e) => e.fecha === today);
-  const xpHoy = sum(deHoy.filter((e) => e.xp > 0 && !TIPOS_DEL_DIA.includes(e.tipo)).map((e) => e.xp));
+  // Los premios (misiones, meta, hitos) no cuentan para la meta: solo las acciones
+  const xpHoy = sum(deHoy.filter((e) => e.xp > 0 && !TIPOS_DEL_DIA.includes(e.tipo) && e.tipo !== "hito-racha").map((e) => e.xp));
   const misiones = ids
     .map((id) => MISIONES.find((m) => m.id === id))
     .filter((m): m is MisionDef => !!m)
@@ -487,7 +580,10 @@ export function agregarEvento(prev: Progreso, tipo: TipoAccion, refId: string, t
   if (prev.eventos.some((e) => e.refId === refId)) return { next: prev, ev: null };
   const ev: EventoXP = { id: nuevoId(), tipo, xp: TABLA_XP[tipo].xp, fecha: today, refId, asistente };
   const eventos = [...prev.eventos, ev];
-  return { next: { ...prev, eventos, racha: calcularRacha(eventos.map((e) => e.fecha).concat(prev.racha.diasActivos), today, prev.racha.mejor) }, ev };
+  return {
+    next: { ...prev, eventos, racha: calcularRacha(eventos.map((e) => e.fecha).concat(prev.racha.diasActivos), today, prev.racha.mejor, prev.racha.reparados ?? []) },
+    ev,
+  };
 }
 
 /** Compacta eventos de más de 90 días en totales por mes y tipo. */

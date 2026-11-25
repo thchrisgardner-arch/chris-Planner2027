@@ -7,7 +7,7 @@
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { Check, ShieldCheck } from "lucide-react";
+import { Check, ShieldCheck, Wrench } from "lucide-react";
 import { Asistente } from "@/components/asistentes/Asistente";
 import { Button } from "@/components/ui/Button";
 import { useData } from "@/lib/store/DataProvider";
@@ -15,6 +15,8 @@ import { useToday } from "@/hooks/useToday";
 import { useAsistentes } from "@/lib/asistentes/estado";
 import { resumenHoy, textoPendientes } from "@/lib/asistentes/resumenHoy";
 import { addDays, weekdayMon } from "@/utils/dates";
+import { proximoHito } from "@/lib/asistentes/progreso";
+import { useReparar } from "./RepararRacha";
 import { cn } from "@/utils/cn";
 import { useGamificacion } from "./Gamificacion";
 import { IconoRacha } from "./Protagonismo";
@@ -29,6 +31,7 @@ export function SaludoDiario() {
   const { estado } = useAsistentes();
   const panel = useRef<HTMLDivElement>(null);
   const tutorial = useTutorialActivo();
+  const reparar = useReparar();
   // Espera a que termine el tutorial (y no sale el día en que el tutorial está por empezar)
   const visible = g.saludoVisible && !tutorial && !tutorialPendiente();
 
@@ -63,7 +66,13 @@ export function SaludoDiario() {
   let titulo: string;
   let sub: string;
   let pose: "celebrando" | "orgulloso" | "feliz" | "triste" = "feliz";
-  if (hoyHecho) {
+  const rep = g.reparable;
+  const hito = proximoHito(r.actual);
+  if (rep) {
+    titulo = `Se rompió tu racha de ${rep.anterior} días`;
+    sub = `Puedes repararla por ${rep.costo} XP y volver a ${rep.nueva} ${rep.nueva === 1 ? "día" : "días"}. Solo hoy y mañana; tu nivel no baja.`;
+    pose = "triste";
+  } else if (hoyHecho) {
     titulo = r.actual === 1 ? "Empezó tu racha" : `${r.actual} días seguidos`;
     sub = faltan ? `Ya sumaste hoy. Te quedan ${faltan}.` : "Ya sumaste hoy y no tienes nada pendiente. Así se hace.";
     pose = "celebrando";
@@ -133,18 +142,43 @@ export function SaludoDiario() {
             {r.protectores === 1 ? "Tienes 1 protector de racha" : `Tienes ${r.protectores} protectores de racha`}
           </p>
         ) : null}
+        {!rep && hito ? (
+          <p className="mt-2 text-[13px] text-muted">
+            Próximo hito: <span className="font-medium text-fg">{hito.dias} días</span> · faltan {hito.dias - r.actual} (+{hito.xp} XP)
+          </p>
+        ) : null}
 
         <div className="mt-5 flex flex-wrap justify-center gap-2">
-          <Link
-            href="/progreso"
-            onClick={g.cerrarSaludo}
-            className="focus-ring inline-flex h-11 items-center rounded-full bg-card px-5 text-[14px] font-medium hover:bg-elev"
-          >
-            Ver progreso
-          </Link>
-          <Button variant="primary" data-autofocus onClick={g.cerrarSaludo}>
-            {hoyHecho ? "Seguir" : "¡Vamos!"}
-          </Button>
+          {rep ? (
+            <>
+              <Button variant="secondary" className="bg-card" onClick={g.cerrarSaludo}>
+                Ahora no
+              </Button>
+              <Button
+                variant="primary"
+                data-autofocus
+                onClick={() => {
+                  g.cerrarSaludo();
+                  reparar();
+                }}
+              >
+                <Wrench size={17} /> Reparar por {rep.costo} XP
+              </Button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/progreso"
+                onClick={g.cerrarSaludo}
+                className="focus-ring inline-flex h-11 items-center rounded-full bg-card px-5 text-[14px] font-medium hover:bg-elev"
+              >
+                Ver progreso
+              </Link>
+              <Button variant="primary" data-autofocus onClick={g.cerrarSaludo}>
+                {hoyHecho ? "Seguir" : "¡Vamos!"}
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>,

@@ -22,4 +22,6 @@ export const REACCION: Record<TipoAccion, { pose: Pose; plural: [string, string]
   mision: { pose: "orgulloso", plural: ["misión", "misiones"], frase: { seco: "Misión cumplida. Siguiente.", motivador: "¡Misión cumplida! Vas con todo.", tranquilo: "Completaste una misión del día." } },
   "misiones-dia": { pose: "celebrando", plural: ["bonus de misiones", "bonus de misiones"], frase: { seco: "Las tres. Nada mal.", motivador: "¡Las tres misiones listas! Día redondo.", tranquilo: "Completaste las misiones de hoy." } },
   "meta-diaria": { pose: "celebrando", plural: ["meta diaria", "metas diarias"], frase: { seco: "Meta del día. Cumplida.", motivador: "¡Meta diaria cumplida! Así se hace.", tranquilo: "Llegaste a tu meta de hoy." } },
+  "hito-racha": { pose: "celebrando", plural: ["hito de racha", "hitos de racha"], frase: { seco: "Hito de racha. Sigue así.", motivador: "¡Nuevo hito de racha! Imparable.", tranquilo: "Llegaste a un hito de racha." } },
+  "reparar-racha": { pose: "orgulloso", plural: ["reparación", "reparaciones"], frase: { seco: "Racha reparada. Que no se repita.", motivador: "¡Racha de vuelta! A cuidarla.", tranquilo: "Reparaste tu racha." } },
 };

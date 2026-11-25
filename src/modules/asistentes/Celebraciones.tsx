@@ -15,6 +15,7 @@ import { FICHAS, type Tono } from "@/lib/asistentes/definiciones";
 import type { Accesorio, AsistenteId, Colores } from "@/lib/asistentes/tipos";
 import { useGamificacion, type Celebracion } from "./Gamificacion";
 import { useTutorialActivo } from "@/modules/tutorial/Tutorial";
+import { IconoRacha } from "./Protagonismo";
 
 const DORADA: Colores = { primario: "yellow", secundario: "yellow-soft", detalle: "ink" };
 
@@ -34,6 +35,16 @@ const VOZ_DESBLOQUEO: Record<Tono, (n: string) => string> = {
   tranquilo: (n) => `Nuevo desbloqueo por tu vínculo con ${n}.`,
 };
 
+const VOZ_HITO: Record<Tono, (d: number) => string> = {
+  seco: (d) => (d >= 30 ? `${d} días sin fallar. Esto ya es costumbre.` : `${d} días seguidos. Vamos bien.`),
+  motivador: (d) => (d >= 30 ? `¡${d} días seguidos! Eres imparable.` : `¡${d} días seguidos! No la sueltes.`),
+  tranquilo: (d) => `Llevas ${d} días seguidos registrando.`,
+};
+const VOZ_REPARADA: Record<Tono, string> = {
+  seco: "Racha recuperada. Esta vez la cuidamos.",
+  motivador: "¡Tu racha está de vuelta! Ahora a cuidarla.",
+  tranquilo: "Recuperaste tu racha.",
+};
 const VOZ_META: Record<Tono, string> = {
   seco: "Meta del día cumplida. Lo que sigue es ganancia.",
   motivador: "¡Llegaste a tu meta de hoy! Lo que sumes ahora es extra.",
@@ -158,7 +169,15 @@ export function CapaCelebraciones() {
   let probar: string | null = null;
   let confeti = true;
   let pose: "celebrando" | "triste" = "celebrando";
-  if (c.tipo === "meta") {
+  if (c.tipo === "hito") {
+    etiqueta = `Hito de racha · +${c.xp} XP`;
+    titulo = `${c.dias} días de racha`;
+    sub = VOZ_HITO[estado.ajustes[id].tono](c.dias);
+  } else if (c.tipo === "reparada") {
+    etiqueta = "Racha reparada";
+    titulo = `${c.dias} ${c.dias === 1 ? "día" : "días"} de racha`;
+    sub = VOZ_REPARADA[estado.ajustes[id].tono];
+  } else if (c.tipo === "meta") {
     etiqueta = "Meta diaria cumplida · +10 XP";
     titulo = `${c.meta} XP hoy`;
     sub = VOZ_META[estado.ajustes[id].tono];
@@ -226,6 +245,11 @@ export function CapaCelebraciones() {
             nombre={a.nombre}
             celebrar={i + 1}
           />
+          {c.tipo === "hito" || c.tipo === "reparada" ? (
+            <span className="absolute bottom-6 right-[18%] grid place-items-center" aria-hidden>
+              <IconoRacha size={72} />
+            </span>
+          ) : null}
         </div>
         <p className={`relative text-[13px] font-medium ${c.tipo === "balance" && !c.verde ? "text-danger" : "text-brand-soft"}`}>{etiqueta}</p>
         <h2 id="celebracion-titulo" className="relative mt-1 text-[34px] leading-tight tracking-[-0.02em]">

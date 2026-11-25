@@ -171,6 +171,12 @@ export function PanelDemo() {
             <button type="button" className={btn} onClick={() => g.romperRachaDemo(false)}>
               Racha rota sin protector
             </button>
+            <button type="button" className={btn} onClick={() => g.romperRachaDemo("reparable")}>
+              Racha rota reparable
+            </button>
+            <button type="button" className={btn} onClick={() => g.celebrarDemo({ tipo: "hito", dias: 7, xp: 25 })}>
+              Hito de 7 días
+            </button>
           </div>
           <p className="mt-3 text-[11.5px] text-dim">Modo demo: nada de esto se guarda.</p>
         </div>

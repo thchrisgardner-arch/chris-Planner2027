@@ -14,8 +14,10 @@ import {
   LOGROS,
   TABLA_XP,
   agregarEvento,
+  calcularRacha,
   elegirMisiones,
   evaluarDia,
+  rachaReparable,
   evaluarLogros,
   META_POR_DEFECTO,
   nivelConPiso,
@@ -89,7 +91,9 @@ export type Celebracion =
   | { tipo: "desbloqueo"; asistente: AsistenteId; item: Desbloqueo }
   | { tipo: "balance"; mes: string; verde: boolean; xp: number }
   | { tipo: "meta"; meta: number }
-  | { tipo: "misiones" };
+  | { tipo: "misiones" }
+  | { tipo: "hito"; dias: number; xp: number }
+  | { tipo: "reparada"; dias: number };
 
 interface Valor {
   progreso: Progreso;
@@ -98,6 +102,9 @@ interface Valor {
   nivel: ReturnType<typeof nivelConPiso>;
   /** Meta diaria y misiones de hoy */
   dia: EstadoDia;
+  /** Racha rota que todavía se puede reparar pagando XP (null si no aplica) */
+  reparable: ReturnType<typeof rachaReparable>;
+  repararRacha: () => void;
   /** Pop-up diario de racha (una vez al día al abrir la app) */
   saludoVisible: boolean;
   cerrarSaludo: () => void;
@@ -121,7 +128,7 @@ interface Valor {
   setForzarSalud: (v: Partial<Record<AsistenteId, number | null>>) => void;
   sumarXPDemo: (xp: number, asistente: AsistenteId) => void;
   celebrarDemo: (c: Celebracion) => void;
-  romperRachaDemo: (conProtector: boolean) => void;
+  romperRachaDemo: (modo: boolean | "reparable") => void;
   /** Sube para forzar la reacción negativa en modo demo */
   negativaDemo: number;
 }
@@ -182,6 +189,12 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
       const nA = nivelConPiso(xpTotal(prev), prev.ui.nivelMax);
       const nB = nivelConPiso(xpTotal(next), next.ui.nivelMax);
       if (nB.nivel > nA.nivel) cola.push({ tipo: "nivel", nivel: nB.nivel, etapa: nB.etapa, cambioEtapa: nB.etapa !== nA.etapa });
+      // Hito de racha: se celebra el más alto alcanzado
+      const hitos = nuevos.filter((e) => e.tipo === "hito-racha");
+      if (hitos.length) {
+        const mayor = hitos.reduce((a, b) => (Number(b.refId.split(":")[2]) > Number(a.refId.split(":")[2]) ? b : a));
+        cola.push({ tipo: "hito", dias: Number(mayor.refId.split(":")[2]), xp: mayor.xp });
+      }
       // Meta diaria y misiones del día: celebraciones pequeñas (solo con "Todas")
       if (pref === "todas") {
         if (nuevos.some((e) => e.tipo === "meta-diaria")) cola.push({ tipo: "meta", meta: next.ajustes.metaDiaria ?? META_POR_DEFECTO });
@@ -252,6 +265,7 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
     const porA = xpPorAsistente(progreso);
     return Object.fromEntries(ASISTENTE_IDS.map((id) => [id, vinculoDeXP(porA[id])])) as Record<AsistenteId, ReturnType<typeof vinculoDeXP>>;
   }, [progreso]);
+  const reparable = useMemo(() => (today && progreso.ajustes.gamificacion ? rachaReparable(progreso, today) : null), [progreso, today]);
   const general = animoGeneral(ASISTENTE_IDS.filter((id) => estado.ajustes[id].activo).map((id) => saludes[id]));
   const semana = today ? semanaDe(today) : "";
   const revisionPendiente =
@@ -263,6 +277,25 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
     xp,
     nivel,
     dia,
+    reparable,
+    repararRacha: () => {
+      const prev = leer();
+      const info = today ? rachaReparable(prev, today) : null;
+      if (!info) return;
+      const pagos: EventoXP[] = info.dias.map((d) => ({
+        id: `rr${Date.now().toString(36)}${d}`,
+        tipo: "reparar-racha",
+        xp: TABLA_XP["reparar-racha"].xp,
+        fecha: today,
+        refId: `rr:${d}`,
+        asistente: principal,
+      }));
+      const eventos = [...prev.eventos, ...pagos];
+      const reparados = [...(prev.racha.reparados ?? []), ...info.dias];
+      const racha = calcularRacha([...prev.racha.diasActivos, ...eventos.map((e) => e.fecha)], today, prev.racha.mejor, reparados);
+      guardar({ ...prev, eventos, racha });
+      setCelebraciones((c) => [...c, { tipo: "reparada", dias: racha.actual }]);
+    },
     saludoVisible,
     cerrarSaludo: () => {
       setSaludoForzado(false);
@@ -315,6 +348,12 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
       if (mode !== "demo") return;
       const prev = leer();
       const ayer = new Date(Date.parse(today) - 86_400_000).toISOString().slice(0, 10);
+      if (conProtector === "reparable") {
+        // Racha de 5 días que se cortó ayer: se puede reparar
+        const dias = [2, 3, 4, 5, 6].map((k) => new Date(Date.parse(today) - k * 86_400_000).toISOString().slice(0, 10));
+        guardar({ ...prev, racha: { ...prev.racha, actual: 0, mejor: Math.max(prev.racha.mejor, 5), protectores: 0, usados: [], reparados: [], diasActivos: dias.sort() } });
+        return;
+      }
       const racha = conProtector
         ? { ...prev.racha, actual: Math.max(prev.racha.actual, 9), mejor: Math.max(prev.racha.mejor, 9), protectores: 0, usados: [...prev.racha.usados, ayer] }
         : { ...prev.racha, actual: 0, mejor: Math.max(prev.racha.mejor, 10), protectores: 0, diasActivos: prev.racha.diasActivos.filter((d) => d !== ayer && d !== today) };
