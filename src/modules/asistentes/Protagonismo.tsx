@@ -132,7 +132,7 @@ export function PildorasProgreso({ compacto }: { compacto?: boolean }) {
   if (!g.activo) return null;
   const pct = g.nivel.xpParaSiguiente ? Math.round((g.nivel.xpEnNivel / g.nivel.xpParaSiguiente) * 100) : 100;
   return (
-    <Link href="/progreso" aria-label={`Racha de ${g.progreso.racha.actual} días, nivel ${g.nivel.nivel}. Ver progreso`} className="focus-ring flex h-11 items-center gap-2 rounded-full bg-card px-3 text-[13.5px] font-medium hover:bg-elev">
+    <Link href="/progreso" aria-label={`Racha de ${g.progreso.racha.actual} días, nivel ${g.nivel.nivel}. Ver progreso`} className="focus-ring flex h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-card px-3 text-[13.5px] font-medium hover:bg-elev">
       <span className="flex items-center gap-1">
         <IconoRacha size={18} apagado={!g.progreso.racha.actual} />
         <span className="num">{g.progreso.racha.actual}</span>
