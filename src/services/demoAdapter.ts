@@ -112,8 +112,21 @@ function seed(): { db: Database; profile: Profile } {
   }
   logs.push({ ...base(), habit_id: habits[1].id, date: today });
 
+  const credito = { ...base(), creditor: "Bancolombia", type: "credito_libre" as const, total_amount: 12_000_000, pending_amount: 7_420_000, installment_amount: 520_000, installments: 36, installments_paid: 14, interest_rate: 1.6, payment_day: 15, due_date: null, overdue_amount: 0, overdue_days: 0, status: "activa" as const, notes: "Crédito para la remodelación" };
+  const tarjetaNu = { ...base(), creditor: "Nu", type: "tarjeta_credito" as const, total_amount: 2_400_000, pending_amount: 1_830_000, installment_amount: 310_000, installments: null, installments_paid: 0, interest_rate: 2.1, payment_day: Number(addDays(today, 2).slice(8, 10)), due_date: null, overdue_amount: 0, overdue_days: 0, status: "activa" as const, notes: null };
+  const cmr = { ...base(), creditor: "Falabella CMR", type: "tarjeta_credito" as const, total_amount: 900_000, pending_amount: 640_000, installment_amount: 180_000, installments: 6, installments_paid: 2, interest_rate: 2.3, payment_day: 5, due_date: null, overdue_amount: 180_000, overdue_days: 21, status: "en_mora" as const, notes: "Se pasó la cuota de noviembre" };
+  const prestamo = { ...base(), creditor: "Préstamo de Kevin", type: "personal" as const, total_amount: 1_500_000, pending_amount: 600_000, installment_amount: 300_000, installments: 5, installments_paid: 3, interest_rate: null, payment_day: 30, due_date: null, overdue_amount: 0, overdue_days: 0, status: "activa" as const, notes: null };
+  const pagos = [
+    { ...base(), debt_id: credito.id, amount: 520_000, date: addDays(today, -40), transaction_id: null, notes: null },
+    { ...base(), debt_id: credito.id, amount: 520_000, date: addDays(today, -10), transaction_id: null, notes: null },
+    { ...base(), debt_id: prestamo.id, amount: 300_000, date: addDays(today, -26), transaction_id: null, notes: null },
+    { ...base(), debt_id: cmr.id, amount: 180_000, date: addDays(today, -50), transaction_id: null, notes: null },
+  ];
+
   const db: Database = {
     accounts: [bancolombia, nequi, nu],
+    debts: [credito, tarjetaNu, cmr, prestamo],
+    debt_payments: pagos,
     transactions: tx,
     transaction_categories: [],
     savings_goals: [fondo, viaje, monitor],

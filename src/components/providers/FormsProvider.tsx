@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useRef, useState } from "react";
 import { AccountForm, SavingsDepositForm, SavingsGoalForm, TransactionForm } from "@/modules/finance/forms";
+import { DebtForm, DebtPaymentForm } from "@/modules/finance/debtForms";
 import { ProjectForm, TaskForm } from "@/modules/projects/forms";
 import { HabitForm } from "@/modules/habits/forms";
 import { EventForm, GoalForm, WishlistForm } from "@/modules/other/forms";
@@ -9,6 +10,7 @@ import type {
   Account,
   AnnualGoal,
   CalendarEvent,
+  Debt,
   Habit,
   Project,
   SavingsGoal,
@@ -23,6 +25,8 @@ export type FormRequest =
   | { kind: "account"; record?: Account; onCreated?: (account: Account) => void }
   | { kind: "savings"; record?: SavingsGoal }
   | { kind: "deposit"; record: SavingsGoal }
+  | { kind: "debt"; record?: Debt }
+  | { kind: "debt-payment"; record: Debt }
   | { kind: "project"; record?: Project }
   | { kind: "task"; record?: Task; defaults?: Partial<Task> }
   | { kind: "habit"; record?: Habit }
@@ -54,6 +58,8 @@ export function FormsProvider({ children }: { children: React.ReactNode }) {
       {req?.kind === "account" && <AccountForm key={key} {...common} record={req.record} onCreated={req.onCreated} />}
       {req?.kind === "savings" && <SavingsGoalForm key={key} {...common} record={req.record} />}
       {req?.kind === "deposit" && <SavingsDepositForm key={key} {...common} record={req.record} />}
+      {req?.kind === "debt" && <DebtForm key={key} {...common} record={req.record} />}
+      {req?.kind === "debt-payment" && <DebtPaymentForm key={key} {...common} record={req.record} />}
       {req?.kind === "project" && <ProjectForm key={key} {...common} record={req.record} />}
       {req?.kind === "task" && <TaskForm key={key} {...common} record={req.record} defaults={req.defaults} />}
       {req?.kind === "habit" && <HabitForm key={key} {...common} record={req.record} />}

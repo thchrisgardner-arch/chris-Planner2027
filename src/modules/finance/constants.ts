@@ -16,6 +16,7 @@ export const EXPENSE_CATEGORIES = [
   "Suscripciones",
   "Familia",
   "Ayuda a otras personas",
+  "Deudas",
   "Otros",
 ];
 
@@ -54,3 +55,16 @@ export const TX_STATUSES: { value: TxStatus; label: string }[] = [
 
 /** Colores para gráficos de categorías: verdes y neutros, nunca todo el arcoíris. */
 export const CATEGORY_COLORS = ["#2ee56b", "#85e6a5", "#9b82f6", "#66a9f7", "#f4a340", "#5c6b61", "#c4b5fd", "#3a463e"];
+
+/* ── Deudas ── */
+export const DEBT_TYPES: { value: import("@/types/db").DebtType; label: string }[] = [
+  { value: "tarjeta_credito", label: "Tarjeta de crédito" },
+  { value: "credito_libre", label: "Crédito de libre inversión" },
+  { value: "hipotecario", label: "Crédito hipotecario" },
+  { value: "vehiculo", label: "Crédito de vehículo" },
+  { value: "libranza", label: "Libranza" },
+  { value: "educativo", label: "Crédito educativo" },
+  { value: "personal", label: "Préstamo personal" },
+  { value: "otro", label: "Otro" },
+];
+export const debtTypeLabel = (t: import("@/types/db").DebtType) => DEBT_TYPES.find((x) => x.value === t)?.label ?? "Deuda";

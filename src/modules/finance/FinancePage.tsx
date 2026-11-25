@@ -23,15 +23,17 @@ import { StoreLogo } from "@/components/ui/StoreLogo";
 import { detectStoreInText } from "@/modules/other/stores";
 import { ActivityCard as ActivityWidget } from "@/modules/dashboard/DashboardWidgets";
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, accountTypeLabel } from "./constants";
+import { Deudas } from "./DeudasTab";
 import { accountBalance, expensesByBeneficiary, expensesByCategory, monthTotals, totalBalance } from "./selectors";
 
-type Tab = "resumen" | "movimientos" | "cuentas" | "ahorros";
+type Tab = "resumen" | "movimientos" | "cuentas" | "ahorros" | "deudas";
 
 const TABS: { value: Tab; label: string }[] = [
   { value: "resumen", label: "Resumen" },
   { value: "movimientos", label: "Movimientos" },
   { value: "cuentas", label: "Cuentas" },
   { value: "ahorros", label: "Ahorros" },
+  { value: "deudas", label: "Deudas" },
 ];
 
 export function FinancePage() {
@@ -44,7 +46,7 @@ export function FinancePage() {
 
   return (
     <>
-      <PageHeader title="Finanzas" subtitle="Ingresos, gastos, cuentas y ahorros." asistente={<AsistenteModulo id="centavo" />}>
+      <PageHeader title="Finanzas" subtitle="Ingresos, gastos, cuentas, ahorros y deudas." asistente={<AsistenteModulo id="centavo" />}>
         <Button variant="primary" className="max-md:hidden" onClick={() => open({ kind: "transaction" })}>
           <Plus size={18} /> Nuevo movimiento
         </Button>
@@ -56,7 +58,8 @@ export function FinancePage() {
       {tab === "movimientos" && <Movements />}
       {tab === "cuentas" && <Accounts />}
       {tab === "ahorros" && <Savings />}
-      <p className="mt-8 text-center text-[13px] text-dim">Próximamente: presupuestos, deudas y análisis.</p>
+      {tab === "deudas" && <Deudas />}
+      <p className="mt-8 text-center text-[13px] text-dim">Próximamente: presupuestos y análisis.</p>
     </>
   );
 }

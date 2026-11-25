@@ -8,6 +8,8 @@ const MONEY_FIELDS: Partial<Record<TableName, string[]>> = {
   accounts: ["initial_balance"],
   transactions: ["amount"],
   savings_goals: ["target_amount", "current_amount"],
+  debts: ["total_amount", "pending_amount", "installment_amount", "overdue_amount"],
+  debt_payments: ["amount"],
   projects: ["budget"],
   wishlist_items: ["price"],
 };

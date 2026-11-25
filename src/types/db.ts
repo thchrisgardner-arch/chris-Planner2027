@@ -54,6 +54,45 @@ export interface SavingsGoal extends BaseRow {
   description: string | null;
 }
 
+/* ── Deudas ── */
+export type DebtType = "tarjeta_credito" | "credito_libre" | "hipotecario" | "vehiculo" | "libranza" | "educativo" | "personal" | "otro";
+export type DebtStatus = "activa" | "pagada" | "en_mora";
+
+export interface Debt extends BaseRow {
+  /** Entidad o persona a la que se le debe */
+  creditor: string;
+  type: DebtType;
+  /** Monto original prestado */
+  total_amount: number;
+  /** Saldo pendiente hoy */
+  pending_amount: number;
+  /** Valor de la cuota mensual */
+  installment_amount: number | null;
+  /** Número total de cuotas (null si no aplica, p. ej. tarjeta) */
+  installments: number | null;
+  installments_paid: number;
+  /** Tasa de interés en % (mensual vencida o efectiva anual, según la anote la persona) */
+  interest_rate: number | null;
+  /** Día del mes en que se paga la cuota (1 a 31) */
+  payment_day: number | null;
+  /** Fecha final o próxima fecha límite (opcional) */
+  due_date: string | null;
+  /** Valor vencido sin pagar */
+  overdue_amount: number;
+  overdue_days: number;
+  status: DebtStatus;
+  notes: string | null;
+}
+
+export interface DebtPayment extends BaseRow {
+  debt_id: ID;
+  amount: number;
+  date: string;
+  /** Movimiento de gasto creado junto con el pago (opcional) */
+  transaction_id: ID | null;
+  notes: string | null;
+}
+
 /* ── Proyectos ── */
 export type ProjectStatus = "ideas" | "pendiente" | "en_proceso" | "en_pausa" | "completado";
 
@@ -153,6 +192,8 @@ export interface Tables {
   transactions: Transaction;
   transaction_categories: TransactionCategory;
   savings_goals: SavingsGoal;
+  debts: Debt;
+  debt_payments: DebtPayment;
   projects: Project;
   tasks: Task;
   habits: Habit;
@@ -172,6 +213,8 @@ export const TABLES: TableName[] = [
   "transactions",
   "transaction_categories",
   "savings_goals",
+  "debts",
+  "debt_payments",
   "projects",
   "tasks",
   "habits",
@@ -198,4 +241,6 @@ export const CASCADES: Partial<
   tasks: [{ table: "tasks", field: "parent_task_id", action: "delete" }],
   habits: [{ table: "habit_logs", field: "habit_id", action: "delete" }],
   savings_goals: [{ table: "wishlist_items", field: "savings_goal_id", action: "nullify" }],
+  debts: [{ table: "debt_payments", field: "debt_id", action: "delete" }],
+  transactions: [{ table: "debt_payments", field: "transaction_id", action: "nullify" }],
 };
