@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { rutaPanel } from "@/modules/proyectos/EspacioDesdeRuta";
 import { ArrowUpRight, CornerDownRight, Plus, Search } from "lucide-react";
 import { AsistenteModulo, useVacioAsistente } from "@/modules/asistentes/Presencia";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -186,7 +187,7 @@ function ListView({ projects, loose }: { projects: Project[]; loose: Task[] }) {
                 <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: p.color }} aria-hidden />
                 <div className="min-w-0">
                   <h2 className="truncate text-[19px]">
-                    <Link href={`/proyectos/${p.id}`} className="focus-ring group inline-flex max-w-full items-center gap-1.5 rounded-[8px] hover:underline">
+                    <Link href={rutaPanel(p.id)} className="focus-ring group inline-flex max-w-full items-center gap-1.5 rounded-[8px] hover:underline">
                       <span className="truncate">{p.name}</span>
                       <ArrowUpRight size={17} className="shrink-0 text-dim group-hover:text-fg" aria-hidden />
                     </Link>
@@ -197,7 +198,7 @@ function ListView({ projects, loose }: { projects: Project[]; loose: Task[] }) {
               </div>
               <div className="flex items-center gap-2">
                 <Link
-                  href={`/proyectos/${p.id}`}
+                  href={rutaPanel(p.id)}
                   className="focus-ring inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-fg pl-4 pr-3 text-[13px] font-medium text-on-fg transition-transform active:scale-95"
                   aria-label={`Abrir el panel de ${p.name}`}
                 >
@@ -293,7 +294,7 @@ function KanbanView({ projects }: { projects: Project[] }) {
                   const prog = projectProgress(p, db.tasks);
                   return (
                     <div key={p.id} className="rounded-[18px] bg-bg-2 p-3.5">
-                      <Link href={`/proyectos/${p.id}`} className="focus-ring group block w-full rounded-[12px] text-left" aria-label={`Abrir ${p.name}`}>
+                      <Link href={rutaPanel(p.id)} className="focus-ring group block w-full rounded-[12px] text-left" aria-label={`Abrir ${p.name}`}>
                         <div className="flex items-center gap-2">
                           <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: p.color }} />
                           <p className="min-w-0 flex-1 truncate text-[14px] font-medium">{p.name}</p>
