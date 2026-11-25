@@ -14,17 +14,15 @@ import {
   BENEFICIARIES,
   EXPENSE_CATEGORIES,
   INCOME_CATEGORIES,
-  PAYMENT_METHODS,
-  TX_STATUSES,
 } from "./constants";
 import { accountBalance } from "./selectors";
 import { StoreLogo } from "@/components/ui/StoreLogo";
 import { BANK_PRESETS, detectStoreInText, findStore } from "@/modules/other/stores";
-import { AccountIcon, PaymentMethodIcon } from "@/components/ui/BrandIcons";
+import { AccountIcon } from "@/components/ui/BrandIcons";
 import { useFeedback } from "@/components/providers/FeedbackProvider";
 import { useForms } from "@/components/providers/FormsProvider";
 import { Button } from "@/components/ui/Button";
-import { Plus } from "lucide-react";
+import { ChevronDown, Plus } from "lucide-react";
 import { cn } from "@/utils/cn";
 
 /** Bancos que se pueden crear al vuelo desde el selector de cuenta. */
@@ -54,10 +52,12 @@ export function TransactionForm({
   const [accountId, setAccountId] = useState(init.account_id ?? db.accounts[0]?.id ?? "");
   const [toAccountId, setToAccountId] = useState(init.to_account_id ?? "");
   const [date, setDate] = useState(init.date ?? todayISO());
-  const [method, setMethod] = useState(init.payment_method ?? "");
-  const [status, setStatus] = useState<TxStatus>(init.status ?? "completado");
+  // Método de pago y estado ya no se piden: se conservan los de movimientos viejos y los nuevos quedan "completado"
+  const method = init.payment_method ?? "";
+  const status: TxStatus = init.status ?? "completado";
   const [beneficiary, setBeneficiary] = useState<Beneficiary>(init.beneficiary ?? "para_mi");
   const [notes, setNotes] = useState(init.notes ?? "");
+  const [masDetalles, setMasDetalles] = useState(!!init.notes || (!!init.beneficiary && init.beneficiary !== "para_mi"));
   const [errors, setErrors] = useState<Errors>({});
 
   const categories = useMemo(() => {
@@ -118,11 +118,6 @@ export function TransactionForm({
       toast(err instanceof Error ? err.message : "No se pudo crear la cuenta.", "error");
     }
   };
-  const methodOptions = [
-    ...PAYMENT_METHODS.map((m) => m.value),
-    ...(method && !PAYMENT_METHODS.some((m) => m.value === method) ? [method] : []),
-  ];
-
   const submit = async () => {
     const e: Errors = {};
     const value = parseCOP(amount);
@@ -187,7 +182,7 @@ export function TransactionForm({
           { value: "transferencia", label: "Transferencia" },
         ]}
       />
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
         <Field label="Valor (COP)" error={errors.amount}>
           {(id) => <AmountInput id={id} value={amount} onChange={setAmount} invalid={!!errors.amount} />}
         </Field>
@@ -212,7 +207,7 @@ export function TransactionForm({
           Comercio reconocido: <span className="font-medium text-fg">{detectStoreInText(description)!.name}</span>
         </div>
       ) : null}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
         <Field label={type === "transferencia" ? "Desde la cuenta" : "Cuenta"} error={errors.account}>
           {(id) => (
             <Select id={id} value={accountId} onChange={(e) => pickAccount(e.target.value, setAccountId)} renderIcon={accountIconFor}>
@@ -261,39 +256,28 @@ export function TransactionForm({
           </Field>
         )}
       </div>
-      {type === "gasto" ? (
-        <Field label="¿Para quién es este gasto?" hint="Solo se usa para estadísticas; no genera alertas.">
-          {() => <ChoiceGroup value={beneficiary} onChange={setBeneficiary} options={BENEFICIARIES} />}
-        </Field>
-      ) : null}
-      <div className="grid gap-4 sm:grid-cols-2">
-        {type !== "transferencia" ? (
-          <Field label="Método de pago">
-            {(id) => (
-              <Select id={id} value={method} onChange={(e) => setMethod(e.target.value)} renderIcon={(v) => (v ? <PaymentMethodIcon value={v} /> : null)}>
-                <option value="">Sin especificar</option>
-                {methodOptions.map((m) => (
-                  <option key={m}>{m}</option>
-                ))}
-              </Select>
-            )}
+      {/* Lo que casi nunca se usa queda plegado para no hacer scroll */}
+      <button
+        type="button"
+        onClick={() => setMasDetalles((v) => !v)}
+        aria-expanded={masDetalles}
+        className="focus-ring -mt-1 flex cursor-pointer items-center gap-1.5 self-start rounded-full px-1 py-1 text-[13.5px] font-medium text-muted hover:text-fg"
+      >
+        <ChevronDown size={16} className={cn("transition-transform", masDetalles && "rotate-180")} />
+        {masDetalles ? "Menos detalles" : type === "gasto" ? "Más detalles (para quién, notas)" : "Más detalles (notas)"}
+      </button>
+      {masDetalles ? (
+        <>
+          {type === "gasto" ? (
+            <Field label="¿Para quién es este gasto?" hint="Solo se usa para estadísticas; no genera alertas.">
+              {() => <ChoiceGroup value={beneficiary} onChange={setBeneficiary} options={BENEFICIARIES} />}
+            </Field>
+          ) : null}
+          <Field label="Notas (opcional)">
+            {(id) => <Textarea id={id} value={notes} onChange={(e) => setNotes(e.target.value)} />}
           </Field>
-        ) : null}
-        <Field label="Estado" hint={status === "pendiente" ? "Los pendientes no afectan el saldo." : undefined}>
-          {(id) => (
-            <Select id={id} value={status} onChange={(e) => setStatus(e.target.value as TxStatus)}>
-              {TX_STATUSES.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </Select>
-          )}
-        </Field>
-      </div>
-      <Field label="Notas (opcional)">
-        {(id) => <Textarea id={id} value={notes} onChange={(e) => setNotes(e.target.value)} />}
-      </Field>
+        </>
+      ) : null}
     </FormModal>
   );
 }
