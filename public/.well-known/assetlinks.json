@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "co.lifeforlife.app",
+        "sha256_cert_fingerprints": ["E9:EA:98:41:95:9D:30:5C:5F:41:39:5F:80:0C:EA:1E:04:60:A2:DC:1A:AE:6F:8D:A9:CF:08:60:94:A0:03:66"]
+      }
+    }]

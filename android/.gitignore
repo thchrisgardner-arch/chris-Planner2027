@@ -1,0 +1,5 @@
+# Llave de firma de Android: privada, nunca a GitHub
+llave-privada/
+# Binarios pesados
+*.apk
+*.aab
