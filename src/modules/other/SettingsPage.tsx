@@ -16,14 +16,28 @@ import { cn } from "@/utils/cn";
 import { TIMEZONE } from "@/utils/dates";
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "@/modules/finance/constants";
 import { borrarAsistentes, exportarAsistentes } from "@/lib/asistentes/estado";
+import { EditorAsistentes } from "@/modules/asistentes/EditorAsistentes";
 
 export function SettingsPage() {
   return (
     <>
-      <PageHeader title="Configuración" subtitle="Perfil, preferencias y tus datos." />
+      <PageHeader title="Configuración" subtitle="Perfil, preferencias, asistentes y tus datos." />
+      <nav aria-label="Secciones de configuración" className="-mx-4 mb-4 flex gap-1.5 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        {[
+          { href: "#perfil", label: "Perfil" },
+          { href: "#apariencia", label: "Apariencia" },
+          { href: "#asistentes", label: "Tus asistentes" },
+          { href: "#datos", label: "Tus datos" },
+        ].map((x) => (
+          <a key={x.href} href={x.href} className="focus-ring shrink-0 rounded-full bg-card px-4 py-2 text-[13.5px] font-medium hover:bg-elev">
+            {x.label}
+          </a>
+        ))}
+      </nav>
       <div className="grid gap-3 xl:grid-cols-2">
         <ProfileCard />
         <AppearanceCard />
+        <EditorAsistentes />
         <StorageCard />
         <CategoriesCard />
       </div>
@@ -70,7 +84,7 @@ function AppearanceCard() {
   const { pref, setPref } = useTheme();
   const { toast } = useFeedback();
   return (
-    <Card>
+    <Card id="apariencia" className="scroll-mt-24">
       <CardHeader title="Apariencia" subtitle="Elige cómo se ve LIFE OS en este dispositivo" />
       <div className="grid grid-cols-3 gap-3" role="radiogroup" aria-label="Tema">
         {THEME_OPTIONS.map((o) => {
