@@ -18,7 +18,7 @@ export function Logo({ collapsed }: { collapsed?: boolean }) {
       <LogoMark />
       {!collapsed ? (
         <div className="leading-none">
-          <p className="text-[15px] font-semibold tracking-[0.06em]">LIFE OS</p>
+          <p className="text-[15px] font-medium tracking-[0.06em]">LIFE OS</p>
           <p className="mt-1 text-[10.5px] font-medium tracking-[0.18em] text-dim">2027</p>
         </div>
       ) : null}

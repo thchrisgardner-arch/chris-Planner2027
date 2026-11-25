@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { localAdapter } from "@/services/localAdapter";
 import { supabaseAdapter } from "@/services/supabaseAdapter";
+import { demoAdapter } from "@/services/demoAdapter";
 import type { DataAdapter, DataMode } from "@/services/types";
 import {
   CASCADES,
@@ -35,8 +36,24 @@ interface DataContextValue {
 
 const DataContext = createContext<DataContextValue | null>(null);
 
-/** El adaptador se decide una vez según las variables de entorno. */
-const adapter: DataAdapter = isSupabaseConfigured ? supabaseAdapter : localAdapter;
+/**
+ * Adaptador de datos:
+ *  - Supabase si está configurado.
+ *  - Modo demo (?demo=1, se recuerda en la pestaña; ?demo=0 lo apaga): ejemplos en memoria,
+ *    nunca toca los datos reales.
+ *  - Local (localStorage) en los demás casos.
+ */
+let chosen: DataAdapter | null = null;
+function getAdapter(): DataAdapter {
+  if (typeof window === "undefined") return isSupabaseConfigured ? supabaseAdapter : localAdapter;
+  if (chosen) return chosen;
+  const q = new URLSearchParams(window.location.search).get("demo");
+  if (q === "1") sessionStorage.setItem("lifeos-demo", "1");
+  if (q === "0") sessionStorage.removeItem("lifeos-demo");
+  const demo = sessionStorage.getItem("lifeos-demo") === "1";
+  chosen = demo ? demoAdapter : isSupabaseConfigured ? supabaseAdapter : localAdapter;
+  return chosen;
+}
 
 function applyCascade(db: Database, table: TableName, id: string): Database {
   let next = db;
@@ -64,7 +81,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const reload = useCallback(async () => {
     try {
-      const [data, prof] = await Promise.all([adapter.loadAll(), adapter.loadProfile()]);
+      const [data, prof] = await Promise.all([getAdapter().loadAll(), getAdapter().loadProfile()]);
       setDb(data);
       setProfile(prof);
       setStatus("ready");
@@ -86,13 +103,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, [reload]);
 
   const insert = useCallback(async <T extends TableName>(table: T, data: NewRow<T>) => {
-    const row = await adapter.insert(table, data);
+    const row = await getAdapter().insert(table, data);
     setDb((prev) => ({ ...prev, [table]: [...prev[table], row] }));
     return row;
   }, []);
 
   const update = useCallback(async <T extends TableName>(table: T, id: string, patch: Partial<NewRow<T>>) => {
-    const row = await adapter.update(table, id, patch);
+    const row = await getAdapter().update(table, id, patch);
     setDb((prev) => ({
       ...prev,
       [table]: (prev[table] as BaseRow[]).map((r) => (r.id === id ? row : r)),
@@ -101,7 +118,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const remove = useCallback(async (table: TableName, id: string) => {
-    await adapter.remove(table, id);
+    await getAdapter().remove(table, id);
     setDb((prev) => {
       const next = { ...prev, [table]: (prev[table] as BaseRow[]).filter((r) => r.id !== id) } as Database;
       return applyCascade(next, table, id);
@@ -109,21 +126,23 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const saveProfile = useCallback(async (patch: Partial<Profile>) => {
-    const p = await adapter.saveProfile(patch);
+    const p = await getAdapter().saveProfile(patch);
     setProfile(p);
   }, []);
 
   const clearAll = useCallback(async () => {
-    if (!adapter.clearAll) throw new Error("No disponible en este modo.");
-    await adapter.clearAll();
+    const a = getAdapter();
+    if (!a.clearAll) throw new Error("No disponible en este modo.");
+    await a.clearAll();
     setDb(emptyDatabase());
     setProfile(null);
     await reload();
   }, [reload]);
 
   const signOut = useCallback(async () => {
-    if (!adapter.signOut) return;
-    await adapter.signOut();
+    const a = getAdapter();
+    if (!a.signOut) return;
+    await a.signOut();
     setDb(emptyDatabase());
     setProfile(null);
     setStatus("auth_required");
@@ -135,7 +154,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       profile,
       status,
       error,
-      mode: adapter.mode,
+      mode: getAdapter().mode,
       insert,
       update,
       remove,

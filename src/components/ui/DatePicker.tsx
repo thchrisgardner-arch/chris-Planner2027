@@ -154,8 +154,8 @@ export function DatePicker({ id, value, onChange, placeholder = "Elegir fecha", 
           }
         }}
         className={cn(
-          "focus-ring flex h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-[12px] border border-line bg-bg-2 px-3.5 text-left text-[14.5px] transition-colors duration-200 hover:border-line-strong data-invalid:border-danger/70",
-          open && "border-fg/30 bg-card",
+          "flex h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-[14px] border border-transparent bg-elev px-4 text-left text-[15px] outline-none transition-colors duration-200 hover:bg-line-strong focus-visible:border-fg data-invalid:border-danger/70",
+          open && "border-fg",
           className,
         )}
       >
@@ -171,10 +171,10 @@ export function DatePicker({ id, value, onChange, placeholder = "Elegir fecha", 
               aria-label="Elegir fecha"
               onKeyDown={onPanelKey}
               style={{ position: "fixed", top: pos.top, left: pos.left, width: PANEL_W }}
-              className="z-[95] rounded-[20px] border border-line bg-card p-3.5 animate-in"
+              className="z-[95] rounded-[24px] border border-line bg-bg p-3.5 animate-in"
             >
               <div className="mb-2 flex items-center justify-between">
-                <p className="pl-1.5 text-[15px] font-semibold tracking-[-0.01em]">{monthLabel(view)}</p>
+                <p className="pl-1.5 text-[15px] font-medium tracking-[-0.01em]">{monthLabel(view)}</p>
                 <div className="flex gap-1">
                   <button
                     type="button"
@@ -222,11 +222,11 @@ export function DatePicker({ id, value, onChange, placeholder = "Elegir fecha", 
                       className={cn(
                         "num relative mx-auto grid h-9 w-9 cursor-pointer place-items-center rounded-full text-[13.5px] outline-none transition-colors duration-150",
                         isSel
-                          ? "bg-fg font-semibold text-on-fg"
+                          ? "bg-fg font-medium text-on-fg"
                           : inMonth
                             ? "text-fg hover:bg-elev"
                             : "text-dim/60 hover:bg-elev",
-                        !isSel && isToday && "font-semibold ring-1 ring-fg/25",
+                        !isSel && isToday && "font-medium ring-1 ring-fg/25",
                         d === focused && !isSel && "bg-elev",
                         "focus-visible:ring-2 focus-visible:ring-fg/50",
                       )}

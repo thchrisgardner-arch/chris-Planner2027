@@ -100,7 +100,7 @@ export function AmountInput({
         id={id}
         inputMode="numeric"
         autoComplete="off"
-        className="num pl-7 text-[16px] font-medium"
+        className="num pl-8 text-[16px]"
         value={value}
         placeholder={placeholder}
         aria-invalid={invalid || undefined}

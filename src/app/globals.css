@@ -1,33 +1,54 @@
 @import "tailwindcss";
 
-/* ───────────── LIFE OS · Design tokens ───────────── */
+/* ═════════════ LIFE OS 2027 · Sistema de diseño ═════════════
+   Planos de color en vez de bordes y sombras. Cifras protagonistas.
+   Un solo acento (lima) usado con moderación. Todo en píldora o muy redondeado.
+
+   Tokens del rediseño          Alias que usan los componentes
+   --bg       fondo de la app    bg-bg
+   --canvas   fondo exterior     bg-canvas
+   --surface  tarjetas           bg-card / bg-surface
+   --surface-2 barras, inputs    bg-elev / bg-surface-2
+   (blanco dentro de tarjeta)    bg-bg-2
+   --surface-warm tarjeta cálida bg-warm
+   --ink / --ink-muted / --ink-faint   text-fg / text-muted / text-dim
+   --accent   lima               bg-brand / bg-accent
+   ═══════════════════════════════════════════════════════════════ */
 @theme {
-  /* Tema claro (fondos hueso + tarjetas blancas, como los referentes) */
-  --color-bg: #f3f4f1;          /* fondo de la app */
-  --color-bg-2: #f4f4f2;        /* pozos dentro de tarjetas */
-  --color-card: #ffffff;        /* tarjetas */
-  --color-elev: #ececea;        /* chips, pistas de progreso, hover */
-  --color-line: #e3e6e0;        /* bordes */
-  --color-line-strong: #cfd5ce; /* bordes al pasar el cursor */
-  --color-card-border: rgb(17 20 18 / 0.07);
-  --color-on-fg: #ffffff;       /* texto sobre fondo negro (botones, día de hoy) */
+  --color-canvas: #f4f4f2;
+  --color-bg: #ffffff;
+  --color-card: #f2f2f2;
+  --color-surface: #f2f2f2;
+  --color-elev: #e6e6e6;
+  --color-surface-2: #e6e6e6;
+  --color-bg-2: #ffffff;
+  --color-warm: #fbf8ec;
+  --color-line: #e6e6e6;
+  --color-line-strong: #d4d4d4;
+  --color-card-border: transparent;
+  --color-on-fg: #ffffff;
 
-  --color-brand: #2ee56b;       /* rellenos: progreso, ingresos */
-  --color-brand-soft: #15803d;  /* texto positivo legible sobre blanco */
-  --color-violet: #7c5cf0;      /* proyectos, objetivos */
-  --color-warn: #e07b12;        /* gastos, advertencias */
-  --color-info: #3b82f6;        /* calendario, info secundaria */
-  --color-danger: #dc4b43;
+  --color-brand: #5ce65c;
+  --color-accent: #5ce65c;
+  --color-brand-soft: #15803d;
+  --color-warn-fill: #ffd84d;
+  --color-violet: #7c5cf0;
+  --color-warn: #b45f06;
+  --color-info: #2563eb;
+  --color-danger: #e5484d;
 
-  --color-fg: #111412;
-  --color-muted: #5d665f;
-  --color-dim: #8e968f;
+  --color-fg: #0a0a0a;
+  --color-muted: #6b6b6b;
+  --color-dim: #a8a8a8;
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-inter), ui-monospace, monospace;
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-outfit), ui-monospace, monospace;
 
   --ease-os: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
+
+/* dark: en Tailwind sigue a Configuración → Apariencia, no al sistema */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 :root {
   color-scheme: light;
@@ -36,29 +57,33 @@
 /* ── Modo oscuro (Configuración → Apariencia) ── */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --color-bg: #0f1110;
-  --color-bg-2: #1b1e1c;
-  --color-card: #161917;
-  --color-elev: #242826;
-  --color-line: #2a2f2c;
-  --color-line-strong: #3b423e;
-  --color-card-border: rgb(255 255 255 / 0.06);
-  --color-on-fg: #111412;
+  --color-canvas: #000000;
+  --color-bg: #0e0e0e;
+  --color-card: #1a1a1a;
+  --color-surface: #1a1a1a;
+  --color-elev: #262626;
+  --color-surface-2: #262626;
+  --color-bg-2: #222222;
+  --color-warm: #1e1c14;
+  --color-line: #262626;
+  --color-line-strong: #333333;
+  --color-on-fg: #0a0a0a;
 
-  --color-brand-soft: #4ade80;
+  --color-brand-soft: #5ce65c;
+  --color-warn-fill: #e6c23a;
   --color-violet: #a78bfa;
   --color-warn: #f5a54a;
   --color-info: #60a5fa;
-  --color-danger: #f87171;
+  --color-danger: #ff6369;
 
-  --color-fg: #f2f4f2;
-  --color-muted: #a3aba5;
-  --color-dim: #6f7872;
+  --color-fg: #f5f5f5;
+  --color-muted: #9a9a9a;
+  --color-dim: #5c5c5c;
 }
 
 html,
 body {
-  background: var(--color-bg);
+  background: var(--color-canvas);
   color: var(--color-fg);
   transition: background-color 200ms ease, color 200ms ease;
 }
@@ -66,47 +91,62 @@ body {
 body {
   font-family: var(--font-sans);
   font-size: 14.5px;
-  font-feature-settings: "cv11", "ss01";
+  font-weight: 400;
   -webkit-font-smoothing: antialiased;
 }
 
 ::selection {
-  background: color-mix(in oklab, var(--color-brand) 35%, transparent);
+  background: color-mix(in oklab, var(--color-accent) 45%, transparent);
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-line) transparent;
-}
-
-input[type="date"]::-webkit-calendar-picker-indicator,
-input[type="time"]::-webkit-calendar-picker-indicator {
-  opacity: 0.55;
-  cursor: pointer;
+  scrollbar-color: var(--color-line-strong) transparent;
 }
 
 @layer components {
+  /* Tarjeta: plano gris, sin borde ni sombra */
   .card {
     background: var(--color-card);
-    border: 1px solid var(--color-card-border);
-    border-radius: 28px;
-    box-shadow: none;
+    border-radius: 24px;
+  }
+  .card-inverse {
+    background: var(--color-fg);
+    color: var(--color-on-fg);
+  }
+  .card-warm {
+    background: var(--color-warm);
   }
   .label {
-    font-size: 11.5px;
-    letter-spacing: 0.02em;
+    font-size: 13px;
     color: var(--color-muted);
   }
   .num {
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.025em;
+    letter-spacing: -0.02em;
+  }
+  /* Cifras protagonistas: grandes y finas */
+  .figure {
+    font-variant-numeric: tabular-nums;
+    font-weight: 300;
+    letter-spacing: -0.03em;
+    line-height: 1;
   }
   .focus-ring {
     outline: none;
   }
   .focus-ring:focus-visible {
-    box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px color-mix(in oklab, var(--color-fg) 55%, transparent);
+    box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-fg);
   }
+}
+
+/* Foco visible en todo lo interactivo que no use .focus-ring */
+:where(a, button, [role="button"], [tabindex]):focus-visible {
+  outline: 2px solid var(--color-fg);
+  outline-offset: 2px;
+}
+.focus-ring:focus-visible {
+  outline: none;
 }
 
 @keyframes os-fade-up {
@@ -121,10 +161,10 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   animation: os-fade-up 220ms var(--ease-os) both;
 }
 .skeleton {
-  background: linear-gradient(90deg, var(--color-elev) 0%, var(--color-bg-2) 50%, var(--color-elev) 100%);
+  background: linear-gradient(90deg, var(--color-elev) 0%, var(--color-card) 50%, var(--color-elev) 100%);
   background-size: 200% 100%;
   animation: os-shimmer 1.4s linear infinite;
-  border-radius: 10px;
+  border-radius: 12px;
 }
 
 @media (prefers-reduced-motion: reduce) {

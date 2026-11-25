@@ -110,7 +110,7 @@ function AppearanceCard() {
               </div>
               <div className="mt-2.5 flex items-center gap-1.5 px-0.5">
                 <o.Icon size={16} />
-                <span className={cn("text-[13.5px]", active ? "font-semibold" : "font-medium")}>{o.label}</span>
+                <span className={cn("text-[13.5px]", active ? "font-medium" : "font-medium")}>{o.label}</span>
               </div>
               <p className="px-0.5 text-[11.5px] text-muted">{o.hint}</p>
             </button>
@@ -146,7 +146,7 @@ function ProfileCard() {
     <Card id="perfil" className="scroll-mt-24">
       <CardHeader title="Perfil" subtitle="Cómo te saluda LIFE OS" />
       <div className="mb-5 flex items-center gap-4">
-        <span className="grid h-16 w-16 place-items-center rounded-full border border-line bg-gradient-to-b from-bg-2 to-elev text-[20px] font-semibold text-brand-soft">
+        <span className="grid h-16 w-16 place-items-center rounded-full border border-line bg-gradient-to-b from-bg-2 to-elev text-[20px] font-medium text-brand-soft">
           {initials(name || profile?.full_name)}
         </span>
         <p className="text-[12.5px] leading-relaxed text-muted">El avatar usa tus iniciales. La foto de perfil llega cuando se conecte el almacenamiento de Supabase.</p>

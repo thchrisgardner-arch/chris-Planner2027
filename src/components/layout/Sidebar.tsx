@@ -66,7 +66,7 @@ function NavLink({
         <span
           title={`${count} ${badgeHint[item.href] ?? ""}`}
           className={cn(
-            "num grid min-w-6 place-items-center rounded-full bg-card px-1.5 text-[11.5px] font-semibold text-fg ring-1 ring-line",
+            "num grid min-w-6 place-items-center rounded-full bg-card px-1.5 text-[11.5px] font-medium text-fg ring-1 ring-line",
             collapsed && "absolute right-1.5 top-1 h-4 min-w-4 px-1 text-[9.5px]",
             !collapsed && "h-6",
           )}
@@ -81,15 +81,15 @@ function NavLink({
 /** Insignia del modo de almacenamiento (como la etiqueta "PRO" de la referencia). */
 export function StorageChip() {
   const { mode } = useData();
-  const local = mode === "local";
+  const label = mode === "demo" ? "Demo" : mode === "local" ? "Local" : "Sincronizado";
   return (
     <span
       className={cn(
-        "rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold",
-        local ? "bg-[#ffecd2] text-[#9a5b00]" : "bg-[#c9f5d6] text-[#166534]",
+        "rounded-full px-2.5 py-0.5 text-[11.5px] font-medium",
+        mode === "supabase" ? "bg-brand text-[#0a0a0a]" : mode === "demo" ? "bg-warn-fill text-[#0a0a0a]" : "bg-elev text-fg",
       )}
     >
-      {local ? "Local" : "Nube"}
+      {label}
     </span>
   );
 }
@@ -136,7 +136,7 @@ function UserCard({ collapsed, onNavigate }: { collapsed?: boolean; onNavigate?:
       className="focus-ring mb-3 flex items-center gap-3 rounded-[20px] border border-line p-3.5 transition-colors hover:bg-bg-2"
     >
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[15px] font-semibold tracking-[-0.01em]">{profile?.full_name || "Tu perfil"}</span>
+        <span className="block truncate text-[15px] font-medium tracking-[-0.01em]">{profile?.full_name || "Tu perfil"}</span>
         <span className="block truncate text-[12.5px] text-muted">
           {profile?.email || (mode === "local" ? "Sin cuenta en la nube" : "")}
         </span>

@@ -15,7 +15,7 @@ function systemIsDark() {
 export function applyTheme(pref: ThemePref) {
   const dark = pref === "oscuro" || (pref === "sistema" && systemIsDark());
   document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
-  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute("content", dark ? "#0f1110" : "#f3f4f1"));
+  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute("content", dark ? "#000000" : "#f4f4f2"));
 }
 
 function readPref(): ThemePref {

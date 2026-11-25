@@ -73,7 +73,7 @@ export function BalanceWidget({ refMonth, className }: { refMonth: string; class
         />
       ) : (
         <>
-          <p className={cn("num text-[34px] font-semibold leading-none md:text-[38px]", data.now < 0 && "text-warn")}>
+          <p className={cn("num text-[34px] font-medium leading-none md:text-[38px]", data.now < 0 && "text-warn")}>
             {formatCOP(data.now)}
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -166,7 +166,7 @@ export function IncomeExpenseWidget({ refMonth, className }: { refMonth: string;
                   <span className="h-2 w-2 rounded-full" style={{ background: s.color }} />
                   {s.label}
                 </p>
-                <p className="num mt-2 truncate text-[22px] font-semibold leading-none sm:text-[24px]">{formatCOP(s.value)}</p>
+                <p className="num mt-2 truncate text-[22px] font-medium leading-none sm:text-[24px]">{formatCOP(s.value)}</p>
                 <div className="mt-3">
                   {hasPrev ? <Delta value={variation(s.value, s.prev)} invert={s.invert} /> : <span className="text-[11.5px] text-dim">Sin mes anterior</span>}
                 </div>
@@ -185,7 +185,7 @@ export function IncomeExpenseWidget({ refMonth, className }: { refMonth: string;
           <div className="mt-auto flex items-end justify-between gap-3 border-t border-line pt-4">
             <div>
               <p className="label">Diferencia del mes</p>
-              <p className={cn("num mt-1 text-[20px] font-semibold", current.net >= 0 ? "text-brand-soft" : "text-warn")}>
+              <p className={cn("num mt-1 text-[20px] font-medium", current.net >= 0 ? "text-brand-soft" : "text-warn")}>
                 {current.net >= 0 ? "+" : ""}
                 {formatCOP(current.net)}
               </p>
@@ -261,7 +261,7 @@ export function SavingsWidget({ className }: { className?: string }) {
       ) : (
         <>
           <SegmentedGauge value={progress}>
-            <p className="num text-[36px] font-semibold leading-none">
+            <p className="num text-[36px] font-medium leading-none">
               {Math.round(progress)}
               <span className="text-[20px] text-muted">%</span>
             </p>
@@ -316,13 +316,13 @@ export function ActivityWidget({ className }: { className?: string }) {
           <p className="label flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-brand" /> Ingresos
           </p>
-          <p className="num mt-1 text-[20px] font-semibold">{formatCOP(totals.i)}</p>
+          <p className="num mt-1 text-[20px] font-medium">{formatCOP(totals.i)}</p>
         </div>
         <div>
           <p className="label flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-warn" /> Gastos
           </p>
-          <p className="num mt-1 text-[20px] font-semibold">{formatCOP(totals.g)}</p>
+          <p className="num mt-1 text-[20px] font-medium">{formatCOP(totals.g)}</p>
         </div>
       </div>
       <div className="relative h-[230px] w-full">

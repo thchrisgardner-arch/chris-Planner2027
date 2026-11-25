@@ -72,7 +72,7 @@ function Kpi({ label, value, tone, hint }: { label: string; value: number; tone?
   return (
     <Card className="p-5 sm:p-5">
       <p className="label">{label}</p>
-      <p className={cn("num mt-2 truncate text-[24px] font-semibold leading-none md:text-[26px]", tone)}>{formatCOP(value)}</p>
+      <p className={cn("num mt-2 truncate text-[24px] font-medium leading-none md:text-[26px]", tone)}>{formatCOP(value)}</p>
       {hint ? <p className="mt-2 text-[11.5px] text-dim">{hint}</p> : null}
     </Card>
   );
@@ -172,7 +172,7 @@ function Summary() {
                     <p className="label flex items-center gap-1.5">
                       <span className="h-2 w-2 rounded-full" style={{ background: s.c }} /> {s.k}
                     </p>
-                    <p className="num mt-1.5 text-[17px] font-semibold">{formatCOP(s.v)}</p>
+                    <p className="num mt-1.5 text-[17px] font-medium">{formatCOP(s.v)}</p>
                     <p className="num text-[11.5px] text-dim">{Math.round(pct(s.v, benTotal))} %</p>
                   </div>
                 ))}
@@ -337,7 +337,7 @@ function Movements() {
                 {t.status === "pendiente" ? <Badge tone="warn">Pendiente</Badge> : null}
                 <p
                   className={cn(
-                    "num shrink-0 text-right text-[14.5px] font-semibold",
+                    "num shrink-0 text-right text-[14.5px] font-medium",
                     t.type === "ingreso" ? "text-brand-soft" : t.type === "gasto" ? "text-fg" : "text-info",
                   )}
                 >
@@ -390,7 +390,7 @@ function Accounts() {
             <div className="flex items-start justify-between gap-2">
               {bank ? <StoreLogo store={bank} size={40} /> : null}
               <div className="mr-auto min-w-0">
-                <p className="truncate text-[16px] font-semibold">{a.name}</p>
+                <p className="truncate text-[16px] font-medium">{a.name}</p>
                 <p className="text-[12.5px] text-muted">{accountTypeLabel(a.type)}</p>
               </div>
               <RowActions
@@ -406,7 +406,7 @@ function Accounts() {
                 }
               />
             </div>
-            <p className={cn("num mt-6 text-[30px] font-semibold leading-none", balance < 0 && "text-warn")}>{formatCOP(balance)}</p>
+            <p className={cn("num mt-6 text-[30px] font-medium leading-none", balance < 0 && "text-warn")}>{formatCOP(balance)}</p>
             <p className="mt-2 text-[12px] text-dim">
               Saldo inicial {formatCOP(a.initial_balance)} · {count} movimientos
             </p>
@@ -467,7 +467,7 @@ function Savings() {
             <Card key={g.id} className="flex flex-col">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="truncate text-[16px] font-semibold">{g.name}</p>
+                  <p className="truncate text-[16px] font-medium">{g.name}</p>
                   <p className="text-[12.5px] text-muted">
                     {g.target_date ? `Meta: ${relativeDay(g.target_date, today)}` : "Sin fecha"} · Prioridad {g.priority}
                   </p>
@@ -479,7 +479,7 @@ function Savings() {
                 />
               </div>
               <div className="mt-6 flex items-end justify-between gap-2">
-                <p className="num text-[26px] font-semibold leading-none">{formatCOP(g.current_amount)}</p>
+                <p className="num text-[26px] font-medium leading-none">{formatCOP(g.current_amount)}</p>
                 <p className="num text-[13px] font-medium text-brand-soft">{Math.round(p)} %</p>
               </div>
               <Progress value={p} className="mt-3 h-2" label={`Progreso de ${g.name}`} />

@@ -1,14 +1,15 @@
 import { cn } from "@/utils/cn";
 
-/* ── Badge ── */
-type Tone = "neutral" | "brand" | "violet" | "warn" | "info" | "danger";
+/* ── Chip (antes Badge): píldora pequeña para metadatos ── */
+type Tone = "neutral" | "brand" | "violet" | "warn" | "info" | "danger" | "ink";
 const tones: Record<Tone, string> = {
-  neutral: "bg-elev text-muted border-line",
-  brand: "bg-brand/12 text-brand-soft border-brand/25",
-  violet: "bg-violet/12 text-violet border-violet/25",
-  warn: "bg-warn/12 text-warn border-warn/25",
-  info: "bg-info/12 text-info border-info/25",
-  danger: "bg-danger/12 text-danger border-danger/25",
+  neutral: "bg-elev text-fg",
+  brand: "bg-brand text-[#0a0a0a]",
+  violet: "bg-elev text-fg",
+  warn: "bg-warn-fill text-[#0a0a0a]",
+  info: "bg-elev text-fg",
+  danger: "bg-danger/12 text-danger",
+  ink: "bg-fg text-on-fg",
 };
 
 export function Badge({
@@ -23,23 +24,18 @@ export function Badge({
   dot?: boolean;
 }) {
   return (
-    <span
-      className={cn(
-        "inline-flex h-6 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 text-[11.5px] font-medium",
-        tones[tone],
-        className,
-      )}
-    >
-      {dot ? <span className="h-1.5 w-1.5 rounded-full bg-current" /> : null}
+    <span className={cn("inline-flex h-6 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-[12px] font-medium", tones[tone], className)}>
+      {dot ? <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" /> : null}
       {children}
     </span>
   );
 }
+export const Chip = Badge;
 
-/* ── Barra de progreso ── */
+/* ── Barra de progreso fina ── */
 export function Progress({
   value,
-  color = "var(--color-brand)",
+  color = "var(--color-fg)",
   className,
   label,
 }: {
@@ -58,24 +54,22 @@ export function Progress({
       aria-valuemax={100}
       aria-label={label}
     >
-      <div
-        className="h-full rounded-full transition-[width] duration-500 ease-(--ease-os)"
-        style={{ width: `${v}%`, background: color }}
-      />
+      <div className="h-full rounded-full transition-[width] duration-500 ease-(--ease-os)" style={{ width: `${v}%`, background: color }} />
     </div>
   );
 }
 
-/* ── Estado vacío ── */
+/**
+ * Estado vacío compacto: una sola línea y como máximo un botón.
+ * (Las tarjetas que lo necesitan muestran además su estructura "fantasma".)
+ */
 export function EmptyState({
-  icon,
   title,
   description,
   action,
   className,
-  compact,
 }: {
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   title: string;
   description?: string;
   action?: React.ReactNode;
@@ -83,21 +77,12 @@ export function EmptyState({
   compact?: boolean;
 }) {
   return (
-    <div
-      className={cn(
-        "flex flex-col items-center justify-center rounded-[18px] border border-dashed border-line bg-bg-2/50 text-center",
-        compact ? "gap-2 px-4 py-6" : "gap-3 px-6 py-10",
-        className,
-      )}
-    >
-      <span className="grid h-11 w-11 place-items-center rounded-[14px] border border-line bg-card text-fg">
-        {icon}
-      </span>
-      <div>
-        <p className="text-[14.5px] font-medium text-fg">{title}</p>
-        {description ? <p className="mx-auto mt-1 max-w-[300px] text-[12.5px] leading-relaxed text-muted">{description}</p> : null}
-      </div>
-      {action ? <div className="mt-1">{action}</div> : null}
+    <div className={cn("flex flex-wrap items-center justify-between gap-3 rounded-[16px] bg-bg-2 px-4 py-3", className)}>
+      <p className="min-w-0 text-[13.5px] text-muted">
+        <span className="text-fg">{title}</span>
+        {description ? <span className="hidden sm:inline"> · {description}</span> : null}
+      </p>
+      {action}
     </div>
   );
 }
@@ -107,32 +92,35 @@ export function Skeleton({ className }: { className?: string }) {
   return <div className={cn("skeleton", className)} aria-hidden />;
 }
 
-/* ── Selector segmentado ── */
+/* ── Selector segmentado en píldora ── */
 export function Segmented<T extends string>({
   value,
   onChange,
   options,
   className,
   size = "sm",
+  label,
 }: {
   value: T;
   onChange: (v: T) => void;
   options: { value: T; label: string }[];
   className?: string;
   size?: "sm" | "md";
+  label?: string;
 }) {
   return (
-    <div className={cn("inline-flex rounded-[12px] border border-line bg-bg-2 p-1", className)} role="tablist">
+    <div className={cn("inline-flex rounded-full bg-elev p-1", className)} role="tablist" aria-label={label}>
       {options.map((o) => (
         <button
           key={o.value}
+          type="button"
           role="tab"
           aria-selected={o.value === value}
           onClick={() => onChange(o.value)}
           className={cn(
-            "focus-ring cursor-pointer whitespace-nowrap rounded-[9px] font-medium transition-all duration-200",
-            size === "sm" ? "h-7 px-2.5 text-[12px]" : "h-8 px-3.5 text-[13px]",
-            o.value === value ? "bg-card text-fg" : "text-dim hover:text-muted",
+            "focus-ring cursor-pointer whitespace-nowrap rounded-full font-medium transition-all duration-200",
+            size === "sm" ? "h-7 px-3 text-[12.5px]" : "h-9 px-4 text-[13.5px]",
+            o.value === value ? "bg-bg text-fg" : "text-muted hover:text-fg",
           )}
         >
           {o.label}
@@ -142,22 +130,33 @@ export function Segmented<T extends string>({
   );
 }
 
-/* ── Indicador de variación ── */
-export function Delta({ value, invert, className }: { value: number | null; invert?: boolean; className?: string }) {
+/* ── Variación vs. periodo anterior (texto discreto, sin colores de fondo) ── */
+export function Delta({
+  value,
+  invert,
+  className,
+  suffix,
+  inverse,
+}: {
+  value: number | null;
+  invert?: boolean;
+  className?: string;
+  /** p. ej. "vs. octubre" */
+  suffix?: string;
+  /** sobre tarjeta negra */
+  inverse?: boolean;
+}) {
   if (value === null || !Number.isFinite(value)) {
-    return <span className={cn("text-[12px] text-dim", className)}>Sin mes anterior para comparar</span>;
+    return <span className={cn("text-[13px]", inverse ? "text-on-fg/50" : "text-dim", className)}>Sin mes anterior para comparar</span>;
   }
-  const positive = invert ? value <= 0 : value >= 0;
+  const good = invert ? value <= 0 : value >= 0;
   return (
-    <span
-      className={cn(
-        "num inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-semibold",
-        positive ? "bg-brand/12 text-brand-soft" : "bg-warn/12 text-warn",
-        className,
-      )}
-    >
-      {value >= 0 ? "↗" : "↘"} {value >= 0 ? "+" : ""}
-      {value.toFixed(1).replace(".", ",")} %
+    <span className={cn("num inline-flex items-center gap-1.5 text-[13px]", inverse ? "text-on-fg/70" : "text-muted", className)}>
+      <span className={cn("font-medium", good ? (inverse ? "text-brand" : "text-brand-soft") : inverse ? "text-on-fg" : "text-fg")}>
+        {value >= 0 ? "↗ +" : "↘ "}
+        {value.toFixed(1).replace(".", ",")} %
+      </span>
+      {suffix}
     </span>
   );
 }

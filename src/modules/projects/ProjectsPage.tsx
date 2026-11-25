@@ -182,7 +182,7 @@ function ListView({ projects, loose }: { projects: Project[]; loose: Task[] }) {
               <div className="flex min-w-0 flex-1 items-start gap-3">
                 <span className="mt-1.5 h-3 w-3 shrink-0 rounded-full" style={{ background: p.color }} />
                 <div className="min-w-0">
-                  <h3 className="truncate text-[18px] font-semibold">{p.name}</h3>
+                  <h3 className="truncate text-[18px] font-medium">{p.name}</h3>
                   <ProjectMeta p={p} />
                   {p.description ? <p className="mt-2 text-[13px] text-muted">{p.description}</p> : null}
                 </div>
@@ -212,7 +212,7 @@ function ListView({ projects, loose }: { projects: Project[]; loose: Task[] }) {
             </div>
             <div className="mt-5 flex items-center gap-3">
               <Progress value={prog.pct} color={p.color} className="h-2" label={`Progreso de ${p.name}`} />
-              <span className="num w-12 shrink-0 text-right text-[13px] font-semibold text-fg">
+              <span className="num w-12 shrink-0 text-right text-[13px] font-medium text-fg">
                 {Math.round(prog.pct)} %
               </span>
             </div>
@@ -229,7 +229,7 @@ function ListView({ projects, loose }: { projects: Project[]; loose: Task[] }) {
       })}
       {loose.length ? (
         <Card className="p-5 sm:p-6">
-          <h3 className="text-[17px] font-semibold">Tareas sin proyecto</h3>
+          <h3 className="text-[17px] font-medium">Tareas sin proyecto</h3>
           <ul className="-mx-2 mt-3 flex flex-col">
             {loose.map((t) => (
               <TaskRow key={t.id} task={t} />

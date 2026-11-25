@@ -45,7 +45,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             children
           ) : status === "error" ? (
             <div className="card mx-auto mt-16 max-w-md p-8 text-center">
-              <p className="text-[17px] font-semibold">No se pudieron cargar tus datos</p>
+              <p className="text-[17px] font-medium">No se pudieron cargar tus datos</p>
               <p className="mt-2 text-[13px] text-muted">{error}</p>
               <Button className="mt-5" onClick={() => reload()}>
                 <RefreshCw size={18} /> Reintentar

@@ -69,11 +69,11 @@ export function WishlistPage() {
           <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
             <Card className="p-5 sm:p-5">
               <p className="label">Valor de lo pendiente</p>
-              <p className="num mt-2 text-[22px] font-semibold">{formatCOP(activeTotal)}</p>
+              <p className="num mt-2 text-[22px] font-medium">{formatCOP(activeTotal)}</p>
             </Card>
             <Card className="p-5 sm:p-5">
               <p className="label">Comprados</p>
-              <p className="num mt-2 text-[22px] font-semibold">{bought}</p>
+              <p className="num mt-2 text-[22px] font-medium">{bought}</p>
             </Card>
             <Select value={status} onChange={(e) => setStatus(e.target.value as typeof status)} aria-label="Estado" className="self-center">
               <option value="activos">Pendientes</option>
@@ -127,14 +127,14 @@ export function WishlistPage() {
                     <div className="flex flex-1 flex-col p-5">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="truncate text-[16px] font-semibold">{w.name}</p>
+                          <p className="truncate text-[16px] font-medium">{w.name}</p>
                           <p className="text-[12px] text-muted">
                             {w.category} · {WISH_CLASSIFICATIONS.find((c) => c.value === w.classification)?.label} · Prioridad {priorityLabel(w.priority).toLowerCase()}
                           </p>
                         </div>
                         <RowActions label={w.name} onEdit={() => open({ kind: "wish", record: w })} onDelete={() => del("wishlist_items", w.id, `¿Eliminar ${w.name}?`)} />
                       </div>
-                      <p className="num mt-3 text-[22px] font-semibold">{formatCOP(w.price)}</p>
+                      <p className="num mt-3 text-[22px] font-medium">{formatCOP(w.price)}</p>
                       {goal ? (
                         <div className="mt-3">
                           <Progress value={pct(saved, w.price)} label={`Ahorro para ${w.name}`} />

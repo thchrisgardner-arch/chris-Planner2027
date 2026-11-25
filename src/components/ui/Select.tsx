@@ -214,8 +214,8 @@ export function Select({ id, value, onChange, disabled, className, children, tit
         onClick={() => (open ? close() : openList())}
         onKeyDown={onKeyDown}
         className={cn(
-          "focus-ring flex h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-[12px] border border-line bg-bg-2 px-3.5 text-left text-[14.5px] text-fg transition-colors duration-200 hover:border-line-strong disabled:cursor-not-allowed disabled:opacity-55 aria-invalid:border-danger/70",
-          open && "border-fg/30 bg-card",
+          "flex h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-[14px] border border-transparent bg-elev px-4 text-left text-[15px] text-fg outline-none transition-colors duration-200 hover:bg-line-strong focus-visible:border-fg disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-danger/70",
+          open && "border-fg",
           className,
         )}
       >
@@ -244,7 +244,7 @@ export function Select({ id, value, onChange, disabled, className, children, tit
                 ...(pos.up ? { bottom: window.innerHeight - pos.top } : { top: pos.top }),
               }}
               className={cn(
-                "z-[95] overflow-y-auto rounded-[16px] border border-line bg-card p-1.5",
+                "z-[95] overflow-y-auto rounded-[20px] border border-line bg-bg p-1.5",
                 pos.up ? "origin-bottom" : "origin-top",
                 "animate-in",
               )}
@@ -263,9 +263,9 @@ export function Select({ id, value, onChange, disabled, className, children, tit
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => choose(i)}
                     className={cn(
-                      "flex cursor-pointer items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-[14px] transition-colors duration-150",
+                      "flex cursor-pointer items-center gap-2.5 rounded-[14px] px-3 py-2.5 text-[14.5px] transition-colors duration-150",
                       i === active ? "bg-elev" : "",
-                      isSel ? "font-medium text-fg" : "text-muted",
+                      isSel ? "font-medium text-fg" : "text-fg",
                       o.disabled && "cursor-not-allowed opacity-40",
                     )}
                   >

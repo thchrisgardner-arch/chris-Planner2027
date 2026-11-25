@@ -100,7 +100,7 @@ function HabitCard({ habit, today }: { habit: Habit; today: string }) {
         <div className="flex min-w-0 items-center gap-3">
           <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: habit.color }} />
           <div className="min-w-0">
-            <h3 className="truncate text-[17px] font-semibold">{habit.name}</h3>
+            <h3 className="truncate text-[17px] font-medium">{habit.name}</h3>
             <p className="text-[12px] text-muted">
               {habit.days.length === 7 ? "Todos los días" : habit.days.map((d) => WEEKDAYS_MED[d]).join(" · ")}
             </p>
@@ -116,17 +116,17 @@ function HabitCard({ habit, today }: { habit: Habit; today: string }) {
       <div className="mt-5 grid grid-cols-3 gap-2">
         <div className="rounded-[22px] bg-bg-2 px-3 py-2.5">
           <p className="label">Racha</p>
-          <p className="num mt-1 flex items-center gap-1 text-[20px] font-semibold">
+          <p className="num mt-1 flex items-center gap-1 text-[20px] font-medium">
             {s} <Flame size={18} className={s ? "text-warn" : "text-dim"} />
           </p>
         </div>
         <div className="rounded-[22px] bg-bg-2 px-3 py-2.5">
           <p className="label">Esta semana</p>
-          <p className="num mt-1 text-[20px] font-semibold">{Math.round(weekStats.pct)} %</p>
+          <p className="num mt-1 text-[20px] font-medium">{Math.round(weekStats.pct)} %</p>
         </div>
         <div className="rounded-[22px] bg-bg-2 px-3 py-2.5">
           <p className="label">{monthLabel(key).split(" ")[0]}</p>
-          <p className="num mt-1 text-[20px] font-semibold">
+          <p className="num mt-1 text-[20px] font-medium">
             {monthStats.completed}/{monthStats.scheduled}
           </p>
         </div>
@@ -154,7 +154,7 @@ function HabitCard({ habit, today }: { habit: Habit; today: string }) {
               style={done ? { background: habit.color } : undefined}
             >
               <span>{WEEKDAYS_SHORT[i]}</span>
-              <span className="num text-[14px] font-semibold">{parseISO(d).getUTCDate()}</span>
+              <span className="num text-[14px] font-medium">{parseISO(d).getUTCDate()}</span>
             </button>
           );
         })}

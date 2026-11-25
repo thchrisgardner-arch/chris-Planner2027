@@ -40,7 +40,7 @@ export function Popover({
       {open ? (
         <div
           className={cn(
-            "absolute z-[60] min-w-[220px] rounded-[24px] border border-line bg-card p-2 animate-in",
+            "absolute z-[60] min-w-[220px] rounded-[24px] border border-line bg-bg p-2 animate-in",
             align === "end" ? "right-0" : "left-0",
             side === "bottom" ? "top-[calc(100%+8px)]" : "bottom-[calc(100%+12px)] max-h-[70dvh] overflow-y-auto",
             className,

@@ -2,7 +2,7 @@ import { forwardRef, useId } from "react";
 import { cn } from "@/utils/cn";
 
 const control =
-  "focus-ring w-full rounded-[12px] border border-line bg-bg-2 px-3.5 text-[14.5px] text-fg placeholder:text-dim transition-colors duration-200 hover:border-line-strong focus:border-fg/30 focus:bg-card aria-invalid:border-danger/70";
+  "w-full rounded-[14px] border border-transparent bg-elev px-4 text-[15px] text-fg outline-none placeholder:text-dim transition-colors duration-200 focus:border-fg aria-invalid:border-danger/70";
 
 export function Field({
   label,
@@ -20,7 +20,7 @@ export function Field({
   const id = useId();
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
-      <label htmlFor={id} className="text-[12.5px] font-medium text-muted">
+      <label htmlFor={id} className="text-[13px] text-muted">
         {label}
       </label>
       {children(id)}
@@ -75,10 +75,10 @@ export function ChoiceGroup<T extends string>({
             aria-checked={active}
             onClick={() => onChange(o.value)}
             className={cn(
-              "focus-ring h-9 cursor-pointer rounded-[10px] border px-3 text-[13px] transition-all duration-200",
+              "focus-ring h-9 cursor-pointer rounded-full px-4 text-[13.5px] transition-all duration-200",
               active
-                ? "border-transparent bg-fg text-bg font-medium"
-                : "border-line bg-bg-2 text-muted hover:text-fg hover:border-line-strong",
+                ? "bg-fg text-on-fg font-medium"
+                : "bg-elev text-fg hover:bg-line-strong",
               active && o.tone,
             )}
           >

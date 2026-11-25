@@ -10,18 +10,19 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   loading?: boolean;
 }
 
+/** Botones en píldora. Primario negro (uno por pantalla), secundario en plano gris, fantasma, ícono circular. */
 const variants: Record<Variant, string> = {
-  primary: "bg-fg text-on-fg hover:bg-fg/85 font-semibold",
-  secondary: "bg-card text-fg border border-line hover:border-line-strong hover:bg-bg-2",
+  primary: "bg-fg text-on-fg hover:bg-fg/85 font-medium",
+  secondary: "bg-card text-fg hover:bg-elev",
   ghost: "text-fg hover:bg-elev",
-  danger: "bg-danger/10 text-danger border border-danger/25 hover:bg-danger/15",
+  danger: "bg-danger/10 text-danger hover:bg-danger/15",
 };
 
 const sizes: Record<Size, string> = {
-  sm: "h-8 px-3 text-[13px] gap-1.5 rounded-[10px]",
-  md: "h-10 px-4 text-[14px] gap-2 rounded-[12px]",
-  icon: "h-10 w-10 rounded-[12px]",
-  "icon-sm": "h-8 w-8 rounded-[10px]",
+  sm: "h-9 px-3.5 text-[13px] gap-1.5 rounded-full",
+  md: "h-11 px-5 text-[14px] gap-2 rounded-full",
+  icon: "h-10 w-10 rounded-full",
+  "icon-sm": "h-9 w-9 rounded-full",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
@@ -33,16 +34,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       ref={ref}
       disabled={disabled || loading}
       className={cn(
-        "focus-ring inline-flex shrink-0 cursor-pointer items-center justify-center whitespace-nowrap transition-all duration-200 ease-(--ease-os) disabled:cursor-not-allowed disabled:opacity-45",
+        "focus-ring inline-flex shrink-0 cursor-pointer items-center justify-center whitespace-nowrap transition-all duration-200 ease-(--ease-os) disabled:cursor-not-allowed disabled:opacity-40",
         variants[variant],
         sizes[size],
         className,
       )}
       {...props}
     >
-      {loading ? (
-        <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" aria-hidden />
-      ) : null}
+      {loading ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" aria-hidden /> : null}
       {children}
     </button>
   );

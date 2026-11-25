@@ -158,7 +158,7 @@ export function CalendarPage() {
         {/* Barra de herramientas */}
         <div className="flex flex-col gap-4 border-b border-line p-4 sm:p-5">
           <div className="flex flex-wrap items-center gap-3">
-            <h2 className="num mr-1 text-[22px] font-semibold tracking-[-0.02em] sm:text-[26px]">{title}</h2>
+            <h2 className="num mr-1 text-[22px] font-medium tracking-[-0.02em] sm:text-[26px]">{title}</h2>
             <div className="flex items-center gap-1">
               <Button size="icon-sm" variant="ghost" onClick={() => move(-1)} aria-label="Anterior">
                 <ChevronLeft size={20} />
@@ -231,7 +231,7 @@ export function CalendarPage() {
 
       <button
         onClick={() => open({ kind: "event", defaults: { date: view === "mes" ? today : cursor } })}
-        className="mt-4 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-fg text-[14.5px] font-semibold text-on-fg sm:hidden"
+        className="mt-4 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-fg text-[14.5px] font-medium text-on-fg sm:hidden"
       >
         <Plus size={19} /> Nuevo evento
       </button>
@@ -357,7 +357,7 @@ function TimeGrid({ db, days, today, filter }: { db: Database; days: string[]; t
                         }}
                         title={`${item.title} · ${formatTime(minToTime(s))}`}
                       >
-                        <span className={cn("truncate font-semibold", short ? "text-[11.5px]" : "text-[12.5px]")}>{item.title}</span>
+                        <span className={cn("truncate font-medium", short ? "text-[11.5px]" : "text-[12.5px]")}>{item.title}</span>
                         {!short ? (
                           <span className="num truncate text-[11px] opacity-75">
                             {formatTime(minToTime(s))} – {formatTime(minToTime(e))}
@@ -370,7 +370,7 @@ function TimeGrid({ db, days, today, filter }: { db: Database; days: string[]; t
                   {d === today && now >= START_HOUR * 60 ? (
                     <div className="pointer-events-none absolute inset-x-0 z-10" style={{ top: nowTop }}>
                       <div className="h-[1.5px] bg-fg" />
-                      <span className="num absolute -left-1 -top-[10px] rounded-full bg-fg px-2 py-0.5 text-[10.5px] font-semibold text-on-fg">
+                      <span className="num absolute -left-1 -top-[10px] rounded-full bg-fg px-2 py-0.5 text-[10.5px] font-medium text-on-fg">
                         {formatTime(minToTime(now))}
                       </span>
                     </div>

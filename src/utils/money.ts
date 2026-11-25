@@ -25,6 +25,17 @@ export function formatCompactCOP(value: number): string {
   return "$" + compactFormatter.format(Math.round(value)).replace(/ /g, " ");
 }
 
+/** Formato compacto para KPIs: $16,4 M · $850 K · $9.500 */
+export function formatKpiCOP(value: number): string {
+  const n = Math.round(value);
+  const abs = Math.abs(n);
+  const sign = n < 0 ? "−" : "";
+  const one = (x: number) => x.toLocaleString("es-CO", { maximumFractionDigits: 1, minimumFractionDigits: 0 });
+  if (abs >= 1_000_000) return `${sign}$${one(abs / 1_000_000)} M`;
+  if (abs >= 10_000) return `${sign}$${one(abs / 1_000)} K`;
+  return `${sign}$${abs.toLocaleString("es-CO")}`;
+}
+
 /** Convierte lo que escribe la persona ("1.250.000", "$ 80000") en pesos enteros. */
 export function parseCOP(input: string | number): number | null {
   if (typeof input === "number") return Number.isFinite(input) ? Math.round(input) : null;

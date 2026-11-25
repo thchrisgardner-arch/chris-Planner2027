@@ -53,7 +53,7 @@ export function RingAvatar({ size = 40 }: { size?: number }) {
     >
       <span className="grid h-full w-full place-items-center rounded-full bg-card p-[2px]">
         <span
-          className="grid h-full w-full place-items-center rounded-full bg-gradient-to-br from-elev to-line font-semibold text-fg"
+          className="grid h-full w-full place-items-center rounded-full bg-gradient-to-br from-elev to-line font-medium text-fg"
           style={{ fontSize: Math.max(11, size * 0.32) }}
         >
           {initials(profile?.full_name)}
@@ -81,7 +81,7 @@ export function Avatar({ size = 40 }: { size?: number }) {
         <div>
           <div className="mb-1.5 flex items-center gap-3 rounded-[18px] border border-line p-3.5">
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[15px] font-semibold tracking-[-0.01em]">{profile?.full_name || "Tu perfil"}</span>
+              <span className="block truncate text-[15px] font-medium tracking-[-0.01em]">{profile?.full_name || "Tu perfil"}</span>
               <span className="block truncate text-[12.5px] text-muted">{profile?.email || (mode === "local" ? "Sin cuenta en la nube" : "")}</span>
             </span>
             <RingAvatar size={44} />
@@ -157,7 +157,7 @@ export function NotificationsButton() {
       {(close) => (
         <div>
           <div className="flex items-center justify-between px-2.5 pb-2 pt-1.5">
-            <p className="text-[13.5px] font-semibold">Notificaciones</p>
+            <p className="text-[13.5px] font-medium">Notificaciones</p>
             <span className="text-[11.5px] text-dim">{items.length ? `${items.length} activas` : ""}</span>
           </div>
           {items.length === 0 ? (

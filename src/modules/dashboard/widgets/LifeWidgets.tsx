@@ -236,7 +236,7 @@ export function ProjectsWidget({ className }: { className?: string }) {
                 </div>
                 <p className="mt-3 line-clamp-2 min-h-[42px] text-[15px] font-medium leading-snug">{p.name}</p>
                 <div className="mt-4 flex items-end justify-between">
-                  <p className="num text-[26px] font-semibold leading-none text-fg">
+                  <p className="num text-[26px] font-medium leading-none text-fg">
                     {Math.round(prog.pct)}
                     <span className="text-[14px] text-muted">%</span>
                   </p>
@@ -293,7 +293,7 @@ export function HabitsWidget({ className }: { className?: string }) {
         action={
           todays.length ? (
             <Ring value={pct(done, todays.length)} size={40} stroke={4.5}>
-              <span className="num text-[10.5px] font-semibold">{Math.round(pct(done, todays.length))}</span>
+              <span className="num text-[10.5px] font-medium">{Math.round(pct(done, todays.length))}</span>
             </Ring>
           ) : null
         }
@@ -534,7 +534,7 @@ export function CalendarWidget({ className }: { className?: string }) {
               <span
                 className={cn(
                   "num grid h-9 w-9 place-items-center rounded-full text-[14px] transition-all duration-200",
-                  isSel ? "bg-fg font-semibold text-on-fg" : isToday ? "font-semibold text-fg ring-1 ring-fg/25" : "text-muted hover:bg-elev",
+                  isSel ? "bg-fg font-medium text-on-fg" : isToday ? "font-medium text-fg ring-1 ring-fg/25" : "text-muted hover:bg-elev",
                 )}
               >
                 {parseISO(d).getUTCDate()}

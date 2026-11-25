@@ -38,7 +38,7 @@ export function StoreLogo({ store, size = 32, className }: { store: Store; size?
       ) : (
         <span
           aria-label={store.name}
-          className="grid h-full w-full place-items-center rounded-[22%] text-[0.55em] font-bold text-white"
+          className="grid h-full w-full place-items-center rounded-[22%] text-[0.55em] font-medium text-white"
           style={{ background: store.color, fontSize: size * 0.42 }}
         >
           {store.name.charAt(0)}

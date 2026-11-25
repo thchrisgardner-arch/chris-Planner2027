@@ -186,7 +186,7 @@ export default function LoginPage() {
               </button>
             ) : null}
 
-            <h1 className="text-[34px] font-semibold leading-[1.08] tracking-[-0.03em] sm:text-[40px]">{titles[step].h}</h1>
+            <h1 className="text-[34px] font-medium leading-[1.08] tracking-[-0.03em] sm:text-[40px]">{titles[step].h}</h1>
             <p className="mt-3 text-[15px] leading-relaxed text-muted">{titles[step].p}</p>
 
             <div className="card mt-8 p-6 sm:p-7">
@@ -214,7 +214,7 @@ export default function LoginPage() {
               ) : (
                 <>
                   <div className="mb-5 flex items-center gap-3 rounded-[22px] bg-bg-2 px-3.5 py-3">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-fg text-[13px] font-semibold text-on-fg">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-fg text-[13px] font-medium text-on-fg">
                       {email.trim().charAt(0).toUpperCase()}
                     </span>
                     <span className="min-w-0 truncate text-[14px]">{email.trim()}</span>

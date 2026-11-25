@@ -1,6 +1,6 @@
 import type { Database, NewRow, Profile, Row, TableName } from "@/types/db";
 
-export type DataMode = "local" | "supabase";
+export type DataMode = "local" | "supabase" | "demo";
 
 /**
  * Contrato común para guardar datos. Hoy existen dos implementaciones:

@@ -59,10 +59,10 @@ export function GoalsPage() {
           <Card className="mb-5 flex flex-col gap-6 md:flex-row md:items-center">
             <div className="flex items-center gap-5">
               <Ring value={avg} size={96} stroke={9} color="var(--color-violet)">
-                <span className="num text-[22px] font-semibold">{Math.round(avg)}%</span>
+                <span className="num text-[22px] font-medium">{Math.round(avg)}%</span>
               </Ring>
               <div>
-                <p className="text-[17px] font-semibold">Cumplimiento anual</p>
+                <p className="text-[17px] font-medium">Cumplimiento anual</p>
                 <p className="mt-1 text-[13px] text-muted">
                   {achieved} de {goals.length} objetivos logrados
                 </p>
@@ -95,7 +95,7 @@ export function GoalsPage() {
                     </Badge>
                     <RowActions label={g.title} onEdit={() => open({ kind: "goal", record: g })} onDelete={() => del("annual_goals", g.id, `¿Eliminar «${g.title}»?`)} />
                   </div>
-                  <p className="mt-3 text-[16px] font-semibold leading-snug">{g.title}</p>
+                  <p className="mt-3 text-[16px] font-medium leading-snug">{g.title}</p>
                   {g.description ? <p className="mt-1 line-clamp-2 text-[13px] text-muted">{g.description}</p> : null}
                   <p className="mt-2 text-[12px] text-dim">
                     {GOAL_STATUSES.find((s) => s.value === g.status)?.label} · Prioridad {priorityLabel(g.priority).toLowerCase()}
@@ -104,7 +104,7 @@ export function GoalsPage() {
                   <div className="mt-auto pt-5">
                     <div className="flex items-center gap-3">
                       <Progress value={g.progress} color={area.color} className="h-2" label={`Progreso de ${g.title}`} />
-                      <span className="num w-10 text-right text-[13px] font-semibold">{g.progress}%</span>
+                      <span className="num w-10 text-right text-[13px] font-medium">{g.progress}%</span>
                     </div>
                     <div className="mt-3 flex gap-1.5">
                       <Button size="sm" variant="ghost" onClick={() => bump(g, -10)} aria-label="Restar 10 %">

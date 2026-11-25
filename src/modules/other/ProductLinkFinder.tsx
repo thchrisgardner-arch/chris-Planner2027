@@ -93,7 +93,7 @@ export function ProductLinkFinder({
           <Sparkles size={19} />
         </span>
         <div className="min-w-0">
-          <p className="text-[15px] font-semibold tracking-[-0.01em]">Pega el enlace del producto</p>
+          <p className="text-[15px] font-medium tracking-[-0.01em]">Pega el enlace del producto</p>
           <p className="text-[12.5px] text-muted">Completamos el nombre, el precio y la imagen por ti.</p>
         </div>
       </div>
@@ -145,7 +145,7 @@ export function ProductLinkFinder({
             type="button"
             disabled={!isUrl(value) || state.kind === "loading"}
             onClick={() => void search(value, true)}
-            className="h-9 cursor-pointer rounded-[10px] bg-fg px-3.5 text-[13px] font-semibold text-on-fg transition-opacity disabled:cursor-not-allowed disabled:opacity-35"
+            className="h-9 cursor-pointer rounded-[10px] bg-fg px-3.5 text-[13px] font-medium text-on-fg transition-opacity disabled:cursor-not-allowed disabled:opacity-35"
           >
             Buscar
           </button>
@@ -218,7 +218,7 @@ function ResultCard({ data, storeName, onRetry }: { data: ProductResult; storeNa
         <div className="min-w-0 flex-1">
           <p className="truncate text-[12px] text-muted">{storeName ?? data.siteName ?? new URL(data.url).hostname.replace(/^www\./, "")}</p>
           <p className="mt-0.5 line-clamp-2 text-[14.5px] font-medium leading-snug">{data.title ?? "Producto sin nombre"}</p>
-          <p className="num mt-1 text-[18px] font-semibold">
+          <p className="num mt-1 text-[18px] font-medium">
             {data.price !== null ? (cop ? formatCOP(data.price) : `${data.currency} ${data.price.toLocaleString("es-CO")}`) : <span className="text-[13px] font-normal text-dim">Precio no disponible</span>}
           </p>
         </div>
