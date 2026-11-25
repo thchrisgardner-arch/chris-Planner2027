@@ -127,12 +127,13 @@ function Lista({
 }) {
   return (
     <div className="card p-2 md:col-span-2 xl:col-span-1 xl:overflow-y-auto">
-      <ul className="flex gap-1.5 overflow-x-auto xl:flex-col xl:overflow-visible" role="listbox" aria-label="Asistentes">
+      {/* Celular: cuadrícula de 3 (los 6 a la vista, sin cortes); escritorio grande: lista vertical */}
+      <ul className="grid grid-cols-3 gap-1.5 sm:grid-cols-6 xl:flex xl:flex-col" role="listbox" aria-label="Asistentes">
         {ASISTENTE_IDS.map((id) => {
           const a = estado.ajustes[id];
           const activo = id === sel;
           return (
-            <li key={id} className="shrink-0 xl:shrink">
+            <li key={id} className="min-w-0">
               <div
                 role="option"
                 aria-selected={activo}
@@ -145,7 +146,7 @@ function Lista({
                   }
                 }}
                 className={cn(
-                  "focus-ring flex cursor-pointer items-center gap-3 rounded-[18px] p-2 transition-colors",
+                  "focus-ring flex cursor-pointer flex-col items-center gap-1 rounded-[18px] p-2 transition-colors xl:flex-row xl:gap-3",
                   activo ? "bg-bg" : "hover:bg-bg/60",
                   !a.activo && "opacity-60",
                 )}
@@ -158,7 +159,7 @@ function Lista({
                   </div>
                   <span className="block truncate text-[12.5px] text-muted">{FICHAS[id].modulo}</span>
                 </div>
-                <span className="pr-1 text-[13px] font-medium xl:hidden">{a.nombre}</span>
+                <span className="max-w-full truncate text-[12.5px] font-medium xl:hidden">{a.nombre}</span>
                 <Switch
                   className="hidden xl:inline-flex"
                   checked={a.activo}

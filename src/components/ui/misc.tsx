@@ -202,8 +202,9 @@ export function Segmented<T extends string>({
   size?: "sm" | "md";
   label?: string;
 }) {
+  // Si no caben en una fila (celular), pasan a una segunda fila completas: nada queda cortado
   return (
-    <div className={cn("inline-flex rounded-full bg-elev p-1", className)} role="tablist" aria-label={label}>
+    <div className={cn("inline-flex max-w-full flex-wrap gap-y-1 rounded-[22px] bg-elev p-1", className)} role="tablist" aria-label={label}>
       {options.map((o) => (
         <button
           key={o.value}

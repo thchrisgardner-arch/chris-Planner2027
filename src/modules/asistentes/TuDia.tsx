@@ -54,8 +54,8 @@ export function TuDia() {
   const faltan = Math.max(0, meta - xpHoy);
 
   return (
-    <section data-tour="dia" aria-label="Tu día: meta diaria y misiones" className="card grid gap-5 p-5 sm:p-6 md:grid-cols-[minmax(0,260px)_minmax(0,1fr)] md:items-center">
-      <div className="flex items-center gap-4">
+    <section data-tour="dia" aria-label="Tu día: meta diaria y misiones" className="card grid grid-cols-1 gap-5 p-5 sm:p-6 md:grid-cols-[minmax(0,260px)_minmax(0,1fr)] md:items-center">
+      <div className="flex min-w-0 items-center gap-4">
         <AnilloMeta valor={xpHoy} meta={meta} />
         <div className="min-w-0">
           <p className="flex items-center gap-1.5 text-[13px] font-medium text-muted">
@@ -66,14 +66,14 @@ export function TuDia() {
         </div>
       </div>
 
-      <div>
-        <div className="mb-2 flex items-baseline justify-between gap-3">
+      <div className="min-w-0">
+        <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
           <h3 className="text-[15px] font-bold">Misiones de hoy</h3>
           <p className={cn("num text-[12.5px]", todas ? "font-medium text-brand-soft" : "text-muted")}>
             {todas ? "¡Completas! +20 XP" : `${hechas} de ${misiones.length} · las ${misiones.length} dan +20 XP`}
           </p>
         </div>
-        <ul className="grid gap-1.5">
+        <ul className="grid grid-cols-1 gap-1.5">
           {misiones.map(({ def, cuenta, hecha }) => (
             <li key={def.id}>
               <Link

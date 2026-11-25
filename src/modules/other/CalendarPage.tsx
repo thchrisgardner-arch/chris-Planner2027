@@ -190,7 +190,8 @@ export function CalendarPage() {
               />
             </div>
           </div>
-          <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+          {/* Los filtros pasan a otra fila en celular: ninguno queda cortado */}
+          <div className="flex flex-wrap gap-1.5">
             {FILTERS.map((f) => {
               const active = filter === f.value;
               return (

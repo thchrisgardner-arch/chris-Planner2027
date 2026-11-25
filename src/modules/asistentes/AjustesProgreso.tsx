@@ -28,7 +28,7 @@ export function AjustesProgreso() {
     toast("Guardado");
   };
   return (
-    <div className="grid max-w-[820px] gap-3">
+    <div className="grid max-w-[820px] grid-cols-1 gap-3">
       <Card>
         <CardHeader title="Gamificación" subtitle="XP, niveles, rachas, logros y vínculos" />
         <div className="flex items-start justify-between gap-4 rounded-[20px] bg-bg-2 p-4">

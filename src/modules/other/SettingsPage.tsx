@@ -54,7 +54,7 @@ export function SettingsPage() {
         <Segmented size="md" label="Secciones de configuración" value={seccion} onChange={elegir} options={SECCIONES} />
       </div>
       {seccion === "perfil" ? (
-        <div className="grid max-w-[820px] gap-3">
+        <div className="grid max-w-[820px] grid-cols-1 gap-3">
           <ProfileCard />
           <Card>
             <CardHeader title="Tutorial" subtitle="Un recorrido corto que te señala cómo funciona cada parte de la app" />

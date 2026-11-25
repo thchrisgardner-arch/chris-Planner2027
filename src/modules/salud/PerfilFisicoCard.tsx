@@ -50,7 +50,7 @@ export function PerfilFisicoCard() {
         <div className="min-w-[200px] flex-1">
           <p className="text-[13px] font-medium text-muted">Tu perfil</p>
           <p className="mt-0.5 text-[14.5px]">
-            {p.sexo === "hombre" ? "Hombre" : "Mujer"} · {p.edad} años · <span className="num">{p.pesoKg.toLocaleString("es-CO")} kg</span> · <span className="num">{p.alturaCm} cm</span> · actividad {act} · objetivo: {obj}
+            {p.sexo === "hombre" ? "Hombre" : "Mujer"} · {p.edad} años · <span className="num">{(p.pesoKg ?? 0).toLocaleString("es-CO")} kg</span> · <span className="num">{p.alturaCm} cm</span> · actividad {act} · objetivo: {obj}
           </p>
         </div>
         <Button variant="secondary" className="bg-bg" onClick={() => setEditando(true)}>
