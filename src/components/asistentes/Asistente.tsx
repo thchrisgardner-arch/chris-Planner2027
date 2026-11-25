@@ -151,7 +151,7 @@ export function Asistente({
       aria-hidden={decorativo || undefined}
       onClick={onClick}
       className={cn(
-        "asis-sticker relative inline-block shrink-0 select-none align-middle",
+        "relative inline-block shrink-0 select-none align-middle",
         `asis-id-${id}`,
         animado && "asis-animado",
         interactivo && "asis-interactivo",
@@ -170,10 +170,20 @@ export function Asistente({
           "--stk": `${stk}px`,
           "--blink": blink,
           "--blink-delay": blinkDelay,
+          ...Object.fromEntries(VOLUMENES.map(([k]) => [`--g-${k}`, `url(#${uid}-${k})`])),
         } as React.CSSProperties
       }
     >
       <svg key={rebote ? `r${rebote}` : "r0"} viewBox="0 0 200 200" width={size} height={size} className="asis-svg block overflow-visible" aria-hidden>
+        <defs>
+          {VOLUMENES.map(([k, color]) => (
+            <radialGradient key={k} id={`${uid}-${k}`} cx="0.36" cy="0.28" r="0.85" fx="0.32" fy="0.22">
+              <stop offset="0" style={{ stopColor: `color-mix(in srgb, ${color} 62%, var(--char-white))` }} />
+              <stop offset="0.45" style={{ stopColor: color }} />
+              <stop offset="1" style={{ stopColor: `color-mix(in srgb, ${color} 80%, var(--char-charcoal))` }} />
+            </radialGradient>
+          ))}
+        </defs>
         <g className="asis-salto">
           <g className="asis-inclina">
             <g className="asis-cuerpo">
@@ -193,6 +203,22 @@ export function Asistente({
     </span>
   );
 }
+
+/** Colores con volumen: [clave, color]. Cada relleno usa su degradado radial. */
+const VOLUMENES: [string, string][] = [
+  ["p", "var(--a-primary)"],
+  ["s", "var(--a-secondary)"],
+  ["d", "var(--a-detail)"],
+  ["acc", "var(--a-acc)"],
+  ["lime", "var(--char-lime)"],
+  ["yellow", "var(--char-yellow)"],
+  ["yellow-soft", "var(--char-yellow-soft)"],
+  ["sand", "var(--char-sand)"],
+  ["cream", "var(--char-cream)"],
+  ["white", "var(--char-white)"],
+  ["charcoal", "var(--char-charcoal)"],
+  ["ink", "var(--char-ink)"],
+];
 
 /* ═════════ Cara: ojos de punto con brillo, cejas y boca mínima ═════════ */
 function Cara({ fig, exp, tinta, mirada }: { fig: Figura; exp: Expresion; tinta: string; mirada: Punto }) {
@@ -300,9 +326,9 @@ function AccesorioSvg({ fig, acc }: { fig: Figura; acc: Accesorio }) {
   if (acc === "gafas") {
     return (
       <g>
-        <circle className="o fc-ink" cx={a.x} cy={a.y} r="11" style={{ fill: "var(--char-white)", fillOpacity: 0.25, strokeWidth: "calc(var(--sw) * 0.8)" }} />
-        <circle className="o fc-ink" cx={b.x} cy={b.y} r="11" style={{ fill: "var(--char-white)", fillOpacity: 0.25, strokeWidth: "calc(var(--sw) * 0.8)" }} />
-        <path className="o f-none fc-ink" d={`M${a.x + 11} ${a.y - 1} Q${(a.x + b.x) / 2} ${a.y - 6} ${b.x - 11} ${b.y - 1}`} style={{ strokeWidth: "calc(var(--sw) * 0.8)" }} />
+        <circle className="t" cx={a.x} cy={a.y} r="11" style={{ "--tc": "var(--char-charcoal)", fill: "var(--char-white)", fillOpacity: 0.3 } as React.CSSProperties} />
+        <circle className="t" cx={b.x} cy={b.y} r="11" style={{ "--tc": "var(--char-charcoal)", fill: "var(--char-white)", fillOpacity: 0.3 } as React.CSSProperties} />
+        <path className="t" d={`M${a.x + 11} ${a.y - 1} Q${(a.x + b.x) / 2} ${a.y - 6} ${b.x - 11} ${b.y - 1}`} style={{ "--tc": "var(--char-charcoal)" } as React.CSSProperties} />
       </g>
     );
   }
@@ -326,7 +352,7 @@ function AccesorioSvg({ fig, acc }: { fig: Figura; acc: Accesorio }) {
     const top = fig.cabeza.y - 6;
     return (
       <g>
-        <path className="o f-none fc-ink" d={`M${cx - half + 4} ${a.y} Q${cx - half} ${top} ${cx} ${top} Q${cx + half} ${top} ${cx + half - 4} ${b.y}`} style={{ strokeWidth: "calc(var(--sw) * 0.9)" }} />
+        <path className="t" d={`M${cx - half + 4} ${a.y} Q${cx - half} ${top} ${cx} ${top} Q${cx + half} ${top} ${cx + half - 4} ${b.y}`} style={{ "--tc": "var(--char-charcoal)", strokeWidth: "calc(var(--sw) * 1.4)" } as React.CSSProperties} />
         <rect className="o f-charcoal" x={cx - half - 6} y={a.y - 12} width={14} height={24} rx={6} />
         <rect className="o f-charcoal" x={cx + half - 8} y={b.y - 12} width={14} height={24} rx={6} />
       </g>

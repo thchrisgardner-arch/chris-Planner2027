@@ -12,55 +12,44 @@
   --char-gray: #a8a8a8;
   --char-charcoal: #2a2a2a;
   --char-ink: #0a0a0a;
-  --char-sticker: transparent; /* borde exterior tipo sticker (solo en oscuro) */
-}
-/* En oscuro los rellenos se mantienen y se agrega el borde blanco exterior */
-:root[data-theme="dark"] {
-  --char-sticker: #ffffff;
-}
-
-/* ═════════ Trazos y rellenos ═════════
-   Sin contorno negro: cada forma lleva un borde fino en un tono más oscuro de su propio color
-   (--fc), para que las piezas del mismo color no se fundan entre sí. */
-.asis-svg .o {
-  stroke: color-mix(in srgb, var(--fc, var(--char-gray)) 74%, var(--char-ink));
-  stroke-width: calc(var(--sw) * 0.55);
-  stroke-linejoin: round;
-  stroke-linecap: round;
-}
+  }
+/* ═════════ Rellenos con volumen, sin bordes de ningún tipo ═════════
+   Cada color usa un degradado radial propio de la instancia (--g-*): luz arriba a la izquierda,
+   sombra suave abajo. Si no hay degradado, cae al color plano. */
+.asis-svg .o { stroke: none; }
 .asis-svg .o-fino {
-  stroke: color-mix(in srgb, var(--fc, var(--char-gray)) 62%, var(--char-ink));
-  stroke-width: calc(var(--sw) * 0.45);
+  /* Detalles internos (patrón del caparazón, líneas de la panza): trazo tonal, no contorno */
+  stroke: color-mix(in srgb, var(--fc, var(--char-gray)) 70%, var(--char-ink));
+  stroke-opacity: 0.45;
+  stroke-width: calc(var(--sw) * 0.4);
   stroke-linejoin: round;
   stroke-linecap: round;
   fill: none;
 }
-.asis-svg .f-p { fill: var(--a-primary); --fc: var(--a-primary); }
-.asis-svg .f-s { fill: var(--a-secondary); --fc: var(--a-secondary); }
-.asis-svg .f-d { fill: var(--a-detail); --fc: var(--a-detail); }
-.asis-svg .f-acc { fill: var(--a-acc); --fc: var(--a-acc); }
-.asis-svg .f-lime { fill: var(--char-lime); --fc: var(--char-lime); }
-.asis-svg .f-yellow { fill: var(--char-yellow); --fc: var(--char-yellow); }
-.asis-svg .f-yellow-soft { fill: var(--char-yellow-soft); --fc: var(--char-yellow-soft); }
-.asis-svg .f-sand { fill: var(--char-sand); --fc: var(--char-sand); }
-.asis-svg .f-cream { fill: var(--char-cream); --fc: var(--char-cream); }
-.asis-svg .f-white { fill: var(--char-white); --fc: var(--char-white); }
-.asis-svg .f-charcoal { fill: var(--char-charcoal); --fc: var(--char-charcoal); }
-.asis-svg .f-ink { fill: var(--char-ink); --fc: var(--char-ink); }
+/* Trazos que son parte del dibujo (tallo, asa, montura): color propio, no contorno */
+.asis-svg .t {
+  fill: none;
+  stroke: var(--tc);
+  stroke-width: calc(var(--sw) * 0.95);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.asis-svg .f-p { fill: var(--g-p, var(--a-primary)); --fc: var(--a-primary); }
+.asis-svg .f-s { fill: var(--g-s, var(--a-secondary)); --fc: var(--a-secondary); }
+.asis-svg .f-d { fill: var(--g-d, var(--a-detail)); --fc: var(--a-detail); }
+.asis-svg .f-acc { fill: var(--g-acc, var(--a-acc)); --fc: var(--a-acc); }
+.asis-svg .f-lime { fill: var(--g-lime, var(--char-lime)); --fc: var(--char-lime); }
+.asis-svg .f-yellow { fill: var(--g-yellow, var(--char-yellow)); --fc: var(--char-yellow); }
+.asis-svg .f-yellow-soft { fill: var(--g-yellow-soft, var(--char-yellow-soft)); --fc: var(--char-yellow-soft); }
+.asis-svg .f-sand { fill: var(--g-sand, var(--char-sand)); --fc: var(--char-sand); }
+.asis-svg .f-cream { fill: var(--g-cream, var(--char-cream)); --fc: var(--char-cream); }
+.asis-svg .f-white { fill: var(--g-white, var(--char-white)); --fc: var(--char-white); }
+.asis-svg .f-charcoal { fill: var(--g-charcoal, var(--char-charcoal)); --fc: var(--char-charcoal); }
+.asis-svg .f-ink { fill: var(--g-ink, var(--char-ink)); --fc: var(--char-ink); }
 .asis-svg .f-none { fill: none; }
-/* Color del borde para trazos sin relleno */
 .asis-svg .fc-p { --fc: var(--a-primary); }
 .asis-svg .fc-d { --fc: var(--a-detail); }
-.asis-svg .fc-lime { --fc: var(--char-lime); }
-.asis-svg .fc-cream { --fc: var(--char-cream); }
 .asis-svg .fc-sand { --fc: var(--char-sand); }
-.asis-svg .fc-ink { --fc: var(--char-ink); }
-
-/* Borde exterior tipo sticker (modo oscuro) */
-.asis-sticker {
-  filter: drop-shadow(var(--stk) 0 0 var(--char-sticker)) drop-shadow(calc(var(--stk) * -1) 0 0 var(--char-sticker))
-    drop-shadow(0 var(--stk) 0 var(--char-sticker)) drop-shadow(0 calc(var(--stk) * -1) 0 var(--char-sticker));
-}
 
 /* ═════════ Animaciones (solo CSS) ═════════ */
 .asis-svg [data-pivot] {

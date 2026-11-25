@@ -107,7 +107,7 @@ const brote: Figura = {
     <>
       {c.mostrarProp ? (
         <g data-capa="prop" className="asis-prop">
-          <path className="o f-none fc-lime" d="M150 66 Q151 50 157 38" style={{ strokeWidth: "calc(var(--sw) * 1.1)" }} />
+          <path className="t" d="M150 66 Q151 50 157 38" style={{ "--tc": "var(--char-lime)", strokeWidth: "calc(var(--sw) * 1.3)" } as React.CSSProperties} />
           <path className="o f-lime" d="M156 40 Q140 22 128 34 Q141 46 156 40Z" />
           <path className="o f-lime" d="M158 38 Q172 18 186 30 Q173 44 158 38Z" />
         </g>
@@ -344,7 +344,7 @@ const antojo: Figura = {
       </g>
       {c.mostrarProp ? (
         <g data-capa="prop" className="asis-prop">
-          <path className="o f-none fc-sand" d="M142 150 Q151 132 160 150" style={{ strokeWidth: "calc(var(--sw) * 0.9)" }} />
+          <path className="t" d="M142 150 Q151 132 160 150" style={{ "--tc": "var(--char-sand)" } as React.CSSProperties} />
           <path className="o f-cream" d="M136 150 L166 150 L171 186 L131 186 Z" />
         </g>
       ) : null}
