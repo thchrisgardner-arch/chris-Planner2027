@@ -300,9 +300,9 @@ function AccesorioSvg({ fig, acc }: { fig: Figura; acc: Accesorio }) {
   if (acc === "gafas") {
     return (
       <g>
-        <circle className="o" cx={a.x} cy={a.y} r="11" style={{ fill: "var(--char-white)", fillOpacity: 0.25 }} />
-        <circle className="o" cx={b.x} cy={b.y} r="11" style={{ fill: "var(--char-white)", fillOpacity: 0.25 }} />
-        <path className="o f-none" d={`M${a.x + 11} ${a.y - 1} Q${(a.x + b.x) / 2} ${a.y - 6} ${b.x - 11} ${b.y - 1}`} />
+        <circle className="o fc-ink" cx={a.x} cy={a.y} r="11" style={{ fill: "var(--char-white)", fillOpacity: 0.25, strokeWidth: "calc(var(--sw) * 0.8)" }} />
+        <circle className="o fc-ink" cx={b.x} cy={b.y} r="11" style={{ fill: "var(--char-white)", fillOpacity: 0.25, strokeWidth: "calc(var(--sw) * 0.8)" }} />
+        <path className="o f-none fc-ink" d={`M${a.x + 11} ${a.y - 1} Q${(a.x + b.x) / 2} ${a.y - 6} ${b.x - 11} ${b.y - 1}`} style={{ strokeWidth: "calc(var(--sw) * 0.8)" }} />
       </g>
     );
   }
@@ -326,7 +326,7 @@ function AccesorioSvg({ fig, acc }: { fig: Figura; acc: Accesorio }) {
     const top = fig.cabeza.y - 6;
     return (
       <g>
-        <path className="o f-none" d={`M${cx - half + 4} ${a.y} Q${cx - half} ${top} ${cx} ${top} Q${cx + half} ${top} ${cx + half - 4} ${b.y}`} />
+        <path className="o f-none fc-ink" d={`M${cx - half + 4} ${a.y} Q${cx - half} ${top} ${cx} ${top} Q${cx + half} ${top} ${cx + half - 4} ${b.y}`} style={{ strokeWidth: "calc(var(--sw) * 0.9)" }} />
         <rect className="o f-charcoal" x={cx - half - 6} y={a.y - 12} width={14} height={24} rx={6} />
         <rect className="o f-charcoal" x={cx + half - 8} y={b.y - 12} width={14} height={24} rx={6} />
       </g>

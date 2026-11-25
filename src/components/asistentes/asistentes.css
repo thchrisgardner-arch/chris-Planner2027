@@ -19,33 +19,42 @@
   --char-sticker: #ffffff;
 }
 
-/* ═════════ Trazos y rellenos ═════════ */
+/* ═════════ Trazos y rellenos ═════════
+   Sin contorno negro: cada forma lleva un borde fino en un tono más oscuro de su propio color
+   (--fc), para que las piezas del mismo color no se fundan entre sí. */
 .asis-svg .o {
-  stroke: var(--char-outline);
-  stroke-width: var(--sw);
+  stroke: color-mix(in srgb, var(--fc, var(--char-gray)) 74%, var(--char-ink));
+  stroke-width: calc(var(--sw) * 0.55);
   stroke-linejoin: round;
   stroke-linecap: round;
 }
 .asis-svg .o-fino {
-  stroke: var(--char-outline);
-  stroke-width: calc(var(--sw) * 0.62);
+  stroke: color-mix(in srgb, var(--fc, var(--char-gray)) 62%, var(--char-ink));
+  stroke-width: calc(var(--sw) * 0.45);
   stroke-linejoin: round;
   stroke-linecap: round;
   fill: none;
 }
-.asis-svg .f-p { fill: var(--a-primary); }
-.asis-svg .f-s { fill: var(--a-secondary); }
-.asis-svg .f-d { fill: var(--a-detail); }
-.asis-svg .f-acc { fill: var(--a-acc); }
-.asis-svg .f-lime { fill: var(--char-lime); }
-.asis-svg .f-yellow { fill: var(--char-yellow); }
-.asis-svg .f-yellow-soft { fill: var(--char-yellow-soft); }
-.asis-svg .f-sand { fill: var(--char-sand); }
-.asis-svg .f-cream { fill: var(--char-cream); }
-.asis-svg .f-white { fill: var(--char-white); }
-.asis-svg .f-charcoal { fill: var(--char-charcoal); }
-.asis-svg .f-ink { fill: var(--char-ink); }
+.asis-svg .f-p { fill: var(--a-primary); --fc: var(--a-primary); }
+.asis-svg .f-s { fill: var(--a-secondary); --fc: var(--a-secondary); }
+.asis-svg .f-d { fill: var(--a-detail); --fc: var(--a-detail); }
+.asis-svg .f-acc { fill: var(--a-acc); --fc: var(--a-acc); }
+.asis-svg .f-lime { fill: var(--char-lime); --fc: var(--char-lime); }
+.asis-svg .f-yellow { fill: var(--char-yellow); --fc: var(--char-yellow); }
+.asis-svg .f-yellow-soft { fill: var(--char-yellow-soft); --fc: var(--char-yellow-soft); }
+.asis-svg .f-sand { fill: var(--char-sand); --fc: var(--char-sand); }
+.asis-svg .f-cream { fill: var(--char-cream); --fc: var(--char-cream); }
+.asis-svg .f-white { fill: var(--char-white); --fc: var(--char-white); }
+.asis-svg .f-charcoal { fill: var(--char-charcoal); --fc: var(--char-charcoal); }
+.asis-svg .f-ink { fill: var(--char-ink); --fc: var(--char-ink); }
 .asis-svg .f-none { fill: none; }
+/* Color del borde para trazos sin relleno */
+.asis-svg .fc-p { --fc: var(--a-primary); }
+.asis-svg .fc-d { --fc: var(--a-detail); }
+.asis-svg .fc-lime { --fc: var(--char-lime); }
+.asis-svg .fc-cream { --fc: var(--char-cream); }
+.asis-svg .fc-sand { --fc: var(--char-sand); }
+.asis-svg .fc-ink { --fc: var(--char-ink); }
 
 /* Borde exterior tipo sticker (modo oscuro) */
 .asis-sticker {

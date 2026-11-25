@@ -107,7 +107,7 @@ const brote: Figura = {
     <>
       {c.mostrarProp ? (
         <g data-capa="prop" className="asis-prop">
-          <path className="o f-none" d="M150 66 Q151 50 157 38" />
+          <path className="o f-none fc-lime" d="M150 66 Q151 50 157 38" style={{ strokeWidth: "calc(var(--sw) * 1.1)" }} />
           <path className="o f-lime" d="M156 40 Q140 22 128 34 Q141 46 156 40Z" />
           <path className="o f-lime" d="M158 38 Q172 18 186 30 Q173 44 158 38Z" />
         </g>
@@ -118,14 +118,14 @@ const brote: Figura = {
         </clipPath>
         <ellipse className="f-d" cx="124" cy="118" rx="58" ry="64" />
         {c.fino ? (
-          <g clipPath={`url(#${c.uid}-shell)`}>
+          <g clipPath={`url(#${c.uid}-shell)`} className="fc-d">
             <path
               className="o-fino"
               d="M110 92 L138 92 L150 112 L138 132 L110 132 L100 112Z M110 92 L102 56 M138 92 L148 56 M150 112 L186 112 M138 132 L148 178 M110 132 L102 178"
             />
           </g>
         ) : null}
-        <ellipse className="o f-none" cx="124" cy="118" rx="58" ry="64" />
+        <ellipse className="o f-none fc-d" cx="124" cy="118" rx="58" ry="64" />
       </g>
       <g data-capa="body">
         <ellipse className="o f-p" cx="70" cy="184" rx="16" ry="8" />
@@ -134,7 +134,7 @@ const brote: Figura = {
       </g>
       <g data-capa="belly">
         <ellipse className="o f-s" cx="90" cy="138" rx="29" ry="40" />
-        {c.fino ? <path className="o-fino" d="M64 122 Q90 128 116 122 M62 142 Q90 148 118 142 M66 162 Q90 168 114 162" /> : null}
+        {c.fino ? <path className="o-fino fc-sand" d="M64 122 Q90 128 116 122 M62 142 Q90 148 118 142 M66 162 Q90 168 114 162" /> : null}
       </g>
       <g data-capa="body-front">
         <ellipse className="o f-p" cx="52" cy="126" rx="11" ry="22" transform="rotate(14 52 126)" />
@@ -171,7 +171,7 @@ const tuerca: Figura = {
             <path d="M140 100 L196 156 M128 120 L188 180 M120 144 L160 184 M160 92 L200 132 M150 180 L196 112 M136 170 L190 96 M126 150 L172 92" />
           </g>
         ) : null}
-        <path className="o f-none" d="M126 150 Q148 92 178 96 Q198 104 188 150 Q176 190 140 180 Z" />
+        <path className="o f-none fc-d" d="M126 150 Q148 92 178 96 Q198 104 188 150 Q176 190 140 180 Z" />
         <ellipse className="o f-d" cx="70" cy="186" rx="16" ry="7" />
         <ellipse className="o f-d" cx="114" cy="186" rx="16" ry="7" />
       </g>
@@ -322,7 +322,7 @@ const antojo: Figura = {
         <g clipPath={`url(#${c.uid}-tail)`} style={{ stroke: "var(--a-detail)", strokeWidth: 12, fill: "none" }}>
           <path d={c.fino ? "M150 172 L160 136 M174 168 L178 126 M200 140 L170 112 M196 100 L168 98" : "M160 172 L168 132 M200 140 L172 110"} />
         </g>
-        <path className="o f-none" d="M124 162 Q192 172 194 122 Q196 80 164 90 Q178 110 168 132 Q156 152 122 142 Z" />
+        <path className="o f-none fc-p" d="M124 162 Q192 172 194 122 Q196 80 164 90 Q178 110 168 132 Q156 152 122 142 Z" />
         <ellipse className="o f-d" cx="72" cy="186" rx="15" ry="7" />
         <ellipse className="o f-d" cx="112" cy="186" rx="15" ry="7" />
       </g>
@@ -344,7 +344,7 @@ const antojo: Figura = {
       </g>
       {c.mostrarProp ? (
         <g data-capa="prop" className="asis-prop">
-          <path className="o f-none" d="M142 150 Q151 132 160 150" />
+          <path className="o f-none fc-sand" d="M142 150 Q151 132 160 150" style={{ strokeWidth: "calc(var(--sw) * 0.9)" }} />
           <path className="o f-cream" d="M136 150 L166 150 L171 186 L131 186 Z" />
         </g>
       ) : null}
