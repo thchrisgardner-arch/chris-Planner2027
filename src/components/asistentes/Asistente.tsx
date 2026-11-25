@@ -78,6 +78,7 @@ export function Asistente({
   const [reaccion, setReaccion] = useState<Expresion | null>(null);
   const [rebote, setRebote] = useState(0);
   const fino = size > 64;
+  const [pose, setPose] = useState<Pose>("reposo");
 
   // Desfase de parpadeo estable por instancia (derivado del id de React, sin aleatorio en render)
   const semilla = [...uid].reduce((n, ch) => (n * 31 + ch.charCodeAt(0)) % 997, 7);
@@ -111,6 +112,25 @@ export function Asistente({
     };
   }, [interactivo]);
 
+  // Poses: cada 5 a 9 s cambia a otra (y a veces hace su gesto); vuelve a reposo entre poses
+  useEffect(() => {
+    if (!animado || typeof window === "undefined") return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let t: ReturnType<typeof setTimeout>;
+    let i = 0;
+    const tick = () => {
+      i += 1;
+      setPose((prev) => {
+        if (prev !== "reposo") return "reposo";
+        const opciones = POSES.filter((p) => p !== "reposo");
+        return opciones[Math.floor(Math.random() * opciones.length)];
+      });
+      t = setTimeout(tick, i % 2 ? 2200 + Math.random() * 1800 : 4000 + Math.random() * 4000);
+    };
+    t = setTimeout(tick, 2500 + Math.random() * 4000);
+    return () => clearTimeout(t);
+  }, [animado]);
+
   // Rebote al celebrar
   useEffect(() => {
     if (celebrar === undefined || celebrar === 0) return;
@@ -137,6 +157,9 @@ export function Asistente({
   }, [interactivo, expresion]);
 
   const exp = reaccion ?? expresion;
+  // En pose ladeada la mirada acompaña el giro
+  const miradaPose: Punto =
+    pose === "ladeado" ? { x: mirada.x - 2.4, y: mirada.y } : pose === "ladeado-der" ? { x: mirada.x + 2.4, y: mirada.y } : mirada;
   const tinta = DARK_COLORS.includes(col.primario) ? "var(--char-white)" : "var(--char-ink)";
   const accFill = col.primario === "yellow" || col.secundario === "yellow" ? charVar("lime-soft") : charVar("yellow");
   const sw = Math.max(4, 400 / size);
@@ -156,6 +179,8 @@ export function Asistente({
         animado && "asis-animado",
         interactivo && "asis-interactivo",
         rebote > 0 && "asis-rebote asis-gesto",
+        pose !== "reposo" && `asis-pose-${pose}`,
+        pose === "gesto" && "asis-gesto",
         className,
       )}
       style={
@@ -186,10 +211,11 @@ export function Asistente({
         </defs>
         <g className="asis-salto">
           <g className="asis-inclina">
+            <g className="asis-pose">
             <g className="asis-cuerpo">
               {fig.render({ fino, mostrarProp, uid })}
               <g data-capa="face">
-                <Cara fig={fig} exp={exp} tinta={tinta} mirada={mirada} />
+                <Cara fig={fig} exp={exp} tinta={tinta} mirada={miradaPose} />
               </g>
               {accesorio !== "ninguno" ? (
                 <g data-capa={`slot-${accesorio === "gafas" ? "eyes" : accesorio === "bufanda" ? "neck" : "head"}`}>
@@ -197,12 +223,16 @@ export function Asistente({
                 </g>
               ) : null}
             </g>
+            </g>
           </g>
         </g>
       </svg>
     </span>
   );
 }
+
+type Pose = "reposo" | "ladeado" | "ladeado-der" | "giro" | "agachado" | "puntillas" | "asoma" | "gesto";
+const POSES: Pose[] = ["reposo", "ladeado", "ladeado-der", "giro", "agachado", "puntillas", "asoma", "gesto"];
 
 /** Colores con volumen: [clave, color]. Cada relleno usa su degradado radial. */
 const VOLUMENES: [string, string][] = [
