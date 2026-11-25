@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { CornerDownRight, Plus, Search } from "lucide-react";
+import { AsistenteModulo, useVacioAsistente } from "@/modules/asistentes/Presencia";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -31,6 +32,8 @@ type View = "lista" | "kanban";
 export function ProjectsPage() {
   const { db } = useData();
   const open = useForms();
+
+  const vacio = useVacioAsistente("tuerca");
   const [view, setView] = useState<View>("lista");
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"" | ProjectStatus>("");
@@ -50,7 +53,7 @@ export function ProjectsPage() {
 
   return (
     <>
-      <PageHeader title="Proyectos" subtitle="Proyectos personales, tareas y subtareas con progreso automático.">
+      <PageHeader title="Proyectos" subtitle="Proyectos personales, tareas y subtareas con progreso automático." asistente={<AsistenteModulo id="tuerca" oculto={db.projects.length === 0 && db.tasks.length === 0} />}>
         <Button variant="primary" className="max-md:hidden" onClick={() => open({ kind: "project" })}>
           <Plus size={18} /> Nuevo proyecto
         </Button>
@@ -59,7 +62,8 @@ export function ProjectsPage() {
       {db.projects.length === 0 && db.tasks.length === 0 ? (
         <EmptyCard
           ghost="list"
-          title="Aún no tienes proyectos"
+          title={vacio.frase}
+          aside={vacio.aside}
           description="Crea un proyecto y divídelo en tareas. El progreso se calcula solo."
           action={
             <Button variant="secondary" className="bg-bg" onClick={() => open({ kind: "project" })}>

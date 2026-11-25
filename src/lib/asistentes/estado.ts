@@ -22,7 +22,13 @@ export type AjustesAsistente = {
   avisos: Avisos;
 };
 
-export type EstadoAsistentes = { version: 1; principal: AsistenteId; ajustes: Record<AsistenteId, AjustesAsistente> };
+export type EstadoAsistentes = {
+  version: 1;
+  principal: AsistenteId;
+  ajustes: Record<AsistenteId, AjustesAsistente>;
+  /** Fecha (YYYY-MM-DD) en que se cerró la tarjeta del inicio: no vuelve a salir ese día */
+  ocultoInicio?: string;
+};
 
 export function ajustesPorDefecto(id: AsistenteId): AjustesAsistente {
   return {
@@ -58,6 +64,7 @@ function normalizar(raw: unknown): EstadoAsistentes {
     if (g) base.ajustes[id] = { ...base.ajustes[id], ...g, colores: { ...base.ajustes[id].colores, ...g.colores } };
   }
   base.principal = principal;
+  if (typeof r.ocultoInicio === "string") base.ocultoInicio = r.ocultoInicio;
   base.ajustes[principal].activo = true; // el principal nunca está desactivado
   return base;
 }
@@ -121,6 +128,9 @@ export function useAsistentes() {
     hacerPrincipal(id: AsistenteId) {
       const cur = leer();
       guardar({ ...cur, principal: id, ajustes: { ...cur.ajustes, [id]: { ...cur.ajustes[id], activo: true } } });
+    },
+    ocultarInicioHoy(hoy: string) {
+      guardar({ ...leer(), ocultoInicio: hoy });
     },
     restablecer(id: AsistenteId) {
       const cur = leer();

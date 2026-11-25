@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeftRight, Download, PiggyBank, Plus, Search } from "lucide-react";
+import { AsistenteModulo } from "@/modules/asistentes/Presencia";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -40,9 +41,10 @@ export function FinancePage() {
   const tab: Tab = raw && TABS.some((t) => t.value === raw) ? raw : "resumen";
   const open = useForms();
 
+
   return (
     <>
-      <PageHeader title="Finanzas" subtitle="Ingresos, gastos, cuentas y ahorros.">
+      <PageHeader title="Finanzas" subtitle="Ingresos, gastos, cuentas y ahorros." asistente={<AsistenteModulo id="centavo" />}>
         <Button variant="primary" className="max-md:hidden" onClick={() => open({ kind: "transaction" })}>
           <Plus size={18} /> Nuevo movimiento
         </Button>

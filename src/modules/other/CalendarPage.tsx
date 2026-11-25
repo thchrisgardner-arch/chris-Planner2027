@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { AsistenteModulo } from "@/modules/asistentes/Presencia";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Segmented } from "@/components/ui/misc";
@@ -125,6 +126,7 @@ const FILTERS: { value: Filter; label: string; dot?: string }[] = [
 export function CalendarPage() {
   const { db } = useData();
   const open = useForms();
+
   const today = useToday();
   const [view, setView] = useState<View>(() => (typeof window !== "undefined" && window.innerWidth < 768 ? "dia" : "semana"));
   const [cursor, setCursor] = useState(today);
@@ -152,7 +154,7 @@ export function CalendarPage() {
 
   return (
     <>
-      <PageHeader title="Calendario" subtitle="Eventos, entrenamientos, pagos, vencimientos, tareas y metas.">
+      <PageHeader title="Calendario" subtitle="Eventos, entrenamientos, pagos, vencimientos, tareas y metas." asistente={<AsistenteModulo id="tic" />}>
         <Button variant="primary" className="max-md:hidden" onClick={() => open({ kind: "event", defaults: { date: view === "mes" ? today : cursor } })}>
           <Plus size={18} /> Nuevo evento
         </Button>

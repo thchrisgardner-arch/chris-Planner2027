@@ -1,6 +1,7 @@
 "use client";
 
 import { Minus, Plus } from "lucide-react";
+import { AsistenteModulo, useCelebracion, useVacioAsistente } from "@/modules/asistentes/Presencia";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -22,6 +23,10 @@ export function GoalsPage() {
   const del = useDeleteRecord();
   const today = useToday();
   const goals = db.annual_goals;
+
+  const vacio = useVacioAsistente("cima");
+  // Cima celebra cuando un objetivo llega al 100 %
+  const celebrar = useCelebracion(goals.filter((g) => g.progress >= 100).length);
   const avg = goals.length ? goals.reduce((s, g) => s + g.progress, 0) / goals.length : 0;
   const achieved = goals.filter((g) => g.status === "logrado").length;
 
@@ -35,7 +40,7 @@ export function GoalsPage() {
 
   return (
     <>
-      <PageHeader title="Objetivos 2027" subtitle="Tu planificación anual por áreas de vida.">
+      <PageHeader title="Objetivos 2027" subtitle="Tu planificación anual por áreas de vida." asistente={<AsistenteModulo id="cima" celebrar={celebrar} oculto={goals.length === 0} />}>
         <Button variant="primary" className="max-md:hidden" onClick={() => open({ kind: "goal" })}>
           <Plus size={18} /> Nuevo objetivo
         </Button>
@@ -44,7 +49,8 @@ export function GoalsPage() {
       {goals.length === 0 ? (
         <EmptyCard
           ghost="cards"
-          title="Define tus objetivos para 2027"
+          title={vacio.frase}
+          aside={vacio.aside}
           description="Finanzas, profesional, salud, personal, aprendizaje y experiencias."
           action={
             <Button variant="secondary" className="bg-bg" onClick={() => open({ kind: "goal" })}>

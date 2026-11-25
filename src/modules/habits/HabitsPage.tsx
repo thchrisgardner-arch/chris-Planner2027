@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
+import { AsistenteModulo, useCelebracion, useVacioAsistente } from "@/modules/asistentes/Presencia";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -21,9 +22,13 @@ export function HabitsPage() {
   const open = useForms();
   const today = useToday();
 
+  const vacio = useVacioAsistente("brote");
+  // Brote celebra cada vez que se marca un hábito de hoy
+  const celebrar = useCelebracion(db.habit_logs.filter((l) => l.date === today).length);
+
   return (
     <>
-      <PageHeader title="Salud y hábitos" subtitle="Seguimiento diario, rachas y cumplimiento.">
+      <PageHeader title="Salud y hábitos" subtitle="Seguimiento diario, rachas y cumplimiento." asistente={<AsistenteModulo id="brote" celebrar={celebrar} oculto={db.habits.length === 0} />}>
         <Button variant="primary" className="max-md:hidden" onClick={() => open({ kind: "habit" })}>
           <Plus size={18} /> Nuevo hábito
         </Button>
@@ -31,7 +36,8 @@ export function HabitsPage() {
       {db.habits.length === 0 ? (
         <EmptyCard
           ghost="grid"
-          title="Crea tu primer hábito"
+          title={vacio.frase}
+          aside={vacio.aside}
           description="Elige los días en que quieres cumplirlo y márcalo desde aquí o desde el inicio."
           action={
             <Button variant="secondary" className="bg-bg" onClick={() => open({ kind: "habit" })}>

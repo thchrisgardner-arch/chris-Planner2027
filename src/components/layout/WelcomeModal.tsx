@@ -5,6 +5,11 @@ import { FormModal } from "@/components/ui/FormModal";
 import { Field, Input } from "@/components/ui/Field";
 import { useData } from "@/lib/store/DataProvider";
 import { LogoMark } from "./Logo";
+import { Asistente } from "@/components/asistentes/Asistente";
+import { useAsistentes } from "@/lib/asistentes/estado";
+import { FICHAS } from "@/lib/asistentes/definiciones";
+import { ASISTENTE_IDS, type AsistenteId } from "@/lib/asistentes/tipos";
+import { cn } from "@/utils/cn";
 
 const ONBOARDING_KEY = "lifeos:onboarding-done";
 
@@ -30,6 +35,8 @@ export function WelcomeModal({ onDone }: { onDone: () => void }) {
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(true);
+  const { estado, hacerPrincipal } = useAsistentes();
+  const [principal, setPrincipal] = useState<AsistenteId | null>(null);
 
   const close = () => {
     markOnboardingDone();
@@ -51,6 +58,7 @@ export function WelcomeModal({ onDone }: { onDone: () => void }) {
           return false;
         }
         await saveProfile({ full_name: name.trim() });
+        if (principal) hacerPrincipal(principal);
         markOnboardingDone();
         onDone();
         return `¡Listo, ${name.trim().split(" ")[0]}!`;
@@ -67,6 +75,28 @@ export function WelcomeModal({ onDone }: { onDone: () => void }) {
       <Field label="¿Cómo te llamas?" error={error}>
         {(id) => <Input id={id} value={name} placeholder="Ej. Chris" onChange={(e) => setName(e.target.value)} />}
       </Field>
+      <div>
+        <p className="mb-2 text-[13.5px] font-medium">Elige a tu asistente principal <span className="font-normal text-muted">(opcional)</span></p>
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-6" role="radiogroup" aria-label="Asistente principal">
+          {ASISTENTE_IDS.map((id) => {
+            const activo = (principal ?? estado.principal) === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                role="radio"
+                aria-checked={activo}
+                aria-label={`${FICHAS[id].nombre}, ${FICHAS[id].modulo}`}
+                onClick={() => setPrincipal(id)}
+                className={cn("focus-ring flex cursor-pointer flex-col items-center gap-1 rounded-[16px] bg-card p-2 text-[11.5px]", activo && "ring-2 ring-fg")}
+              >
+                <Asistente id={id} size={48} animado={false} decorativo />
+                {FICHAS[id].nombre}
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </FormModal>
   );
 }

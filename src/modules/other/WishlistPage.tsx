@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ExternalLink, Gift, ImageOff, Plus } from "lucide-react";
+import { AsistenteModulo, useVacioAsistente } from "@/modules/asistentes/Presencia";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -23,6 +24,8 @@ import { WISH_CATEGORIES, WISH_CLASSIFICATIONS, WISH_STATUSES, wishStatusLabel, 
 export function WishlistPage() {
   const { db } = useData();
   const open = useForms();
+
+  const vacio = useVacioAsistente("antojo");
   const del = useDeleteRecord();
   const today = useToday();
   const [status, setStatus] = useState<"" | "activos" | WishStatus>("activos");
@@ -45,7 +48,7 @@ export function WishlistPage() {
 
   return (
     <>
-      <PageHeader title="Wishlist" subtitle="Tu biblioteca de compras y deseos.">
+      <PageHeader title="Wishlist" subtitle="Tu biblioteca de compras y deseos." asistente={<AsistenteModulo id="antojo" oculto={db.wishlist_items.length === 0} />}>
         <Button variant="primary" className="max-md:hidden" onClick={() => open({ kind: "wish" })}>
           <Plus size={18} /> Agregar deseo
         </Button>
@@ -54,7 +57,8 @@ export function WishlistPage() {
       {db.wishlist_items.length === 0 ? (
         <EmptyCard
           ghost="cards"
-          title="Tu wishlist está vacía"
+          title={vacio.frase}
+          aside={vacio.aside}
           description="Guarda productos, viajes o experiencias con su precio y asócialos a una meta de ahorro."
           action={
             <Button variant="secondary" className="bg-bg" onClick={() => open({ kind: "wish" })}>
