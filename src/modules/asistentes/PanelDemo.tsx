@@ -128,10 +128,26 @@ export function PanelDemo() {
             >
               Las tres en cadena
             </button>
+            <button type="button" className={btn} onClick={() => g.celebrarDemo({ tipo: "balance", mes: "2026-10", verde: true, xp: 100 })}>
+              Mes en verde
+            </button>
+            <button type="button" className={btn} onClick={() => g.celebrarDemo({ tipo: "balance", mes: "2026-10", verde: false, xp: -50 })}>
+              Mes en rojo
+            </button>
           </div>
 
           <p className="mb-2 mt-4 text-[12.5px] text-muted">Racha</p>
           <div className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              className={btn}
+              onClick={() => {
+                setAbierto(false);
+                g.saludoDemo();
+              }}
+            >
+              Pop-up diario de racha
+            </button>
             <button type="button" className={btn} onClick={() => g.romperRachaDemo(true)}>
               Racha rota con protector
             </button>

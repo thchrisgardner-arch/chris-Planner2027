@@ -33,7 +33,10 @@ const VOZ_DESBLOQUEO: Record<Tono, (n: string) => string> = {
   tranquilo: (n) => `Nuevo desbloqueo por tu vínculo con ${n}.`,
 };
 
-const COLORES_CONFETI = ["var(--char-lime)", "var(--char-yellow)", "var(--char-lime-soft)", "var(--char-yellow-soft)", "var(--char-sand)", "var(--char-charcoal)"];
+const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+const nombreMes = (k: string) => MESES[Number(k.slice(5, 7)) - 1] ?? k;
+
+const COLORES_CONFETI =["var(--char-lime)", "var(--char-yellow)", "var(--char-lime-soft)", "var(--char-yellow-soft)", "var(--char-sand)", "var(--char-charcoal)"];
 
 function Confeti({ semilla }: { semilla: number }) {
   const piezas = useMemo(() => {
@@ -86,7 +89,8 @@ export function CapaCelebraciones() {
   const [i, setI] = useState(0);
   const panel = useRef<HTMLDivElement>(null);
   const cola = g.celebraciones;
-  const abierta = cola.length > 0 && i < cola.length;
+  // Espera a que se cierre el pop-up diario de racha
+  const abierta = cola.length > 0 && i < cola.length && !g.saludoVisible;
   const c: Celebracion | undefined = cola[i];
 
   const cerrar = () => {
@@ -139,7 +143,24 @@ export function CapaCelebraciones() {
   let accesorio: Accesorio | undefined;
   let colores: Colores | undefined;
   let probar: string | null = null;
-  if (c.tipo === "nivel") {
+  let confeti = true;
+  let pose: "celebrando" | "triste" = "celebrando";
+  if (c.tipo === "balance") {
+    id = "centavo";
+    const mes = nombreMes(c.mes);
+    if (c.verde) {
+      etiqueta = `Mes en verde · +${c.xp} XP`;
+      titulo = `${mes} en verde`;
+      sub = "Ganaste más de lo que gastaste. Así se construye.";
+    } else {
+      confeti = false;
+      pose = "triste";
+      etiqueta = `Mes en rojo · −${Math.abs(c.xp)} XP`;
+      titulo = `${mes} en rojo`;
+      sub = "Gastaste más de lo que entró. Tu nivel no baja, pero este mes toca recuperar.";
+    }
+    probar = "/finanzas";
+  } else if (c.tipo === "nivel") {
     titulo = `Nivel ${c.nivel}`;
     etiqueta = c.cambioEtapa ? "Nueva etapa" : "Subiste de nivel";
     sub = VOZ_NIVEL[estado.ajustes[id].tono](c.etapa, c.cambioEtapa);
@@ -171,13 +192,13 @@ export function CapaCelebraciones() {
         aria-describedby="celebracion-sub"
         className="relative w-full max-w-[440px] overflow-hidden rounded-[28px] bg-bg px-6 pb-6 pt-4 text-center animate-in"
       >
-        <Confeti key={`${i}-${cola.length}`} semilla={i + 1} />
+        {confeti ? <Confeti key={`${i}-${cola.length}`} semilla={i + 1} /> : null}
         <div className="relative mx-auto -mb-2 flex justify-center">
           <Asistente
             key={`${id}-${i}`}
             id={id}
             size={240}
-            pose="celebrando"
+            pose={pose}
             colores={colores ?? a.colores}
             accesorio={accesorio ?? a.accesorio}
             mostrarProp={a.mostrarProp}
@@ -185,7 +206,7 @@ export function CapaCelebraciones() {
             celebrar={i + 1}
           />
         </div>
-        <p className="relative text-[13px] font-medium text-brand-soft">{etiqueta}</p>
+        <p className={`relative text-[13px] font-medium ${c.tipo === "balance" && !c.verde ? "text-danger" : "text-brand-soft"}`}>{etiqueta}</p>
         <h2 id="celebracion-titulo" className="relative mt-1 text-[34px] leading-tight tracking-[-0.02em]">
           {titulo}
         </h2>
@@ -207,7 +228,7 @@ export function CapaCelebraciones() {
                 router.push(probar!);
               }}
             >
-              Probarlo
+              {c.tipo === "balance" ? "Ver finanzas" : "Probarlo"}
             </Button>
           ) : null}
           <Button variant="primary" data-autofocus onClick={siguiente}>

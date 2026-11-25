@@ -5,6 +5,7 @@ import { Select } from "@/components/ui/Field";
 import { Switch } from "@/components/ui/Switch";
 import { useFeedback } from "@/components/providers/FeedbackProvider";
 import type { Progreso } from "@/lib/asistentes/progreso";
+import { AvisosCelular } from "@/modules/avisos/AvisosCelular";
 import { useGamificacion } from "./Gamificacion";
 
 /** Ajustes de gamificación en Configuración (?seccion=progreso). */
@@ -60,8 +61,16 @@ export function AjustesProgreso() {
             </div>
             <Switch checked={a.negativas} disabled={!a.gamificacion} onChange={(v) => cambiar({ negativas: v })} label="Reacciones negativas" />
           </div>
+          <div className="flex items-start justify-between gap-4 rounded-[20px] bg-bg-2 p-4">
+            <div>
+              <p className="text-[14.5px] font-medium">Pop-up diario de racha</p>
+              <p className="mt-0.5 text-[13px] text-muted">La primera vez que abres la app cada día: tu racha, la semana y lo que te falta hoy.</p>
+            </div>
+            <Switch checked={a.saludo !== false} disabled={!a.gamificacion} onChange={(v) => cambiar({ saludo: v })} label="Pop-up diario de racha" />
+          </div>
         </div>
       </Card>
+      <AvisosCelular />
     </div>
   );
 }

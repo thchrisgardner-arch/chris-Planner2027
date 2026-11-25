@@ -15,7 +15,7 @@ import {
   TABLA_XP,
   agregarEvento,
   evaluarLogros,
-  nivelDeXP,
+  nivelConPiso,
   progresoVacio,
   reconciliar,
   semanaDe,
@@ -82,13 +82,18 @@ export type Reaccion = { id: number; asistente: AsistenteId; xp: number; cantida
 export type Celebracion =
   | { tipo: "nivel"; nivel: number; etapa: string; cambioEtapa: boolean }
   | { tipo: "logro"; logro: LogroDef }
-  | { tipo: "desbloqueo"; asistente: AsistenteId; item: Desbloqueo };
+  | { tipo: "desbloqueo"; asistente: AsistenteId; item: Desbloqueo }
+  | { tipo: "balance"; mes: string; verde: boolean; xp: number };
 
 interface Valor {
   progreso: Progreso;
   activo: boolean;
   xp: number;
-  nivel: ReturnType<typeof nivelDeXP>;
+  nivel: ReturnType<typeof nivelConPiso>;
+  /** Pop-up diario de racha (una vez al día al abrir la app) */
+  saludoVisible: boolean;
+  cerrarSaludo: () => void;
+  saludoDemo: () => void;
   vinculos: Record<AsistenteId, ReturnType<typeof vinculoDeXP>>;
   saludes: Record<AsistenteId, SaludModulo>;
   general: { puntaje: number | null; animo: Animo };
@@ -128,6 +133,7 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
   const [forzarSalud, setForzarSalud] = useState<Partial<Record<AsistenteId, number | null>>>({});
   const [revisionOculta, setRevisionOculta] = useState(false);
   const [negativaDemo, setNegativaDemo] = useState(0);
+  const [saludoForzado, setSaludoForzado] = useState(false);
   const seqR = useRef(0);
   const principal = estado.principal;
 
@@ -165,9 +171,15 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
       const pref = next.ajustes.celebraciones;
       if (pref === "ninguna") return;
       const cola: Celebracion[] = [];
-      const nA = nivelDeXP(xpTotal(prev));
-      const nB = nivelDeXP(xpTotal(next));
+      const nA = nivelConPiso(xpTotal(prev), prev.ui.nivelMax);
+      const nB = nivelConPiso(xpTotal(next), next.ui.nivelMax);
       if (nB.nivel > nA.nivel) cola.push({ tipo: "nivel", nivel: nB.nivel, etapa: nB.etapa, cambioEtapa: nB.etapa !== nA.etapa });
+      // Cierre de mes: en verde se celebra; en rojo solo si las reacciones negativas están activas
+      for (const e of nuevos) {
+        if (e.tipo === "mes-verde" || (e.tipo === "mes-rojo" && next.ajustes.negativas)) {
+          cola.push({ tipo: "balance", mes: e.refId.split(":")[1], verde: e.tipo === "mes-verde", xp: e.xp });
+        }
+      }
       for (const id of Object.keys(next.logros)) {
         if (prev.logros[id as keyof Progreso["logros"]]) continue;
         const def = LOGROS.find((l) => l.id === id);
@@ -193,7 +205,9 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
     const r = reconciliar(prev, db, today, principal);
     const logros = { ...r.next.logros };
     for (const id of evaluarLogros(db, r.next, today)) logros[id] = today;
-    const next: Progreso = { ...r.next, logros, ui: { ...r.next.ui, iniciado: r.next.ui.iniciado ?? today } };
+    // El nivel alcanzado queda como piso: un mes en rojo frena el avance, pero no baja el nivel
+    const nivelMax = Math.max(prev.ui.nivelMax ?? 1, nivelConPiso(xpTotal(r.next), prev.ui.nivelMax).nivel);
+    const next: Progreso = { ...r.next, logros, ui: { ...r.next.ui, iniciado: r.next.ui.iniciado ?? today, nivelMax } };
     const cambio = JSON.stringify(next) !== JSON.stringify(prev);
     if (cambio) guardar(next);
     emitir(prev, next, r.nuevos, silencio);
@@ -213,7 +227,10 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
   }, [status, today, saludes]);
 
   const xp = xpTotal(progreso);
-  const nivel = nivelDeXP(xp);
+  const nivel = nivelConPiso(xp, progreso.ui.nivelMax);
+  const saludoVisible =
+    saludoForzado ||
+    (progreso.ajustes.gamificacion && progreso.ajustes.saludo !== false && status === "ready" && !!today && progreso.ui.iniciado !== undefined && progreso.ui.ultimoSaludo !== today);
   const vinculos = useMemo(() => {
     const porA = xpPorAsistente(progreso);
     return Object.fromEntries(ASISTENTE_IDS.map((id) => [id, vinculoDeXP(porA[id])])) as Record<AsistenteId, ReturnType<typeof vinculoDeXP>>;
@@ -228,6 +245,13 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
     activo: progreso.ajustes.gamificacion,
     xp,
     nivel,
+    saludoVisible,
+    cerrarSaludo: () => {
+      setSaludoForzado(false);
+      const p = leer();
+      if (p.ui.ultimoSaludo !== today) guardar({ ...p, ui: { ...p.ui, ultimoSaludo: today } });
+    },
+    saludoDemo: () => mode === "demo" && setSaludoForzado(true),
     vinculos,
     saludes,
     general,

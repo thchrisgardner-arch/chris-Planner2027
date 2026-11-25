@@ -18,6 +18,9 @@ import { ASISTENTE_IDS, type AsistenteId } from "./tipos";
 /* ═════════ Tabla de XP ═════════ */
 export type TipoAccion =
   | "movimiento"
+  | "ingreso"
+  | "mes-verde"
+  | "mes-rojo"
   | "habito"
   | "dia-perfecto"
   | "tarea"
@@ -31,7 +34,10 @@ export type TipoAccion =
   | "revision-semanal";
 
 export const TABLA_XP: Record<TipoAccion, { xp: number; label: string; asistente: AsistenteId | "principal"; grupo: string; tope?: number }> = {
-  movimiento: { xp: 5, label: "Registrar un movimiento", asistente: "centavo", grupo: "movimiento", tope: 30 },
+  movimiento: { xp: 5, label: "Registrar un gasto o una transferencia", asistente: "centavo", grupo: "movimiento", tope: 30 },
+  ingreso: { xp: 10, label: "Registrar un ingreso", asistente: "centavo", grupo: "ingreso", tope: 20 },
+  "mes-verde": { xp: 100, label: "Cerrar el mes en verde (ganaste más de lo que gastaste)", asistente: "centavo", grupo: "balance" },
+  "mes-rojo": { xp: -50, label: "Cerrar el mes en rojo (gastaste más de lo que ganaste)", asistente: "centavo", grupo: "balance" },
   habito: { xp: 10, label: "Completar un hábito", asistente: "brote", grupo: "habito" },
   "dia-perfecto": { xp: 20, label: "Día perfecto", asistente: "brote", grupo: "dia-perfecto", tope: 20 },
   tarea: { xp: 10, label: "Completar una tarea", asistente: "tuerca", grupo: "tarea", tope: 80 },
@@ -74,13 +80,14 @@ export interface Progreso {
   eventos: EventoXP[];
   racha: { actual: number; mejor: number; ultimoDia: string; protectores: number; diasActivos: string[]; usados: string[] };
   logros: Partial<Record<LogroId, string>>;
-  ajustes: { gamificacion: boolean; celebraciones: "todas" | "solo-grandes" | "ninguna"; negativas: boolean };
+  ajustes: { gamificacion: boolean; celebraciones: "todas" | "solo-grandes" | "ninguna"; negativas: boolean; saludo: boolean };
   /** Último valor visto de ahorro y avance (para detectar aportes y avances) */
   snap: { ahorro: Record<string, number>; objetivos: Record<string, number> };
   /** Eventos de más de 90 días compactados por mes y tipo:asistente */
   historico: Record<string, Record<string, number>>;
   compactados: string[];
-  ui: { ultimaNegativa?: string; ultimaRevision?: string; iniciado?: string };
+  /** nivelMax: el nivel nunca baja aunque el XP total caiga (mes en rojo). ultimoSaludo: día del pop-up de racha */
+  ui: { ultimaNegativa?: string; ultimaRevision?: string; iniciado?: string; nivelMax?: number; ultimoSaludo?: string };
 }
 
 export function progresoVacio(): Progreso {
@@ -89,7 +96,7 @@ export function progresoVacio(): Progreso {
     eventos: [],
     racha: { actual: 0, mejor: 0, ultimoDia: "", protectores: 0, diasActivos: [], usados: [] },
     logros: {},
-    ajustes: { gamificacion: true, celebraciones: "todas", negativas: true },
+    ajustes: { gamificacion: true, celebraciones: "todas", negativas: true, saludo: true },
     snap: { ahorro: {}, objetivos: {} },
     historico: {},
     compactados: [],
@@ -115,6 +122,25 @@ export function nivelDeXP(total: number) {
   }
   const meta = nivel >= NIVEL_MAX ? 0 : xpParaSubir(nivel);
   return { nivel, etapa: etapaDe(nivel), xpEnNivel: nivel >= NIVEL_MAX ? 0 : restante, xpParaSiguiente: meta, total };
+}
+
+/** XP acumulado necesario para estar en el nivel n */
+export const xpHastaNivel = (n: number) => {
+  let t = 0;
+  for (let i = 1; i < Math.min(n, NIVEL_MAX); i++) t += xpParaSubir(i);
+  return t;
+};
+
+/**
+ * Nivel con piso: si el XP total cae por debajo del nivel ya alcanzado, el nivel se conserva y
+ * la barra pide recuperar lo perdido antes de avanzar (xpParaSiguiente incluye ese déficit).
+ */
+export function nivelConPiso(total: number, piso = 1) {
+  const n = nivelDeXP(total);
+  if (n.nivel >= piso) return n;
+  const nivel = Math.min(piso, NIVEL_MAX);
+  const deficit = xpHastaNivel(nivel) - total;
+  return { nivel, etapa: etapaDe(nivel), xpEnNivel: 0, xpParaSiguiente: nivel >= NIVEL_MAX ? 0 : xpParaSubir(nivel) + deficit, total };
 }
 
 /* ═════════ Vínculo por asistente (1 a 10) ═════════ */
@@ -148,11 +174,12 @@ export function xpTotal(p: Progreso) {
 }
 export function xpPorAsistente(p: Progreso): Record<AsistenteId, number> {
   const r = Object.fromEntries(ASISTENTE_IDS.map((id) => [id, 0])) as Record<AsistenteId, number>;
-  for (const e of p.eventos) r[e.asistente] += e.xp;
+  // El vínculo nunca baja: los eventos negativos (mes en rojo) no cuentan aquí
+  for (const e of p.eventos) if (e.xp > 0) r[e.asistente] += e.xp;
   for (const m of Object.values(p.historico))
     for (const [k, v] of Object.entries(m)) {
       const a = k.split(":")[1] as AsistenteId;
-      if (a in r) r[a] += v;
+      if (a in r && v > 0) r[a] += v;
     }
   return r;
 }
@@ -194,7 +221,7 @@ const fechaDe = (iso: string | undefined, today: string) => (iso ? iso.slice(0, 
 function candidatos(db: Database, prev: Progreso, today: string): { lista: Candidato[]; snap: Progreso["snap"]; vivos: Set<string> } {
   const lista: Candidato[] = [];
   const vivos = new Set<string>(); // prefijos de elementos que siguen existiendo
-  for (const t of db.transactions) lista.push({ refId: `tx:${t.id}`, tipo: "movimiento", fecha: fechaDe(t.created_at, today) });
+  for (const t of db.transactions) lista.push({ refId: `tx:${t.id}`, tipo: t.type === "ingreso" ? "ingreso" : "movimiento", fecha: fechaDe(t.created_at, today) });
   for (const l of db.habit_logs) lista.push({ refId: `hl:${l.id}`, tipo: "habito", fecha: fechaDe(l.created_at, today) });
   // Día perfecto: todos los hábitos programados de ese día marcados
   const porDia = new Map<string, Set<string>>();
@@ -204,6 +231,18 @@ function candidatos(db: Database, prev: Progreso, today: string): { lista: Candi
     if (prog.length && prog.every((h) => hechos.has(h.id))) lista.push({ refId: `dp:${d}`, tipo: "dia-perfecto", fecha: d > today ? today : d });
   }
   const yaVisto = (ref: string) => prev.eventos.find((e) => e.refId === ref)?.fecha;
+  // Balance del mes: cada mes cerrado desde el mes en que empezó la gamificación (sin premios ni
+  // castigos retroactivos por meses con datos incompletos)
+  if (prev.ui.iniciado) {
+    const actual = monthKey(today);
+    for (let k = monthKey(prev.ui.iniciado); k < actual; k = addMonths(k, 1)) {
+      const delMes = db.transactions.filter((t) => t.date.startsWith(k));
+      const ing = sum(delMes.filter((t) => t.type === "ingreso").map((t) => t.amount));
+      const gas = sum(delMes.filter((t) => t.type === "gasto").map((t) => t.amount));
+      if (gas > 0 && ing > gas) lista.push({ refId: `bmv:${k}`, tipo: "mes-verde", fecha: yaVisto(`bmv:${k}`) ?? today });
+      else if (gas > ing) lista.push({ refId: `bmr:${k}`, tipo: "mes-rojo", fecha: yaVisto(`bmr:${k}`) ?? today });
+    }
+  }
   for (const t of db.tasks) {
     if (t.status !== "completada") continue;
     const f = yaVisto(`tk:${t.id}`) ?? today;
@@ -347,7 +386,7 @@ export const LOGROS: LogroDef[] = [
 ];
 
 export function evaluarLogros(db: Database, p: Progreso, today: string): LogroId[] {
-  const nivel = nivelDeXP(xpTotal(p)).nivel;
+  const nivel = nivelConPiso(xpTotal(p), p.ui.nivelMax).nivel;
   const cuenta = (tipo: TipoAccion) => p.eventos.filter((e) => e.tipo === tipo).length;
   const key = monthKey(today);
   const mesVerde = [1, 2, 3, 4, 5, 6].some((i) => {

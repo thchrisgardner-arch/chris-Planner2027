@@ -10,6 +10,8 @@ const inter = Inter({ variable: "--font-inter", subsets: ["latin"], weight: ["30
 export const metadata: Metadata = {
   title: "LIFE OS 2027",
   description: "Sistema personal para administrar finanzas, proyectos, hábitos, objetivos y calendario.",
+  // Instalable en iPhone (Compartir → Agregar a inicio): se abre a pantalla completa
+  appleWebApp: { capable: true, title: "LIFE OS", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

@@ -16,6 +16,8 @@ import { GamificacionProvider } from "@/modules/asistentes/Gamificacion";
 import { CapaReacciones, PildorasProgreso, ReaccionNegativa } from "@/modules/asistentes/Protagonismo";
 import { CapaCelebraciones } from "@/modules/asistentes/Celebraciones";
 import { PanelDemo } from "@/modules/asistentes/PanelDemo";
+import { SaludoDiario } from "@/modules/asistentes/SaludoDiario";
+import { SincronizarAvisos } from "@/modules/avisos/AvisosCelular";
 
 const RAIL_KEY = "lifeos:ui:rail-expanded";
 
@@ -49,6 +51,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       return !e;
     });
   const closeDrawer = useCallback(() => setDrawer(false), []);
+  const bienvenida = status === "ready" && !!profile && !profile.full_name && !onboarded;
 
   return (
     <GamificacionProvider>
@@ -107,10 +110,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <CapaReacciones />
           <ReaccionNegativa />
           <CapaCelebraciones />
+          {bienvenida ? null : <SaludoDiario />}
+          <SincronizarAvisos />
           <PanelDemo />
         </>
       ) : null}
-      {status === "ready" && profile && !profile.full_name && !onboarded ? <WelcomeModal onDone={() => setOnboarded(true)} /> : null}
+      {bienvenida ? <WelcomeModal onDone={() => setOnboarded(true)} /> : null}
     </div>
     </GamificacionProvider>
   );

@@ -5,6 +5,9 @@ import type { Pose } from "./tipos";
 
 export const REACCION: Record<TipoAccion, { pose: Pose; plural: [string, string]; frase: Record<Tono, string> }> = {
   movimiento: { pose: "idle", plural: ["movimiento", "movimientos"], frase: { seco: "Anotado.", motivador: "Registrado. Bien ahí.", tranquilo: "Movimiento registrado." } },
+  ingreso: { pose: "feliz", plural: ["ingreso", "ingresos"], frase: { seco: "Entró plata. Anotado.", motivador: "Ingreso registrado. Así se crece.", tranquilo: "Ingreso registrado." } },
+  "mes-verde": { pose: "celebrando", plural: ["mes en verde", "meses en verde"], frase: { seco: "Mes en verde. Bien hecho.", motivador: "Cerraste el mes en verde. Enorme.", tranquilo: "Cerraste el mes con más ingresos que gastos." } },
+  "mes-rojo": { pose: "triste", plural: ["mes en rojo", "meses en rojo"], frase: { seco: "Mes en rojo. Toca ajustar.", motivador: "Mes en rojo. El próximo lo volteamos.", tranquilo: "Cerraste el mes con más gastos que ingresos." } },
   habito: { pose: "feliz", plural: ["hábito", "hábitos"], frase: { seco: "Uno menos.", motivador: "Otro hábito cumplido. Sigue.", tranquilo: "Hábito cumplido." } },
   "dia-perfecto": { pose: "celebrando", plural: ["día perfecto", "días perfectos"], frase: { seco: "Día perfecto. Ni yo lo esperaba.", motivador: "Día perfecto. Así se hace.", tranquilo: "Completaste todos los hábitos de hoy." } },
   tarea: { pose: "orgulloso", plural: ["tarea", "tareas"], frase: { seco: "Así se construye.", motivador: "Tarea lista. Vas con todo.", tranquilo: "Tarea completada." } },
