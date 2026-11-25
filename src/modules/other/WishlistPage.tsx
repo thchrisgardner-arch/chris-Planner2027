@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Field";
-import { Badge, EmptyState, Progress } from "@/components/ui/misc";
+import { Badge, EmptyCard, EmptyState, Progress } from "@/components/ui/misc";
 import { RowActions, useDeleteRecord } from "@/components/ui/RowActions";
 import { useForms } from "@/components/providers/FormsProvider";
 import { useData } from "@/lib/store/DataProvider";
@@ -52,9 +52,15 @@ export function WishlistPage() {
       </PageHeader>
 
       {db.wishlist_items.length === 0 ? (
-        <EmptyState
+        <EmptyCard
+          ghost="cards"
           title="Tu wishlist está vacía"
-          description="Guarda productos, viajes o experiencias con su precio estimado y asócialos a una meta de ahorro."
+          description="Guarda productos, viajes o experiencias con su precio y asócialos a una meta de ahorro."
+          action={
+            <Button variant="secondary" className="bg-bg" onClick={() => open({ kind: "wish" })}>
+              <Plus size={18} /> Agregar deseo
+            </Button>
+          }
         />
       ) : (
         <>

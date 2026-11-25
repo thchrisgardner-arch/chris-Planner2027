@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Field";
-import { Badge, EmptyState } from "@/components/ui/misc";
+import { Badge, EmptyState, GhostBars } from "@/components/ui/misc";
 import { RowActions, useDeleteRecord } from "@/components/ui/RowActions";
 import { Segmented } from "@/components/ui/misc";
 import { useForms } from "@/components/providers/FormsProvider";
@@ -103,7 +103,10 @@ function Summary() {
         <Card className="xl:col-span-5">
           <CardHeader title="Gastos por categoría" subtitle={monthLabel(key)} />
           {byCat.length === 0 ? (
-            <EmptyState title="Sin gastos este mes" />
+            <div>
+              <GhostBars />
+              <p className="mt-4 text-[13px] text-muted">Aquí verás en qué se va tu plata cuando registres gastos.</p>
+            </div>
           ) : (
             <ul className="flex flex-col gap-3">
               {byCat.slice(0, 7).map((c, i) => (

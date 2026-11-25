@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Field";
-import { Badge, EmptyState, Progress, Segmented } from "@/components/ui/misc";
+import { Badge, EmptyCard, EmptyState, Progress, Segmented } from "@/components/ui/misc";
 import { RowActions, useDeleteRecord } from "@/components/ui/RowActions";
 import { useForms } from "@/components/providers/FormsProvider";
 import { useFeedback } from "@/components/providers/FeedbackProvider";
@@ -57,12 +57,13 @@ export function ProjectsPage() {
       </PageHeader>
 
       {db.projects.length === 0 && db.tasks.length === 0 ? (
-        <EmptyState
+        <EmptyCard
+          ghost="list"
           title="Aún no tienes proyectos"
           description="Crea un proyecto y divídelo en tareas. El progreso se calcula solo."
           action={
-            <Button variant="ghost" onClick={() => open({ kind: "task" })}>
-              <Plus size={18} /> O agrega una tarea suelta
+            <Button variant="secondary" className="bg-bg" onClick={() => open({ kind: "project" })}>
+              <Plus size={18} /> Nuevo proyecto
             </Button>
           }
         />

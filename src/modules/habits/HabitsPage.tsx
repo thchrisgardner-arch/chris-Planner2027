@@ -5,7 +5,7 @@ import { Plus } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { EmptyState } from "@/components/ui/misc";
+import { EmptyCard } from "@/components/ui/misc";
 import { RowActions, useDeleteRecord } from "@/components/ui/RowActions";
 import { useForms } from "@/components/providers/FormsProvider";
 import { useFeedback } from "@/components/providers/FeedbackProvider";
@@ -29,9 +29,15 @@ export function HabitsPage() {
         </Button>
       </PageHeader>
       {db.habits.length === 0 ? (
-        <EmptyState
+        <EmptyCard
+          ghost="grid"
           title="Crea tu primer hábito"
           description="Elige los días en que quieres cumplirlo y márcalo desde aquí o desde el inicio."
+          action={
+            <Button variant="secondary" className="bg-bg" onClick={() => open({ kind: "habit" })}>
+              <Plus size={18} /> Nuevo hábito
+            </Button>
+          }
         />
       ) : (
         <div className="grid gap-3 xl:grid-cols-2">

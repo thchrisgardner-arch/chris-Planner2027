@@ -13,7 +13,7 @@ import { Avatar, NotificationsButton, QuickAdd } from "./HeaderActions";
 /** Barra superior en celular (<768 px): logo, notificaciones y avatar. Sin hamburguesa: el menú está en "Más". */
 export function MobileTopbar() {
   return (
-    <div className="sticky top-0 z-40 flex h-16 items-center gap-2 bg-bg/90 px-4 backdrop-blur-md md:hidden">
+    <div className="sticky top-0 z-40 flex h-16 items-center gap-2 bg-bg px-4 md:hidden">
       <Link href="/" aria-label="Ir al inicio" className="mr-auto">
         <Logo />
       </Link>

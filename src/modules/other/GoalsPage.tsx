@@ -4,7 +4,7 @@ import { Minus, Plus } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Badge, EmptyState } from "@/components/ui/misc";
+import { Badge, EmptyCard } from "@/components/ui/misc";
 import { ProgressCard } from "@/components/ui/viz";
 import { RowActions, useDeleteRecord } from "@/components/ui/RowActions";
 import { useForms } from "@/components/providers/FormsProvider";
@@ -42,9 +42,15 @@ export function GoalsPage() {
       </PageHeader>
 
       {goals.length === 0 ? (
-        <EmptyState
+        <EmptyCard
+          ghost="cards"
           title="Define tus objetivos para 2027"
           description="Finanzas, profesional, salud, personal, aprendizaje y experiencias."
+          action={
+            <Button variant="secondary" className="bg-bg" onClick={() => open({ kind: "goal" })}>
+              <Plus size={18} /> Nuevo objetivo
+            </Button>
+          }
         />
       ) : (
         <>

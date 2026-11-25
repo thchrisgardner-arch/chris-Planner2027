@@ -87,6 +87,100 @@ export function EmptyState({
   );
 }
 
+/**
+ * Estado vacío de un módulo: tarjeta gris con estructura "fantasma" (qué aparecerá aquí),
+ * un mensaje, el CTA y un espacio opcional para el asistente del módulo.
+ */
+export function EmptyCard({
+  title,
+  description,
+  action,
+  ghost = "list",
+  aside,
+  className,
+}: {
+  title: string;
+  description?: string;
+  action?: React.ReactNode;
+  ghost?: "list" | "grid" | "bars" | "cards";
+  aside?: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("card relative overflow-hidden p-5 sm:p-6", className)}>
+      <div aria-hidden className="pointer-events-none select-none">
+        <GhostShape kind={ghost} />
+      </div>
+      <div className="relative mt-6 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+        {aside ? <div className="shrink-0">{aside}</div> : null}
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[18px]">{title}</h2>
+          {description ? <p className="mt-1 text-[14px] text-muted">{description}</p> : null}
+        </div>
+        {action ? <div className="shrink-0">{action}</div> : null}
+      </div>
+    </div>
+  );
+}
+
+function GhostShape({ kind }: { kind: "list" | "grid" | "bars" | "cards" }) {
+  if (kind === "bars") return <GhostBars />;
+  if (kind === "grid") {
+    // Cuadrícula de días (hábitos)
+    return (
+      <div className="grid grid-cols-7 gap-1.5">
+        {Array.from({ length: 21 }, (_, i) => (
+          <span key={i} className={cn("h-7 rounded-[10px]", [2, 5, 9, 13, 16].includes(i) ? "bg-line-strong/60" : "bg-elev/80")} />
+        ))}
+      </div>
+    );
+  }
+  if (kind === "cards") {
+    // Tarjetas con imagen (wishlist) u objetivos
+    return (
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className={cn("rounded-[18px] bg-bg-2 p-3", i === 2 && "hidden sm:block")}>
+            <div className="h-20 rounded-[12px] bg-elev/80" />
+            <div className="mt-3 h-2.5 w-3/4 rounded-full bg-elev" />
+            <div className="mt-2 h-2.5 w-1/2 rounded-full bg-elev/70" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-2">
+      {[70, 52, 62].map((w, i) => (
+        <div key={i} className="flex items-center gap-3 rounded-[16px] bg-bg-2 px-3 py-3">
+          <span className="h-6 w-6 shrink-0 rounded-full border-[1.5px] border-line-strong" />
+          <span className="h-2.5 rounded-full bg-elev" style={{ width: `${w}%` }} />
+          <span className="ml-auto h-2.5 w-10 rounded-full bg-elev/70" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Barras horizontales fantasma (p. ej. "Gastos por categoría" sin datos). */
+export function GhostBars({ rows = [88, 64, 46, 30] }: { rows?: number[] }) {
+  return (
+    <ul aria-hidden className="flex flex-col gap-3">
+      {rows.map((w, i) => (
+        <li key={i}>
+          <div className="mb-1.5 flex justify-between">
+            <span className="h-2.5 w-20 rounded-full bg-elev" />
+            <span className="h-2.5 w-12 rounded-full bg-elev/70" />
+          </div>
+          <div className="h-3 rounded-full bg-elev/60">
+            <div className="h-full rounded-full bg-elev" style={{ width: `${w}%` }} />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /* ── Skeleton ── */
 export function Skeleton({ className }: { className?: string }) {
   return <div className={cn("skeleton", className)} aria-hidden />;

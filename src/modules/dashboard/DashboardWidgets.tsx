@@ -312,6 +312,15 @@ export function SavingsCard({ className }: { className?: string }) {
         ) : (
           <ProgressCard label="Tu primera meta" pct={0} meta="Fondo de emergencia, viaje, equipo…" onClick={() => open({ kind: "savings" })} />
         )}
+        {Array.from({ length: Math.max(0, 3 - Math.max(goals.length, 1)) }, (_, i) => (
+          <div key={`ghost-${i}`} aria-hidden className="flex items-end justify-between rounded-[20px] bg-bg-2/60 px-4 py-3.5 opacity-70">
+            <span className="flex flex-col gap-2">
+              <span className="h-2.5 w-28 rounded-full bg-elev" />
+              <span className="h-2 w-20 rounded-full bg-elev/70" />
+            </span>
+            <span className="h-6 w-10 rounded-full bg-elev" />
+          </div>
+        ))}
       </div>
       {goals.length ? <p className="mt-3 text-[12.5px] text-dim">Toca una meta para abonar o retirar.</p> : null}
     </Card>
@@ -484,7 +493,19 @@ export function ProjectsCard({ className }: { className?: string }) {
           })}
         </div>
       ) : (
-        <EmptyLine text={db.projects.length ? "Ningún proyecto en proceso." : "Aún no tienes proyectos."} action="Nuevo proyecto" onAction={() => open({ kind: "project" })} />
+        <>
+          <div aria-hidden className="grid gap-2 opacity-70 sm:grid-cols-2">
+            {[0, 1].map((i) => (
+              <div key={i} className={cn("rounded-[20px] bg-bg-2 p-4", i === 1 && "hidden sm:block")}>
+                <span className="block h-5 w-20 rounded-full bg-elev" />
+                <span className="mt-4 block h-3 w-3/4 rounded-full bg-elev" />
+                <span className="mt-5 block h-7 w-14 rounded-full bg-elev" />
+                <span className="mt-3 block h-2 rounded-full bg-elev/70" />
+              </div>
+            ))}
+          </div>
+          <EmptyLine text={db.projects.length ? "Ningún proyecto en proceso." : "Aún no tienes proyectos."} action="Nuevo proyecto" onAction={() => open({ kind: "project" })} />
+        </>
       )}
     </Card>
   );
@@ -538,7 +559,18 @@ export function WishlistCard({ className }: { className?: string }) {
           })}
         </div>
       ) : (
-        <EmptyLine text="Guarda lo que quieres comprar pegando su enlace." action="Agregar deseo" onAction={() => open({ kind: "wish" })} />
+        <>
+          <div aria-hidden className="grid grid-cols-3 gap-2 opacity-70">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="rounded-[20px] bg-bg/70 p-2.5">
+                <span className="block aspect-[4/3] rounded-[14px] bg-elev/70" />
+                <span className="mt-2.5 block h-2.5 w-3/4 rounded-full bg-elev" />
+                <span className="mt-2 block h-2 w-1/2 rounded-full bg-elev/70" />
+              </div>
+            ))}
+          </div>
+          <EmptyLine text="Guarda lo que quieres comprar pegando su enlace." action="Agregar deseo" onAction={() => open({ kind: "wish" })} />
+        </>
       )}
     </Card>
   );

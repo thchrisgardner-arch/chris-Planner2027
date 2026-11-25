@@ -53,16 +53,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex min-w-0 flex-1 flex-col">
           <MobileTopbar />
           {/* Encabezado (≥768 px): buscador, notificaciones y avatar */}
-          <div className="sticky top-0 z-40 hidden items-center gap-3 bg-bg/90 px-6 pb-2 pt-5 backdrop-blur-md md:flex lg:top-4 lg:rounded-t-[32px] lg:px-8">
-            <GlobalSearch className="w-full max-w-[360px]" />
-            <div className="ml-auto flex items-center gap-2">
-              <div className="hidden lg:block">
-                <NotificationsButton pill />
+          {/* Fijo arriba con fondo sólido; en ≥1024 una franja del lienzo tapa el margen superior al hacer scroll */}
+          <div className="sticky top-0 z-40 hidden md:block lg:-mt-4 lg:bg-canvas lg:pt-4">
+            <div className="flex items-center gap-3 bg-bg px-6 pb-2 pt-5 lg:rounded-t-[32px] lg:px-8">
+              <GlobalSearch className="w-full max-w-[360px]" />
+              <div className="ml-auto flex items-center gap-2">
+                <div className="hidden lg:block">
+                  <NotificationsButton pill />
+                </div>
+                <div className="lg:hidden">
+                  <NotificationsButton />
+                </div>
+                <Avatar size={44} />
               </div>
-              <div className="lg:hidden">
-                <NotificationsButton />
-              </div>
-              <Avatar size={44} />
             </div>
           </div>
           {mode === "demo" ? (
