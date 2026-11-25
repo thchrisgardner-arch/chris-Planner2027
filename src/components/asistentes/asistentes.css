@@ -1,0 +1,195 @@
+/* ═════════ Asistentes: tokens de color (derivados de la paleta de LIFE OS) ═════════ */
+:root {
+  --char-outline: #0a0a0a; /* --ink */
+  --char-lime: #5ce65c; /* --accent */
+  --char-lime-soft: #cff5cf;
+  --char-yellow: #ffd84d; /* --warn-fill */
+  --char-yellow-soft: #fff1b8;
+  --char-cream: #fbf8ec; /* --surface-warm (claro) */
+  --char-sand: #e8dfcc;
+  --char-white: #ffffff;
+  --char-gray-light: #e6e6e6; /* --surface-2 (claro) */
+  --char-gray: #a8a8a8;
+  --char-charcoal: #2a2a2a;
+  --char-ink: #0a0a0a;
+  --char-sticker: transparent; /* borde exterior tipo sticker (solo en oscuro) */
+}
+/* En oscuro los rellenos se mantienen y se agrega el borde blanco exterior */
+:root[data-theme="dark"] {
+  --char-sticker: #ffffff;
+}
+
+/* ═════════ Trazos y rellenos ═════════ */
+.asis-svg .o {
+  stroke: var(--char-outline);
+  stroke-width: var(--sw);
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.asis-svg .o-fino {
+  stroke: var(--char-outline);
+  stroke-width: calc(var(--sw) * 0.62);
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  fill: none;
+}
+.asis-svg .f-p { fill: var(--a-primary); }
+.asis-svg .f-s { fill: var(--a-secondary); }
+.asis-svg .f-d { fill: var(--a-detail); }
+.asis-svg .f-acc { fill: var(--a-acc); }
+.asis-svg .f-lime { fill: var(--char-lime); }
+.asis-svg .f-yellow { fill: var(--char-yellow); }
+.asis-svg .f-yellow-soft { fill: var(--char-yellow-soft); }
+.asis-svg .f-sand { fill: var(--char-sand); }
+.asis-svg .f-cream { fill: var(--char-cream); }
+.asis-svg .f-white { fill: var(--char-white); }
+.asis-svg .f-charcoal { fill: var(--char-charcoal); }
+.asis-svg .f-ink { fill: var(--char-ink); }
+.asis-svg .f-none { fill: none; }
+
+/* Borde exterior tipo sticker (modo oscuro) */
+.asis-sticker {
+  filter: drop-shadow(var(--stk) 0 0 var(--char-sticker)) drop-shadow(calc(var(--stk) * -1) 0 0 var(--char-sticker))
+    drop-shadow(0 var(--stk) 0 var(--char-sticker)) drop-shadow(0 calc(var(--stk) * -1) 0 var(--char-sticker));
+}
+
+/* ═════════ Animaciones (solo CSS) ═════════ */
+.asis-svg [data-pivot] {
+  transform-box: fill-box;
+}
+
+/* Respiración: de 1 a 1.02 en 3 s, anclada a los pies */
+.asis-animado .asis-cuerpo {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: asis-respira 3s ease-in-out infinite;
+}
+@keyframes asis-respira {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02, 1.025); }
+}
+
+/* Parpadeo cada ~5 s con desfase propio */
+.asis-animado .asis-ojos {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: asis-parpadeo var(--blink, 5s) linear infinite;
+  animation-delay: var(--blink-delay, 0s);
+}
+@keyframes asis-parpadeo {
+  0%, 94%, 100% { transform: scaleY(1); }
+  96% { transform: scaleY(0.08); }
+}
+
+/* Pupilas que siguen el cursor */
+.asis-pupilas {
+  transition: transform 140ms ease-out;
+}
+
+/* Inclinación al pasar el mouse */
+.asis-interactivo {
+  cursor: pointer;
+}
+.asis-interactivo .asis-inclina {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.asis-interactivo:hover .asis-inclina {
+  transform: rotate(-4deg);
+}
+
+/* Rebote corto (al seleccionar, al hacer clic o al celebrar) */
+.asis-rebote .asis-salto {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: asis-rebote 620ms cubic-bezier(0.3, 1.5, 0.6, 1);
+}
+@keyframes asis-rebote {
+  0% { transform: translateY(0) scale(1, 1); }
+  20% { transform: translateY(0) scale(1.06, 0.92); }
+  45% { transform: translateY(-12%) scale(0.96, 1.05); }
+  70% { transform: translateY(0) scale(1.04, 0.96); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+
+/* Gestos propios en el accesorio de cada personaje */
+.asis-svg .asis-prop {
+  transform-box: fill-box;
+}
+.asis-animado.asis-id-brote .asis-prop {
+  transform-origin: 0% 100%;
+  animation: asis-brote 3.6s ease-in-out infinite;
+}
+@keyframes asis-brote {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(6deg); }
+}
+.asis-animado.asis-id-cima .asis-bandera {
+  transform-box: fill-box;
+  transform-origin: 0% 50%;
+  animation: asis-bandera 2.4s ease-in-out infinite;
+}
+@keyframes asis-bandera {
+  0%, 100% { transform: skewY(0deg) scaleX(1); }
+  50% { transform: skewY(-6deg) scaleX(0.92); }
+}
+.asis-gesto.asis-id-centavo .asis-prop {
+  transform-origin: 50% 50%;
+  animation: asis-apreta 700ms ease-in-out;
+}
+@keyframes asis-apreta {
+  0%, 100% { transform: scale(1); }
+  30% { transform: scale(0.86, 1.06); }
+  60% { transform: scale(1.08, 0.94); }
+}
+.asis-gesto.asis-id-tic .asis-prop {
+  transform-origin: 80% 100%;
+  animation: asis-timbre 700ms ease-in-out;
+}
+@keyframes asis-timbre {
+  0%, 100% { transform: rotate(0); }
+  15%, 45%, 75% { transform: rotate(-12deg); }
+  30%, 60%, 90% { transform: rotate(12deg); }
+}
+.asis-gesto.asis-id-tuerca .asis-prop {
+  transform-origin: 20% 50%;
+  animation: asis-lapiz 700ms ease-in-out;
+}
+@keyframes asis-lapiz {
+  0%, 100% { transform: rotate(0); }
+  35% { transform: rotate(-18deg); }
+  70% { transform: rotate(8deg); }
+}
+.asis-gesto.asis-id-antojo .asis-prop {
+  transform-origin: 50% 0%;
+  animation: asis-bolsa 800ms ease-in-out;
+}
+@keyframes asis-bolsa {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(14deg); }
+  55% { transform: rotate(-10deg); }
+  80% { transform: rotate(5deg); }
+}
+.asis-gesto.asis-id-brote .asis-prop {
+  animation: asis-brote-gesto 700ms ease-in-out;
+}
+@keyframes asis-brote-gesto {
+  0%, 100% { transform: rotate(0) scale(1); }
+  40% { transform: rotate(14deg) scale(1.15); }
+}
+.asis-gesto.asis-id-cima .asis-bandera {
+  animation: asis-bandera 500ms ease-in-out 2;
+}
+
+/* Movimiento reducido: todo estático */
+@media (prefers-reduced-motion: reduce) {
+  .asis-svg *,
+  .asis-svg {
+    animation: none !important;
+    transition: none !important;
+  }
+  .asis-interactivo:hover .asis-inclina {
+    transform: none;
+  }
+}
