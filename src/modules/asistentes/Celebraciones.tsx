@@ -16,6 +16,7 @@ import type { Accesorio, AsistenteId, Colores } from "@/lib/asistentes/tipos";
 import { useGamificacion, type Celebracion } from "./Gamificacion";
 import { useTutorialActivo } from "@/modules/tutorial/Tutorial";
 import { IconoRacha } from "./Protagonismo";
+import { retro, type Retro } from "@/lib/asistentes/sonido";
 
 const DORADA: Colores = { primario: "yellow", secundario: "yellow-soft", detalle: "ink" };
 
@@ -122,6 +123,17 @@ export function CapaCelebraciones() {
     g.cerrarCelebraciones();
   };
   const siguiente = () => (i + 1 < cola.length ? setI(i + 1) : cerrar());
+
+  // Sonido y vibración una sola vez por celebración, cuando aparece en pantalla
+  const sonada = useRef<Celebracion | null>(null);
+  const visible = abierta ? c : undefined;
+  const ajustes = g.progreso.ajustes;
+  useEffect(() => {
+    if (!visible || sonada.current === visible) return;
+    sonada.current = visible;
+    const tipo: Retro = visible.tipo === "balance" && !visible.verde ? "negativo" : visible.tipo === "hito" || visible.tipo === "reparada" ? "racha" : "celebracion";
+    retro(tipo, ajustes);
+  }, [visible, ajustes]);
 
   // Foco atrapado y Escape
   useEffect(() => {

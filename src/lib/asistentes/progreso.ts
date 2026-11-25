@@ -104,7 +104,15 @@ export interface Progreso {
     reparados?: string[];
   };
   logros: Partial<Record<LogroId, string>>;
-  ajustes: { gamificacion: boolean; celebraciones: "todas" | "solo-grandes" | "ninguna"; negativas: boolean; saludo: boolean; metaDiaria: number };
+  ajustes: {
+    gamificacion: boolean;
+    celebraciones: "todas" | "solo-grandes" | "ninguna";
+    negativas: boolean;
+    saludo: boolean;
+    metaDiaria: number;
+    sonido: boolean;
+    vibracion: boolean;
+  };
   /** Último valor visto de ahorro y avance (para detectar aportes y avances) */
   snap: { ahorro: Record<string, number>; objetivos: Record<string, number> };
   /** Eventos de más de 90 días compactados por mes y tipo:asistente */
@@ -128,7 +136,7 @@ export function progresoVacio(): Progreso {
     eventos: [],
     racha: { actual: 0, mejor: 0, ultimoDia: "", protectores: 0, diasActivos: [], usados: [] },
     logros: {},
-    ajustes: { gamificacion: true, celebraciones: "todas", negativas: true, saludo: true, metaDiaria: 50 },
+    ajustes: { gamificacion: true, celebraciones: "todas", negativas: true, saludo: true, metaDiaria: 50, sonido: true, vibracion: true },
     snap: { ahorro: {}, objetivos: {} },
     historico: {},
     compactados: [],

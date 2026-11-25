@@ -6,6 +6,15 @@ import { Switch } from "@/components/ui/Switch";
 import { useFeedback } from "@/components/providers/FeedbackProvider";
 import { META_POR_DEFECTO, METAS_DIARIAS, type Progreso } from "@/lib/asistentes/progreso";
 import { cn } from "@/utils/cn";
+import { retro, type Retro } from "@/lib/asistentes/sonido";
+
+const PRUEBAS: { tipo: Retro; label: string }[] = [
+  { tipo: "xp", label: "Ganar XP" },
+  { tipo: "mision", label: "Misión" },
+  { tipo: "racha", label: "Racha" },
+  { tipo: "celebracion", label: "Celebración" },
+  { tipo: "negativo", label: "Mes en rojo" },
+];
 import { AvisosCelular } from "@/modules/avisos/AvisosCelular";
 import { useGamificacion } from "./Gamificacion";
 
@@ -93,6 +102,57 @@ export function AjustesProgreso() {
               <p className="mt-0.5 text-[13px] text-muted">La primera vez que abres la app cada día: tu racha, la semana y lo que te falta hoy.</p>
             </div>
             <Switch checked={a.saludo !== false} disabled={!a.gamificacion} onChange={(v) => cambiar({ saludo: v })} label="Pop-up diario de racha" />
+          </div>
+        </div>
+      </Card>
+      <Card>
+        <CardHeader title="Sonido y vibración" subtitle="Un sonido corto y un golpecito al ganar XP, cumplir misiones y celebrar" />
+        <div className="grid gap-3">
+          <div className="flex items-start justify-between gap-4 rounded-[20px] bg-bg-2 p-4">
+            <div>
+              <p className="text-[14.5px] font-medium">Sonidos</p>
+              <p className="mt-0.5 text-[13px] text-muted">Suenan solo después de tocar la pantalla al menos una vez (regla del navegador).</p>
+            </div>
+            <Switch
+              checked={a.sonido !== false}
+              disabled={!a.gamificacion}
+              onChange={(v) => {
+                cambiar({ sonido: v });
+                if (v) retro("xp", { sonido: true, vibracion: false });
+              }}
+              label="Sonidos"
+            />
+          </div>
+          <div className="flex items-start justify-between gap-4 rounded-[20px] bg-bg-2 p-4">
+            <div>
+              <p className="text-[14.5px] font-medium">Vibración</p>
+              <p className="mt-0.5 text-[13px] text-muted">En Android funciona siempre. En iPhone depende del sistema (iOS 18 o más) y puede no sentirse.</p>
+            </div>
+            <Switch
+              checked={a.vibracion !== false}
+              disabled={!a.gamificacion}
+              onChange={(v) => {
+                cambiar({ vibracion: v });
+                if (v) retro("mision", { sonido: false, vibracion: true });
+              }}
+              label="Vibración"
+            />
+          </div>
+          <div className="rounded-[20px] bg-bg-2 p-4">
+            <p className="text-[14.5px] font-medium">Probar</p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {PRUEBAS.map((p) => (
+                <button
+                  key={p.tipo}
+                  type="button"
+                  disabled={!a.gamificacion}
+                  onClick={() => retro(p.tipo, a)}
+                  className="focus-ring h-9 cursor-pointer rounded-full bg-card px-3 text-[13px] font-medium hover:bg-elev disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </Card>

@@ -34,6 +34,7 @@ import {
   type Progreso,
 } from "@/lib/asistentes/progreso";
 import { ASISTENTE_IDS, type AsistenteId } from "@/lib/asistentes/tipos";
+import { prepararAudio, retro } from "@/lib/asistentes/sonido";
 
 export const CLAVE_PROGRESO = "lifeos:progreso";
 
@@ -159,7 +160,11 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
       puntero.t = Date.now();
     };
     window.addEventListener("pointerdown", onDown, true);
-    return () => window.removeEventListener("pointerdown", onDown, true);
+    const soltarAudio = prepararAudio();
+    return () => {
+      window.removeEventListener("pointerdown", onDown, true);
+      soltarAudio();
+    };
   }, []);
 
   const emitir = useCallback(
@@ -182,9 +187,14 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
           return out.slice(-3);
         });
       }
+      // Sonido/vibración corta para las reacciones; si hay celebración, suena la celebración
+      const sonarPequeno = () => {
+        if (!conXP.length) return;
+        retro(conXP.some((e) => e.tipo === "mision" || e.tipo === "misiones-dia" || e.tipo === "meta-diaria") ? "mision" : "xp", next.ajustes);
+      };
       // Celebraciones grandes: nivel, etapa, logro, desbloqueo
       const pref = next.ajustes.celebraciones;
-      if (pref === "ninguna") return;
+      if (pref === "ninguna") return sonarPequeno();
       const cola: Celebracion[] = [];
       const nA = nivelConPiso(xpTotal(prev), prev.ui.nivelMax);
       const nB = nivelConPiso(xpTotal(next), next.ui.nivelMax);
@@ -219,6 +229,7 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
         if (b > a) for (const d of DESBLOQUEOS.filter((x) => x.vinculo > a && x.vinculo <= b)) cola.push({ tipo: "desbloqueo", asistente: id, item: d });
       }
       if (cola.length) setCelebraciones((c) => [...c, ...cola]);
+      else sonarPequeno();
     },
     [],
   );
