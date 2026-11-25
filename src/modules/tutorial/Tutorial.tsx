@@ -49,6 +49,11 @@ const PASOS: Paso[] = [
     texto: "Cada cosa que registras suma XP y sube tu nivel. Registra algo cada día para no perder la racha.",
   },
   {
+    sel: '[data-tour="dia"]',
+    titulo: "Tu meta y tus misiones",
+    texto: "Cada día tienes una meta de XP y 3 misiones. Cada misión da +10 XP y las tres juntas, +20 extra. La meta la cambias en Configuración → Progreso.",
+  },
+  {
     sel: '[data-tour="kpis"]',
     titulo: "Tu plata del mes",
     texto: "Balance, ingresos y gastos. Si cierras el mes ganando más de lo que gastas, te llevas +100 XP.",

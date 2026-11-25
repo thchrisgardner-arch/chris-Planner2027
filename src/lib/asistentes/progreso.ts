@@ -31,7 +31,10 @@ export type TipoAccion =
   | "avance-objetivo"
   | "objetivo"
   | "compra-planificada"
-  | "revision-semanal";
+  | "revision-semanal"
+  | "mision"
+  | "misiones-dia"
+  | "meta-diaria";
 
 export const TABLA_XP: Record<TipoAccion, { xp: number; label: string; asistente: AsistenteId | "principal"; grupo: string; tope?: number }> = {
   movimiento: { xp: 5, label: "Registrar un gasto o una transferencia", asistente: "centavo", grupo: "movimiento", tope: 30 },
@@ -49,7 +52,13 @@ export const TABLA_XP: Record<TipoAccion, { xp: number; label: string; asistente
   objetivo: { xp: 150, label: "Objetivo 2027 completado", asistente: "cima", grupo: "objetivo" },
   "compra-planificada": { xp: 30, label: "Comprar un deseo con su meta lista", asistente: "antojo", grupo: "compra-planificada" },
   "revision-semanal": { xp: 25, label: "Revisión semanal", asistente: "principal", grupo: "revision-semanal" },
+  mision: { xp: 10, label: "Completar una misión del día", asistente: "principal", grupo: "mision" },
+  "misiones-dia": { xp: 20, label: "Completar las 3 misiones del día (bonus)", asistente: "principal", grupo: "mision" },
+  "meta-diaria": { xp: 10, label: "Cumplir tu meta diaria de XP", asistente: "principal", grupo: "meta-diaria" },
 };
+
+/** Tipos que salen de las misiones y la meta: no cuentan para la meta diaria (evita el círculo) */
+const TIPOS_DEL_DIA: TipoAccion[] = ["mision", "misiones-dia", "meta-diaria"];
 
 export type EventoXP = { id: string; tipo: TipoAccion; xp: number; fecha: string; refId: string; asistente: AsistenteId };
 
@@ -72,7 +81,9 @@ export type LogroId =
   | "compra-planificada"
   | "nivel-10"
   | "nivel-20"
-  | "leyenda";
+  | "leyenda"
+  | "meta-7"
+  | "misiones-30";
 
 export interface Progreso {
   version: 1;
@@ -80,14 +91,22 @@ export interface Progreso {
   eventos: EventoXP[];
   racha: { actual: number; mejor: number; ultimoDia: string; protectores: number; diasActivos: string[]; usados: string[] };
   logros: Partial<Record<LogroId, string>>;
-  ajustes: { gamificacion: boolean; celebraciones: "todas" | "solo-grandes" | "ninguna"; negativas: boolean; saludo: boolean };
+  ajustes: { gamificacion: boolean; celebraciones: "todas" | "solo-grandes" | "ninguna"; negativas: boolean; saludo: boolean; metaDiaria: number };
   /** Último valor visto de ahorro y avance (para detectar aportes y avances) */
   snap: { ahorro: Record<string, number>; objetivos: Record<string, number> };
   /** Eventos de más de 90 días compactados por mes y tipo:asistente */
   historico: Record<string, Record<string, number>>;
   compactados: string[];
   /** nivelMax: el nivel nunca baja aunque el XP total caiga (mes en rojo). ultimoSaludo: día del pop-up de racha */
-  ui: { ultimaNegativa?: string; ultimaRevision?: string; iniciado?: string; nivelMax?: number; ultimoSaludo?: string };
+  ui: {
+    ultimaNegativa?: string;
+    ultimaRevision?: string;
+    iniciado?: string;
+    nivelMax?: number;
+    ultimoSaludo?: string;
+    /** Misiones elegidas para el día (se eligen una vez y no cambian aunque cambien tus datos) */
+    misiones?: { fecha: string; ids: string[] };
+  };
 }
 
 export function progresoVacio(): Progreso {
@@ -96,7 +115,7 @@ export function progresoVacio(): Progreso {
     eventos: [],
     racha: { actual: 0, mejor: 0, ultimoDia: "", protectores: 0, diasActivos: [], usados: [] },
     logros: {},
-    ajustes: { gamificacion: true, celebraciones: "todas", negativas: true, saludo: true },
+    ajustes: { gamificacion: true, celebraciones: "todas", negativas: true, saludo: true, metaDiaria: 50 },
     snap: { ahorro: {}, objetivos: {} },
     historico: {},
     compactados: [],
@@ -289,7 +308,8 @@ export function reconciliar(prev: Progreso, db: Database, today: string, princip
   // 1) Quitar eventos cuyo elemento ya no existe o ya no cumple
   const quitados: EventoXP[] = [];
   const conservados = prev.eventos.filter((e) => {
-    if (e.tipo === "revision-semanal" || e.refId.startsWith("demo:")) return true;
+    // Las misiones y la meta del día se revisan en el paso 3
+    if (e.tipo === "revision-semanal" || e.refId.startsWith("demo:") || TIPOS_DEL_DIA.includes(e.tipo)) return true;
     if (e.tipo === "aporte-ahorro" || e.tipo === "avance-objetivo") {
       const ok = vivos.has(e.refId.split(":").slice(0, 2).join(":"));
       if (!ok) quitados.push(e);
@@ -319,13 +339,147 @@ export function reconciliar(prev: Progreso, db: Database, today: string, princip
     nuevos.push(ev);
   }
 
+  // 3) Misiones y meta del día, evaluadas sobre los eventos ya actualizados. Si deshaces la acción
+  //    (borras el movimiento, desmarcas el hábito), la misión de hoy vuelve a quedar pendiente.
+  const ids = prev.ui.misiones?.fecha === today ? prev.ui.misiones.ids : elegirMisiones(db, today);
+  const dia = evaluarDia(eventos, ids, today, prev.ajustes.metaDiaria ?? META_POR_DEFECTO);
+  const validosDia = new Map<string, { tipo: TipoAccion; asistente: AsistenteId }>();
+  for (const m of dia.misiones) if (m.hecha) validosDia.set(`ms:${today}:${m.def.id}`, { tipo: "mision", asistente: m.def.asistente });
+  if (dia.misiones.length && dia.misiones.every((m) => m.hecha)) validosDia.set(`msc:${today}`, { tipo: "misiones-dia", asistente: principal });
+  if (dia.xpHoy >= dia.meta) validosDia.set(`md:${today}`, { tipo: "meta-diaria", asistente: principal });
+  for (let k = eventos.length - 1; k >= 0; k--) {
+    const e = eventos[k];
+    if (TIPOS_DEL_DIA.includes(e.tipo) && e.fecha === today && !validosDia.has(e.refId)) {
+      quitados.push(e);
+      eventos.splice(k, 1);
+    }
+  }
+  const yaEstan = new Set(eventos.map((e) => e.refId));
+  for (const [refId, d] of validosDia) {
+    if (yaEstan.has(refId)) continue;
+    const ev: EventoXP = { id: nuevoId(), tipo: d.tipo, xp: TABLA_XP[d.tipo].xp, fecha: today, refId, asistente: d.asistente };
+    eventos.push(ev);
+    nuevos.push(ev);
+  }
+
   const racha = calcularRacha(
     [...eventos.map((e) => e.fecha), ...prev.racha.diasActivos.filter((d) => d < addDays(today, -90))],
     today,
     prev.racha.mejor,
   );
-  const next = compactar({ ...prev, eventos, snap, racha }, today);
+  const next = compactar({ ...prev, eventos, snap, racha, ui: { ...prev.ui, misiones: { fecha: today, ids } } }, today);
   return { next, nuevos, quitados };
+}
+
+/* ═════════ Meta diaria y misiones del día ═════════ */
+export const META_POR_DEFECTO = 50;
+export const METAS_DIARIAS = [
+  { xp: 20, label: "Relajada", hint: "20 XP · un par de registros" },
+  { xp: 50, label: "Normal", hint: "50 XP · un día ordenado" },
+  { xp: 80, label: "Seria", hint: "80 XP · varios frentes al día" },
+  { xp: 120, label: "Intensa", hint: "120 XP · todo al día" },
+];
+
+type Frente = "finanzas" | "habitos" | "tareas" | "metas";
+export interface MisionDef {
+  id: string;
+  texto: string;
+  meta: number;
+  frente: Frente;
+  asistente: AsistenteId;
+  /** Qué eventos de hoy cuentan */
+  tipos: TipoAccion[];
+  /** Solo se propone si tiene sentido con tus datos de hoy */
+  disponible: (db: Database, today: string) => boolean;
+  href: string;
+}
+
+const habitosHoy = (db: Database, today: string) => db.habits.filter((h) => isScheduled(h, today)).length;
+const tareasPendientes = (db: Database) => db.tasks.filter((t) => t.status !== "completada");
+
+export const MISIONES: MisionDef[] = [
+  { id: "mov-2", texto: "Registra 2 movimientos", meta: 2, frente: "finanzas", asistente: "centavo", tipos: ["movimiento", "ingreso"], disponible: () => true, href: "/finanzas" },
+  { id: "mov-4", texto: "Registra 4 movimientos", meta: 4, frente: "finanzas", asistente: "centavo", tipos: ["movimiento", "ingreso"], disponible: (db) => db.transactions.length >= 10, href: "/finanzas" },
+  { id: "ingreso", texto: "Registra un ingreso", meta: 1, frente: "finanzas", asistente: "centavo", tipos: ["ingreso"], disponible: (db) => db.transactions.some((t) => t.type === "ingreso"), href: "/finanzas" },
+  { id: "habito-1", texto: "Cumple un hábito", meta: 1, frente: "habitos", asistente: "brote", tipos: ["habito"], disponible: (db, d) => habitosHoy(db, d) >= 1, href: "/salud" },
+  { id: "habito-3", texto: "Cumple 3 hábitos", meta: 3, frente: "habitos", asistente: "brote", tipos: ["habito"], disponible: (db, d) => habitosHoy(db, d) >= 3, href: "/salud" },
+  { id: "dia-perfecto", texto: "Cumple todos tus hábitos de hoy", meta: 1, frente: "habitos", asistente: "brote", tipos: ["dia-perfecto"], disponible: (db, d) => habitosHoy(db, d) >= 2, href: "/salud" },
+  { id: "tarea-1", texto: "Completa una tarea", meta: 1, frente: "tareas", asistente: "tuerca", tipos: ["tarea"], disponible: (db) => tareasPendientes(db).length >= 1, href: "/proyectos" },
+  { id: "tarea-2", texto: "Completa 2 tareas", meta: 2, frente: "tareas", asistente: "tuerca", tipos: ["tarea"], disponible: (db) => tareasPendientes(db).length >= 2, href: "/proyectos" },
+  {
+    id: "tarea-tiempo",
+    texto: "Termina una tarea antes de su fecha",
+    meta: 1,
+    frente: "tareas",
+    asistente: "tic",
+    tipos: ["tarea-a-tiempo"],
+    disponible: (db, d) => tareasPendientes(db).some((t) => t.due_date && t.due_date >= d),
+    href: "/proyectos",
+  },
+  {
+    id: "ahorro",
+    texto: "Haz un aporte a una meta de ahorro",
+    meta: 1,
+    frente: "metas",
+    asistente: "centavo",
+    tipos: ["aporte-ahorro"],
+    disponible: (db) => db.savings_goals.some((g) => g.current_amount < g.target_amount),
+    href: "/finanzas",
+  },
+  {
+    id: "objetivo",
+    texto: "Avanza en un objetivo 2027",
+    meta: 1,
+    frente: "metas",
+    asistente: "cima",
+    tipos: ["avance-objetivo"],
+    disponible: (db) => db.annual_goals.some((g) => g.progress < 100),
+    href: "/objetivos",
+  },
+];
+
+/** Pseudoaleatorio estable por día: las mismas misiones todo el día */
+function semillaDe(texto: string) {
+  let h = 2166136261;
+  for (let k = 0; k < texto.length; k++) h = Math.imul(h ^ texto.charCodeAt(k), 16777619);
+  return () => {
+    h = Math.imul(h ^ (h >>> 15), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    return ((h ^= h >>> 16) >>> 0) / 4294967296;
+  };
+}
+
+/** Elige 3 misiones del día, de frentes distintos cuando se puede */
+export function elegirMisiones(db: Database, today: string): string[] {
+  const azar = semillaDe(`lifeos:${today}`);
+  const posibles = MISIONES.filter((m) => m.disponible(db, today))
+    .map((m) => ({ m, r: azar() }))
+    .sort((a, b) => a.r - b.r)
+    .map((x) => x.m);
+  const elegidas: MisionDef[] = [];
+  for (const m of posibles) if (elegidas.length < 3 && !elegidas.some((e) => e.frente === m.frente)) elegidas.push(m);
+  for (const m of posibles) if (elegidas.length < 3 && !elegidas.includes(m)) elegidas.push(m);
+  return elegidas.map((m) => m.id);
+}
+
+export interface EstadoDia {
+  xpHoy: number;
+  meta: number;
+  misiones: { def: MisionDef; cuenta: number; hecha: boolean }[];
+}
+
+/** Progreso de hoy: XP de acciones (sin contar misiones ni meta) y avance de cada misión */
+export function evaluarDia(eventos: EventoXP[], ids: string[], today: string, meta: number): EstadoDia {
+  const deHoy = eventos.filter((e) => e.fecha === today);
+  const xpHoy = sum(deHoy.filter((e) => e.xp > 0 && !TIPOS_DEL_DIA.includes(e.tipo)).map((e) => e.xp));
+  const misiones = ids
+    .map((id) => MISIONES.find((m) => m.id === id))
+    .filter((m): m is MisionDef => !!m)
+    .map((def) => {
+      const cuenta = deHoy.filter((e) => def.tipos.includes(e.tipo)).length;
+      return { def, cuenta: Math.min(cuenta, def.meta), hecha: cuenta >= def.meta };
+    });
+  return { xpHoy, meta, misiones };
 }
 
 /** Agrega un evento manual (p. ej. la revisión semanal). */
@@ -383,6 +537,8 @@ export const LOGROS: LogroDef[] = [
   { id: "nivel-10", titulo: "Nivel 10", condicion: "Llega al nivel 10", asistente: "todos", grande: true },
   { id: "nivel-20", titulo: "Nivel 20", condicion: "Llega al nivel 20", asistente: "todos", grande: true },
   { id: "leyenda", titulo: "Leyenda", condicion: "Llega a la etapa Leyenda (nivel 26)", asistente: "todos", grande: true },
+  { id: "meta-7", titulo: "Semana en meta", condicion: "Cumple tu meta diaria 7 días", asistente: "todos" },
+  { id: "misiones-30", titulo: "Cazador de misiones", condicion: "Completa 30 misiones del día", asistente: "todos", grande: true },
 ];
 
 export function evaluarLogros(db: Database, p: Progreso, today: string): LogroId[] {
@@ -416,6 +572,8 @@ export function evaluarLogros(db: Database, p: Progreso, today: string): LogroId
     "nivel-10": nivel >= 10,
     "nivel-20": nivel >= 20,
     leyenda: nivel >= 26,
+    "meta-7": cuenta("meta-diaria") >= 7,
+    "misiones-30": cuenta("mision") >= 30,
   };
   return (Object.keys(ok) as LogroId[]).filter((id) => ok[id] && !p.logros[id]);
 }

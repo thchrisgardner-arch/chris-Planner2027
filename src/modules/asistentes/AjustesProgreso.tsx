@@ -4,7 +4,8 @@ import { Card, CardHeader } from "@/components/ui/Card";
 import { Select } from "@/components/ui/Field";
 import { Switch } from "@/components/ui/Switch";
 import { useFeedback } from "@/components/providers/FeedbackProvider";
-import type { Progreso } from "@/lib/asistentes/progreso";
+import { META_POR_DEFECTO, METAS_DIARIAS, type Progreso } from "@/lib/asistentes/progreso";
+import { cn } from "@/utils/cn";
 import { AvisosCelular } from "@/modules/avisos/AvisosCelular";
 import { useGamificacion } from "./Gamificacion";
 
@@ -29,6 +30,31 @@ export function AjustesProgreso() {
             </p>
           </div>
           <Switch checked={a.gamificacion} onChange={(v) => cambiar({ gamificacion: v })} label="Gamificación" />
+        </div>
+        <div className="mt-3 rounded-[20px] bg-bg-2 p-4">
+          <p className="text-[14.5px] font-medium">Meta diaria</p>
+          <p className="mt-0.5 text-[13px] text-muted">Cuánto XP quieres sumar cada día. Llegar a la meta da +10 XP.</p>
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4" role="group" aria-label="Meta diaria">
+            {METAS_DIARIAS.map((m) => {
+              const on = (a.metaDiaria ?? META_POR_DEFECTO) === m.xp;
+              return (
+                <button
+                  key={m.xp}
+                  type="button"
+                  aria-pressed={on}
+                  disabled={!a.gamificacion}
+                  onClick={() => cambiar({ metaDiaria: m.xp })}
+                  className={cn(
+                    "focus-ring cursor-pointer rounded-[16px] p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                    on ? "bg-fg text-on-fg" : "bg-card hover:bg-elev",
+                  )}
+                >
+                  <span className="block text-[14px] font-bold">{m.label}</span>
+                  <span className={cn("mt-0.5 block text-[12px]", on ? "opacity-80" : "text-muted")}>{m.hint}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </Card>
       <Card>

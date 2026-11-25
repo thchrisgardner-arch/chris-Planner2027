@@ -34,6 +34,17 @@ const VOZ_DESBLOQUEO: Record<Tono, (n: string) => string> = {
   tranquilo: (n) => `Nuevo desbloqueo por tu vínculo con ${n}.`,
 };
 
+const VOZ_META: Record<Tono, string> = {
+  seco: "Meta del día cumplida. Lo que sigue es ganancia.",
+  motivador: "¡Llegaste a tu meta de hoy! Lo que sumes ahora es extra.",
+  tranquilo: "Llegaste a tu meta de hoy.",
+};
+const VOZ_MISIONES: Record<Tono, string> = {
+  seco: "Las tres misiones. Día redondo.",
+  motivador: "¡Completaste todas las misiones de hoy! Día redondo.",
+  tranquilo: "Completaste las tres misiones de hoy.",
+};
+
 const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 const nombreMes = (k: string) => MESES[Number(k.slice(5, 7)) - 1] ?? k;
 
@@ -147,7 +158,15 @@ export function CapaCelebraciones() {
   let probar: string | null = null;
   let confeti = true;
   let pose: "celebrando" | "triste" = "celebrando";
-  if (c.tipo === "balance") {
+  if (c.tipo === "meta") {
+    etiqueta = "Meta diaria cumplida · +10 XP";
+    titulo = `${c.meta} XP hoy`;
+    sub = VOZ_META[estado.ajustes[id].tono];
+  } else if (c.tipo === "misiones") {
+    etiqueta = "Misiones del día · +20 XP";
+    titulo = "Las 3 misiones";
+    sub = VOZ_MISIONES[estado.ajustes[id].tono];
+  } else if (c.tipo === "balance") {
     id = "centavo";
     const mes = nombreMes(c.mes);
     if (c.verde) {

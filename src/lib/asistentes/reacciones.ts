@@ -19,4 +19,7 @@ export const REACCION: Record<TipoAccion, { pose: Pose; plural: [string, string]
   objetivo: { pose: "celebrando", plural: ["objetivo", "objetivos"], frase: { seco: "Cumbre alcanzada. Siguiente montaña.", motivador: "Objetivo 2027 cumplido. Enorme.", tranquilo: "Completaste un objetivo 2027." } },
   "compra-planificada": { pose: "celebrando", plural: ["compra", "compras"], frase: { seco: "Compra con plan. Así sí.", motivador: "Compraste sin tocar el ahorro. Bien.", tranquilo: "Compra hecha con la meta lista." } },
   "revision-semanal": { pose: "orgulloso", plural: ["revisión", "revisiones"], frase: { seco: "Revisión lista. Buena semana.", motivador: "Semana revisada. A por la siguiente.", tranquilo: "Completaste la revisión semanal." } },
+  mision: { pose: "orgulloso", plural: ["misión", "misiones"], frase: { seco: "Misión cumplida. Siguiente.", motivador: "¡Misión cumplida! Vas con todo.", tranquilo: "Completaste una misión del día." } },
+  "misiones-dia": { pose: "celebrando", plural: ["bonus de misiones", "bonus de misiones"], frase: { seco: "Las tres. Nada mal.", motivador: "¡Las tres misiones listas! Día redondo.", tranquilo: "Completaste las misiones de hoy." } },
+  "meta-diaria": { pose: "celebrando", plural: ["meta diaria", "metas diarias"], frase: { seco: "Meta del día. Cumplida.", motivador: "¡Meta diaria cumplida! Así se hace.", tranquilo: "Llegaste a tu meta de hoy." } },
 };

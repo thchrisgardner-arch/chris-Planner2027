@@ -14,8 +14,12 @@ import {
   LOGROS,
   TABLA_XP,
   agregarEvento,
+  elegirMisiones,
+  evaluarDia,
   evaluarLogros,
+  META_POR_DEFECTO,
   nivelConPiso,
+  type EstadoDia,
   progresoVacio,
   reconciliar,
   semanaDe,
@@ -83,13 +87,17 @@ export type Celebracion =
   | { tipo: "nivel"; nivel: number; etapa: string; cambioEtapa: boolean }
   | { tipo: "logro"; logro: LogroDef }
   | { tipo: "desbloqueo"; asistente: AsistenteId; item: Desbloqueo }
-  | { tipo: "balance"; mes: string; verde: boolean; xp: number };
+  | { tipo: "balance"; mes: string; verde: boolean; xp: number }
+  | { tipo: "meta"; meta: number }
+  | { tipo: "misiones" };
 
 interface Valor {
   progreso: Progreso;
   activo: boolean;
   xp: number;
   nivel: ReturnType<typeof nivelConPiso>;
+  /** Meta diaria y misiones de hoy */
+  dia: EstadoDia;
   /** Pop-up diario de racha (una vez al día al abrir la app) */
   saludoVisible: boolean;
   cerrarSaludo: () => void;
@@ -174,6 +182,11 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
       const nA = nivelConPiso(xpTotal(prev), prev.ui.nivelMax);
       const nB = nivelConPiso(xpTotal(next), next.ui.nivelMax);
       if (nB.nivel > nA.nivel) cola.push({ tipo: "nivel", nivel: nB.nivel, etapa: nB.etapa, cambioEtapa: nB.etapa !== nA.etapa });
+      // Meta diaria y misiones del día: celebraciones pequeñas (solo con "Todas")
+      if (pref === "todas") {
+        if (nuevos.some((e) => e.tipo === "meta-diaria")) cola.push({ tipo: "meta", meta: next.ajustes.metaDiaria ?? META_POR_DEFECTO });
+        if (nuevos.some((e) => e.tipo === "misiones-dia")) cola.push({ tipo: "misiones" });
+      }
       // Cierre de mes: en verde se celebra; en rojo solo si las reacciones negativas están activas
       for (const e of nuevos) {
         if (e.tipo === "mes-verde" || (e.tipo === "mes-rojo" && next.ajustes.negativas)) {
@@ -228,6 +241,10 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
 
   const xp = xpTotal(progreso);
   const nivel = nivelConPiso(xp, progreso.ui.nivelMax);
+  const dia = useMemo(() => {
+    const ids = progreso.ui.misiones?.fecha === today ? progreso.ui.misiones.ids : today ? elegirMisiones(db, today) : [];
+    return evaluarDia(progreso.eventos, ids, today, progreso.ajustes.metaDiaria ?? META_POR_DEFECTO);
+  }, [progreso, db, today]);
   const saludoVisible =
     saludoForzado ||
     (progreso.ajustes.gamificacion && progreso.ajustes.saludo !== false && status === "ready" && !!today && progreso.ui.iniciado !== undefined && progreso.ui.ultimoSaludo !== today);
@@ -245,6 +262,7 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
     activo: progreso.ajustes.gamificacion,
     xp,
     nivel,
+    dia,
     saludoVisible,
     cerrarSaludo: () => {
       setSaludoForzado(false);
@@ -284,12 +302,13 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
       if (mode !== "demo") return;
       const prev = leer();
       const ev: EventoXP = { id: `demo${Date.now()}`, tipo: "habito", xp: cantidad, fecha: today, refId: `demo:${Date.now()}`, asistente };
-      const next = { ...prev, eventos: [...prev.eventos, ev] };
-      const logros = { ...next.logros };
-      for (const id of evaluarLogros(db, next, today)) logros[id] = today;
-      const n2 = { ...next, logros };
+      // Pasa por la reconciliación para que cuente en las misiones y la meta del día
+      const r = reconciliar({ ...prev, eventos: [...prev.eventos, ev] }, db, today, principal);
+      const logros = { ...r.next.logros };
+      for (const id of evaluarLogros(db, r.next, today)) logros[id] = today;
+      const n2 = { ...r.next, logros };
       guardar(n2);
-      emitir(prev, n2, [ev], false);
+      emitir(prev, n2, [ev, ...r.nuevos], false);
     },
     celebrarDemo: (c) => mode === "demo" && setCelebraciones((x) => [...x, c]),
     romperRachaDemo: (conProtector) => {

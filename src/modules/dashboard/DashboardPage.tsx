@@ -20,6 +20,7 @@ import {
 } from "./DashboardWidgets";
 import { HeroAsistente } from "@/modules/asistentes/Protagonismo";
 import { InvitacionRevision } from "@/modules/asistentes/Revision";
+import { TuDia } from "@/modules/asistentes/TuDia";
 
 function greeting() {
   const h = bogotaHour();
@@ -63,6 +64,7 @@ export function DashboardPage() {
       <div className="flex flex-col gap-3">
         <InvitacionRevision />
         <HeroAsistente />
+        <TuDia />
         <KpiRow refMonth={refMonth} />
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-12">

@@ -135,6 +135,12 @@ export function PanelDemo() {
             <button type="button" className={btn} onClick={() => g.celebrarDemo({ tipo: "balance", mes: "2026-10", verde: false, xp: -50 })}>
               Mes en rojo
             </button>
+            <button type="button" className={btn} onClick={() => g.celebrarDemo({ tipo: "meta", meta: g.dia.meta })}>
+              Meta diaria
+            </button>
+            <button type="button" className={btn} onClick={() => g.celebrarDemo({ tipo: "misiones" })}>
+              Misiones completas
+            </button>
           </div>
 
           <p className="mb-2 mt-4 text-[12.5px] text-muted">Racha</p>
