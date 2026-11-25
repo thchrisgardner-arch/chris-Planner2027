@@ -34,7 +34,7 @@ export function SettingsPage() {
           </a>
         ))}
       </nav>
-      <div className="grid gap-3 xl:grid-cols-2">
+      <div className="grid gap-3 xl:grid-cols-2 [&>*]:min-w-0">
         <ProfileCard />
         <AppearanceCard />
         <EditorAsistentes />

@@ -92,8 +92,12 @@ export function BarChart({
             >
               {isActive && formatTooltip ? (
                 <div
-                  className="pointer-events-none absolute z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-fg px-3 py-1.5 text-[12px] font-medium text-on-fg"
-                  style={{ left: "50%", bottom: `calc(${(Math.max(...d.values) / max) * 100}% + 10px)` }}
+                  className={cn(
+                    "pointer-events-none absolute z-10 whitespace-nowrap rounded-full bg-fg px-3 py-1.5 text-[12px] font-medium text-on-fg",
+                    // En los extremos el globo se alinea al borde para no salirse de la tarjeta
+                    i >= data.length - 2 ? "right-0" : i <= 1 ? "left-0" : "left-1/2 -translate-x-1/2",
+                  )}
+                  style={{ bottom: `calc(${(Math.max(...d.values) / max) * 100}% + 10px)` }}
                 >
                   {formatTooltip(d)}
                 </div>

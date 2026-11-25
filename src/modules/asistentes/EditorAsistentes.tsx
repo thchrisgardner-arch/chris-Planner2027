@@ -67,7 +67,7 @@ export function EditorAsistentes() {
   };
 
   return (
-    <section id="asistentes" aria-labelledby="asistentes-titulo" className="scroll-mt-24 xl:col-span-2">
+    <section id="asistentes" aria-labelledby="asistentes-titulo" className="min-w-0 scroll-mt-24 xl:col-span-2">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
         <div>
           <h2 id="asistentes-titulo" className="text-[22px]">
@@ -77,7 +77,7 @@ export function EditorAsistentes() {
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[260px_minmax(0,1fr)_300px]">
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[260px_minmax(0,1fr)_300px] [&>*]:min-w-0">
         {/* Lista: columna en escritorio, carrusel en tablet y móvil */}
         <Lista estado={estado} sel={sel} onSel={elegir} onActivo={(id, v) => {
           if (!actualizar(id, { activo: v })) toast("El asistente principal no se puede desactivar. Elige otro principal primero.", "error");
