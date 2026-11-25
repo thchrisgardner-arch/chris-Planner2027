@@ -98,7 +98,22 @@ function guardar(next: EstadoAsistentes) {
   oyentes.forEach((f) => f());
 }
 
+/** La primera vez que se usa la app (fuera del modo demo) deja guardados los valores por defecto. */
+let asegurado = false;
+function asegurarGuardado() {
+  if (asegurado || typeof window === "undefined" || enDemo()) return;
+  asegurado = true;
+  try {
+    if (window.localStorage.getItem(CLAVE_ASISTENTES) === null) {
+      window.localStorage.setItem(CLAVE_ASISTENTES, JSON.stringify(leer()));
+    }
+  } catch {
+    /* sin almacenamiento: se usa en memoria */
+  }
+}
+
 function suscribir(f: () => void) {
+  asegurarGuardado();
   oyentes.add(f);
   const onStorage = (e: StorageEvent) => {
     if (e.key === CLAVE_ASISTENTES) {
