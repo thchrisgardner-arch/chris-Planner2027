@@ -12,16 +12,8 @@ import {
   type Expresion,
 } from "@/lib/asistentes/tipos";
 import { FIGURAS, type Ceja, type Figura, type Punto } from "./figuras";
-
-/** Colores por defecto de cada personaje (primario / secundario / detalle). */
-export const COLORES_POR_DEFECTO: Record<AsistenteId, Colores> = {
-  centavo: { primario: "yellow", secundario: "yellow-soft", detalle: "sand" },
-  brote: { primario: "lime-soft", secundario: "cream", detalle: "lime" },
-  tuerca: { primario: "sand", secundario: "cream", detalle: "charcoal" },
-  tic: { primario: "charcoal", secundario: "white", detalle: "lime" },
-  cima: { primario: "cream", secundario: "white", detalle: "sand" },
-  antojo: { primario: "gray-light", secundario: "white", detalle: "ink" },
-};
+import { COLORES_POR_DEFECTO } from "@/lib/asistentes/tipos";
+export { COLORES_POR_DEFECTO };
 
 const MODULO: Record<AsistenteId, string> = {
   centavo: "finanzas",

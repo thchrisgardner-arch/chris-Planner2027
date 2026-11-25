@@ -15,6 +15,7 @@ import { useTheme, type ThemePref } from "@/lib/theme";
 import { cn } from "@/utils/cn";
 import { TIMEZONE } from "@/utils/dates";
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "@/modules/finance/constants";
+import { borrarAsistentes, exportarAsistentes } from "@/lib/asistentes/estado";
 
 export function SettingsPage() {
   return (
@@ -183,7 +184,7 @@ function StorageCard() {
   const total = TABLES.reduce((n, t) => n + db[t].length, 0);
 
   const exportJSON = () => {
-    const blob = new Blob([JSON.stringify({ exported_at: new Date().toISOString(), profile, data: db }, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify({ exported_at: new Date().toISOString(), profile, data: db, asistentes: exportarAsistentes() }, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -202,6 +203,7 @@ function StorageCard() {
     });
     if (!ok) return;
     await clearAll();
+    borrarAsistentes();
     toast("Datos borrados.");
   };
 
