@@ -65,7 +65,7 @@ export function Modal({
       >
         <div className="flex items-start justify-between gap-4 px-6 pb-3 pt-6">
           <div>
-            <h2 id={titleId} className="text-[22px] font-medium tracking-[-0.02em]">{title}</h2>
+            <h2 id={titleId} className="text-[22px] font-bold tracking-[-0.02em]">{title}</h2>
             {description ? <p className="mt-1 text-[13px] text-muted">{description}</p> : null}
           </div>
           <button

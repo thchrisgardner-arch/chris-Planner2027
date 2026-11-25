@@ -22,6 +22,9 @@ import { StoreLogo } from "@/components/ui/StoreLogo";
 import { BANK_PRESETS, detectStoreInText, findStore } from "@/modules/other/stores";
 import { AccountIcon, PaymentMethodIcon } from "@/components/ui/BrandIcons";
 import { useFeedback } from "@/components/providers/FeedbackProvider";
+import { useForms } from "@/components/providers/FormsProvider";
+import { Button } from "@/components/ui/Button";
+import { Plus } from "lucide-react";
 import { cn } from "@/utils/cn";
 
 /** Bancos que se pueden crear al vuelo desde el selector de cuenta. */
@@ -66,6 +69,26 @@ export function TransactionForm({
 
   const noAccounts = db.accounts.length === 0;
   const { toast } = useFeedback();
+  const openForm = useForms();
+
+  /** Abre «Nueva cuenta» y, al guardarla, vuelve a este movimiento con lo escrito y la cuenta elegida. */
+  const addAccountAndReturn = () => {
+    const draft: Partial<Transaction> = {
+      type,
+      description,
+      amount: parseCOP(amount) ?? undefined,
+      category: category || null,
+      date,
+      payment_method: method || null,
+      status,
+      beneficiary,
+      notes: notes || null,
+    };
+    openForm({
+      kind: "account",
+      onCreated: (acc) => openForm({ kind: "transaction", defaults: { ...draft, account_id: acc.id } }),
+    });
+  };
 
   // Bancos sugeridos que aún no tienes como cuenta
   const suggestions = QUICK_BANKS.filter((id) => !db.accounts.some((a) => detectStoreInText(a.name, ["banco"])?.id === id));
@@ -145,9 +168,12 @@ export function TransactionForm({
       onSubmit={submit}
     >
       {noAccounts ? (
-        <p className="rounded-[12px] border border-warn/30 bg-warn/10 px-4 py-3 text-[13px] text-warn">
-          Aún no tienes cuentas. Elige «Agregar Nequi», «Agregar Nu»… en el selector de cuenta, o créala en Finanzas → Cuentas.
-        </p>
+        <div className="flex flex-col gap-3 rounded-[20px] bg-warn-fill px-4 py-3.5 text-[13.5px] text-[#0a0a0a] sm:flex-row sm:items-center">
+          <p className="flex-1">Aún no tienes cuentas. Agrega una para registrar este movimiento.</p>
+          <Button type="button" size="sm" variant="primary" className="self-start sm:self-auto" onClick={addAccountAndReturn}>
+            <Plus size={15} /> Agregar cuenta
+          </Button>
+        </div>
       ) : null}
       <ChoiceGroup
         value={type}
@@ -273,7 +299,17 @@ export function TransactionForm({
 }
 
 /* ───────────── Cuenta ───────────── */
-export function AccountForm({ open, onClose, record }: { open: boolean; onClose: () => void; record?: Account }) {
+export function AccountForm({
+  open,
+  onClose,
+  record,
+  onCreated,
+}: {
+  open: boolean;
+  onClose: () => void;
+  record?: Account;
+  onCreated?: (account: Account) => void;
+}) {
   const { db, insert, update } = useData();
   const [name, setName] = useState(record?.name ?? "");
   const [type, setType] = useState<AccountType>(record?.type ?? "banco");
@@ -295,8 +331,10 @@ export function AccountForm({ open, onClose, record }: { open: boolean; onClose:
       await update("accounts", record.id, data);
       return "Cuenta actualizada.";
     }
-    await insert("accounts", data);
-    return "Cuenta creada.";
+    const row = await insert("accounts", data);
+    // Tras cerrar este formulario, se abre el siguiente (el cierre ocurre justo después del return).
+    if (onCreated) setTimeout(() => onCreated(row), 0);
+    return onCreated ? "Cuenta agregada. Sigue con tu movimiento." : "Cuenta agregada.";
   };
 
   const current = record ? accountBalance(record, db.transactions) : null;

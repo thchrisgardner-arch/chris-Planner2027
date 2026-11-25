@@ -64,7 +64,7 @@ export function CardHeader({
   return (
     <div className={cn("mb-5 flex items-start justify-between gap-3", className)}>
       <div className="min-w-0">
-        <h2 className={cn("truncate text-[16px] font-medium tracking-[-0.01em]", inverse ? "text-on-fg" : "text-fg")}>{title}</h2>
+        <h2 className={cn("truncate text-[16px] font-bold tracking-[-0.01em]", inverse ? "text-on-fg" : "text-fg")}>{title}</h2>
         {subtitle ? <p className={cn("mt-0.5 truncate text-[13px]", inverse ? "text-on-fg/60" : "text-muted")}>{subtitle}</p> : null}
       </div>
       {action || href ? (

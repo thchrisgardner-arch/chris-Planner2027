@@ -19,7 +19,8 @@ import type {
 
 export type FormRequest =
   | { kind: "transaction"; record?: Transaction; defaults?: Partial<Transaction> }
-  | { kind: "account"; record?: Account }
+  /** onCreated: se llama con la cuenta nueva (p. ej. para volver al movimiento con ella elegida). */
+  | { kind: "account"; record?: Account; onCreated?: (account: Account) => void }
   | { kind: "savings"; record?: SavingsGoal }
   | { kind: "deposit"; record: SavingsGoal }
   | { kind: "project"; record?: Project }
@@ -50,7 +51,7 @@ export function FormsProvider({ children }: { children: React.ReactNode }) {
     <FormsContext.Provider value={open}>
       {children}
       {req?.kind === "transaction" && <TransactionForm key={key} {...common} record={req.record} defaults={req.defaults} />}
-      {req?.kind === "account" && <AccountForm key={key} {...common} record={req.record} />}
+      {req?.kind === "account" && <AccountForm key={key} {...common} record={req.record} onCreated={req.onCreated} />}
       {req?.kind === "savings" && <SavingsGoalForm key={key} {...common} record={req.record} />}
       {req?.kind === "deposit" && <SavingsDepositForm key={key} {...common} record={req.record} />}
       {req?.kind === "project" && <ProjectForm key={key} {...common} record={req.record} />}

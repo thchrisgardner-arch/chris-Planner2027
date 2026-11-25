@@ -56,7 +56,7 @@ export function CheckCircle({
       disabled={disabled}
       onClick={onToggle}
       className={cn(
-        "focus-ring grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-full border-[1.5px] transition-all duration-200 disabled:cursor-wait",
+        "focus-ring relative grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-full after:absolute after:-inset-2 after:content-[''] border-[1.5px] transition-all duration-200 disabled:cursor-wait",
         checked ? "border-transparent" : "border-line-strong hover:border-fg",
       )}
       style={checked ? { background: color } : undefined}

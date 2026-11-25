@@ -84,7 +84,7 @@ export function Avatar({ size = 40 }: { size?: number }) {
           <div className="mb-1.5 flex items-center gap-3 rounded-[18px] border border-line p-3.5">
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[15px] font-medium tracking-[-0.01em]">{profile?.full_name || "Tu perfil"}</span>
-              <span className="block truncate text-[12.5px] text-muted">{profile?.email || (mode === "local" ? "Sin cuenta en la nube" : "")}</span>
+              <span className="block truncate text-[12.5px] text-muted">{profile?.email || (mode === "local" ? "Guardado en este dispositivo" : mode === "demo" ? "Datos de ejemplo" : "")}</span>
             </span>
             <RingAvatar size={44} />
           </div>

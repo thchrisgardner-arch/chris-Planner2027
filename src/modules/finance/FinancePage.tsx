@@ -39,12 +39,11 @@ export function FinancePage() {
   const raw = params.get("tab") as Tab | null;
   const tab: Tab = raw && TABS.some((t) => t.value === raw) ? raw : "resumen";
   const open = useForms();
-  const { db } = useData();
 
   return (
     <>
       <PageHeader title="Finanzas" subtitle="Ingresos, gastos, cuentas y ahorros.">
-        <Button variant="primary" className="max-md:hidden" onClick={() => open(db.accounts.length ? { kind: "transaction" } : { kind: "account" })}>
+        <Button variant="primary" className="max-md:hidden" onClick={() => open({ kind: "transaction" })}>
           <Plus size={18} /> Nuevo movimiento
         </Button>
       </PageHeader>

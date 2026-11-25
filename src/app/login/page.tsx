@@ -186,7 +186,7 @@ export default function LoginPage() {
               </button>
             ) : null}
 
-            <h1 className="text-[34px] font-medium leading-[1.08] tracking-[-0.03em] sm:text-[40px]">{titles[step].h}</h1>
+            <h1 className="text-[34px] font-bold leading-[1.08] tracking-[-0.03em] sm:text-[40px]">{titles[step].h}</h1>
             <p className="mt-3 text-[15px] leading-relaxed text-muted">{titles[step].p}</p>
 
             <div className="card mt-8 p-6 sm:p-7">
@@ -271,7 +271,7 @@ export default function LoginPage() {
             {!isSupabaseConfigured ? (
               <p className="mt-5 flex items-start gap-2 text-[12.5px] leading-relaxed text-dim">
                 <HardDrive size={17} className="mt-0.5 shrink-0 text-warn" />
-                Modo local: tu acceso y tus datos se guardan solo en este dispositivo. Para tener cuenta en la nube hay que conectar Supabase.
+                Por ahora tus datos se guardan solo en este dispositivo. La sincronización entre dispositivos llegará pronto.
               </p>
             ) : null}
           </div>
