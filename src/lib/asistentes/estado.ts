@@ -7,7 +7,7 @@
  */
 import { useSyncExternalStore } from "react";
 import { FICHAS, type Avisos, type Tono } from "./definiciones";
-import { ASISTENTE_IDS, COLORES_POR_DEFECTO, type Accesorio, type AsistenteId, type Colores, type Expresion } from "./tipos";
+import { ASISTENTE_IDS, COLORES_POR_DEFECTO, EXPRESIONES, EXPRESION_LEGADA, type Accesorio, type AsistenteId, type Colores, type Expresion } from "./tipos";
 
 export const CLAVE_ASISTENTES = "lifeos:asistentes";
 
@@ -35,7 +35,7 @@ export function ajustesPorDefecto(id: AsistenteId): AjustesAsistente {
     activo: true,
     nombre: FICHAS[id].nombre,
     colores: { ...COLORES_POR_DEFECTO[id] },
-    expresion: "neutral",
+    expresion: "idle",
     accesorio: "ninguno",
     mostrarProp: true,
     tono: "seco",
@@ -61,7 +61,10 @@ function normalizar(raw: unknown): EstadoAsistentes {
   const principal = ASISTENTE_IDS.includes(r.principal as AsistenteId) ? (r.principal as AsistenteId) : base.principal;
   for (const id of ASISTENTE_IDS) {
     const g = r.ajustes?.[id];
-    if (g) base.ajustes[id] = { ...base.ajustes[id], ...g, colores: { ...base.ajustes[id].colores, ...g.colores } };
+    if (g) {
+      const exp = (EXPRESIONES as readonly string[]).includes(g.expresion) ? g.expresion : (EXPRESION_LEGADA[g.expresion as string] ?? "idle");
+      base.ajustes[id] = { ...base.ajustes[id], ...g, expresion: exp, colores: { ...base.ajustes[id].colores, ...g.colores } };
+    }
   }
   base.principal = principal;
   if (typeof r.ocultoInicio === "string") base.ocultoInicio = r.ocultoInicio;

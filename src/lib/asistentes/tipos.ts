@@ -33,19 +33,27 @@ export const CHAR_COLOR_LABEL: Record<CharColor, string> = {
   ink: "Tinta",
 };
 
-/** Colores oscuros: sobre ellos la cara se dibuja en blanco. */
+/** Colores oscuros: sobre ellos los trazos de la cara se dibujan en blanco. */
 export const DARK_COLORS: CharColor[] = ["charcoal", "ink"];
 
-export const EXPRESIONES = ["neutral", "contento", "alerta", "molesto", "dormido"] as const;
+/** Poses de cuerpo completo (cada una con su cara, postura, efectos y animación). */
+export const EXPRESIONES = ["idle", "feliz", "celebrando", "orgulloso", "preocupado", "triste", "molesto", "dormido"] as const;
 export type Expresion = (typeof EXPRESIONES)[number];
+export type Pose = Expresion;
 
 export const EXPRESION_LABEL: Record<Expresion, string> = {
-  neutral: "Neutral",
-  contento: "Contento",
-  alerta: "Alerta",
+  idle: "Normal",
+  feliz: "Feliz",
+  celebrando: "Celebrando",
+  orgulloso: "Orgulloso",
+  preocupado: "Preocupado",
+  triste: "Triste",
   molesto: "Molesto",
   dormido: "Dormido",
 };
+
+/** Valores guardados con la versión anterior (5 expresiones) */
+export const EXPRESION_LEGADA: Record<string, Expresion> = { neutral: "idle", contento: "feliz", alerta: "preocupado" };
 
 export const ACCESORIOS = ["ninguno", "gafas", "gorro", "audifonos", "bufanda"] as const;
 export type Accesorio = (typeof ACCESORIOS)[number];

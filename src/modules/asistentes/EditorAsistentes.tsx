@@ -190,7 +190,7 @@ function Escenario({
   const ctx = useMemo(() => ({ db, today, tono: a.tono }), [db, today, a.tono]);
   const mensaje = respuesta?.r ?? motorLocal.mensaje(id, ctx);
   // La expresión elegida manda; si es neutral, el mensaje propone la suya
-  const expresion = a.expresion !== "neutral" ? a.expresion : mensaje.expresion;
+  const expresion = a.expresion !== "idle" ? a.expresion : mensaje.expresion;
 
   const enviar = (e: React.FormEvent) => {
     e.preventDefault();
@@ -422,8 +422,8 @@ function Propiedades({
         </div>
       </Bloque>
 
-      <Bloque titulo="Expresión">
-        <div className="grid max-w-[300px] grid-cols-5 gap-1.5" role="radiogroup" aria-label="Expresión">
+      <Bloque titulo="Pose y ánimo">
+        <div className="grid max-w-[300px] grid-cols-4 gap-1.5" role="radiogroup" aria-label="Pose">
           {EXPRESIONES.map((e) => (
             <button
               key={e}

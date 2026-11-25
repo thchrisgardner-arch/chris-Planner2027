@@ -43,7 +43,7 @@ export function TarjetaAsistentePrincipal() {
         id={id}
         size={96}
         colores={a.colores}
-        expresion={a.expresion !== "neutral" ? a.expresion : msg.expresion}
+        expresion={a.expresion !== "idle" ? a.expresion : msg.expresion}
         accesorio={a.accesorio}
         mostrarProp={a.mostrarProp}
         nombre={a.nombre}
@@ -90,7 +90,7 @@ export function AsistenteModulo({ id, celebrar, oculto }: { id: AsistenteId; cel
 
   // Sin nada relevante o con avisos apagados: solo el personaje, sin burbuja
   const conBurbuja = a.avisos !== "nunca" && msg.prioridad > 0;
-  const expresion = celebrar ? "contento" : a.expresion !== "neutral" ? a.expresion : conBurbuja ? msg.expresion : "neutral";
+  const expresion = celebrar ? "feliz" : a.expresion !== "idle" ? a.expresion : conBurbuja ? msg.expresion : "idle";
 
   return (
     <div className="mt-4 flex items-center gap-2.5">

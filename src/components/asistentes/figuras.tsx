@@ -1,358 +1,437 @@
 /**
- * Siluetas de los 6 asistentes en SVG (viewBox 0 0 200 200).
- * Capas con nombre (data-capa): body · belly/cheeks/ears-inner · details · prop.
- * La cara y los accesorios se dibujan aparte (Asistente.tsx) usando los anclajes de cada figura.
- * Clases: .o = contorno · .f-p primario · .f-s secundario · .f-d detalle (ver asistentes.css).
+ * Rigs de los 6 asistentes (viewBox 0 0 200 200), estilo plano de dos tonos y sin contorno:
+ * cuerpo en bloque redondeado con la cabeza integrada, sombra del mismo color en la parte baja,
+ * ojos grandes y extremidades en óvalo. Cada rig define su silueta, sus anclajes (ojos, boca,
+ * hombros, pies, slots de accesorios) y su pose de reposo; las 8 poses se arman en Asistente.tsx.
+ * Clases de color: f-p / f-ps (primario y su sombra), f-s / f-ss, f-d / f-ds (ver asistentes.css).
  */
 import type { AsistenteId } from "@/lib/asistentes/tipos";
 
 export type Punto = { x: number; y: number };
 export type Slot = { x: number; y: number; w: number };
-export type Ceja = "serio" | "gruñon" | "fruncido" | "decidido" | "picaro" | "ninguna";
-export type OjoBase = "punto" | "calma" | "picaro";
-export type BocaBase = "plana" | "mini" | "frown" | "sonrisa-lado" | "ninguna";
+
+export type BrazoModo = "colgar" | "cruzados" | "cintura" | "juntas" | "abrazo";
+export type OjoModo = "abierto" | "feliz" | "cerrado" | "llorando";
+export type Ceja = "ninguna" | "arriba" | "enojo" | "esceptico";
+export type Boca = "cerrada" | "sonrisa" | "abierta" | "o" | "triste" | "lado";
+export type Fx = "destellos" | "sudor" | "lagrimas" | "vapor" | "zzz" | "corazones";
+
+export interface PoseCfg {
+  /** a = apertura en grados: 0 colgando, 150 brazos arriba; negativo hacia adentro. [izq, der] si difieren */
+  brazos: { modo: BrazoModo; a?: number | [number, number] };
+  ojos: { modo: OjoModo; tapa?: number; inclina?: number; ceja?: Ceja; mirada?: [number, number]; grande?: boolean };
+  boca: Boca;
+  cuerpo?: { y?: number; sx?: number; sy?: number; rot?: number };
+  fx?: Fx[];
+}
+
+export interface Cuerpo {
+  cx: number;
+  top: number;
+  w: number;
+  h: number;
+  r: number;
+}
 
 export interface Ctx {
-  /** Detalles finos (patrones, líneas internas): se ocultan a 48 px */
+  /** Detalles finos (patrones): se ocultan a 48 px o menos */
   fino: boolean;
   mostrarProp: boolean;
   uid: string;
 }
 
-export interface Figura {
+export interface Rig {
   nombre: string;
+  cuerpo: Cuerpo;
   ojos: [Punto, Punto];
+  rOjo: number;
   boca: Punto;
+  hombros: [Punto, Punto];
+  brazo: { rx: number; ry: number };
+  pies: [Punto, Punto];
+  /** Clase de color de los pies */
+  pie: string;
   cabeza: Slot;
   cuello: Slot;
-  ceja: Ceja;
-  ojo: OjoBase;
-  bocaBase: BocaBase;
-  /** Ojos sobre una zona oscura fija (antifaz): se dibujan con esclerótica blanca */
-  ojosBlancos?: boolean;
-  /** Radio de la "cabeza" para gafas y audífonos */
   anchoCara: number;
-  render: (c: Ctx) => React.ReactNode;
+  /** El párpado usa el color del antifaz (mapache) en vez del primario */
+  parpado?: "p" | "d";
+  /** Pico en lugar de boca (gallo) */
+  pico?: boolean;
+  idle: PoseCfg;
+  /** Detrás del cuerpo: cola, caparazón, orejas, cuernos, accesorio propio trasero */
+  atras: (c: Ctx) => React.ReactNode;
+  /** Sobre el cuerpo y debajo de la cara: panza, cachetes, antifaz, hocico, nariz, dientes */
+  frente: (c: Ctx) => React.ReactNode;
+  /** Accesorio propio delante (moneda, bolsa…), debajo de los brazos */
+  propDelante?: (c: Ctx) => React.ReactNode;
+}
+
+/** Rectángulo de esquinas muy redondeadas: el "bloque" del cuerpo */
+export function bloque({ cx, top, w, h, r }: Cuerpo) {
+  const x0 = cx - w / 2;
+  const x1 = cx + w / 2;
+  const y1 = top + h;
+  return `M${x0 + r} ${top} H${x1 - r} A${r} ${r} 0 0 1 ${x1} ${top + r} V${y1 - r} A${r} ${r} 0 0 1 ${x1 - r} ${y1} H${x0 + r} A${r} ${r} 0 0 1 ${x0} ${y1 - r} V${top + r} A${r} ${r} 0 0 1 ${x0 + r} ${top} Z`;
 }
 
 /* ───────── Centavo · hámster ───────── */
-const centavo: Figura = {
+const centavo: Rig = {
   nombre: "Centavo",
+  cuerpo: { cx: 100, top: 56, w: 132, h: 128, r: 60 },
   ojos: [
-    { x: 80, y: 92 },
-    { x: 120, y: 92 },
+    { x: 80, y: 96 },
+    { x: 120, y: 96 },
   ],
-  boca: { x: 100, y: 110 },
-  cabeza: { x: 100, y: 52, w: 84 },
-  cuello: { x: 100, y: 128, w: 96 },
-  ceja: "serio",
-  ojo: "punto",
-  bocaBase: "plana",
-  anchoCara: 70,
-  render: (c) => (
+  rOjo: 15,
+  boca: { x: 100, y: 124 },
+  hombros: [
+    { x: 42, y: 124 },
+    { x: 158, y: 124 },
+  ],
+  brazo: { rx: 12, ry: 22 },
+  pies: [
+    { x: 78, y: 186 },
+    { x: 122, y: 186 },
+  ],
+  pie: "f-d",
+  cabeza: { x: 100, y: 58, w: 96 },
+  cuello: { x: 100, y: 134, w: 108 },
+  anchoCara: 66,
+  idle: { brazos: { modo: "abrazo" }, ojos: { modo: "abierto", tapa: 0.36, ceja: "esceptico" }, boca: "cerrada" },
+  atras: () => (
+    <g data-capa="ears">
+      <circle className="f-p" cx="62" cy="62" r="17" />
+      <circle className="f-p" cx="138" cy="62" r="17" />
+      <circle className="f-ss" cx="62" cy="62" r="8" />
+      <circle className="f-ss" cx="138" cy="62" r="8" />
+    </g>
+  ),
+  frente: () => (
     <>
-      <g data-capa="details">
-        <ellipse className="o f-d" cx="74" cy="186" rx="15" ry="7" />
-        <ellipse className="o f-d" cx="126" cy="186" rx="15" ry="7" />
-      </g>
-      <g data-capa="ears">
-        <circle className="o f-p" cx="58" cy="58" r="15" />
-        <circle className="o f-p" cx="142" cy="58" r="15" />
-      </g>
-      <g data-capa="ears-inner">
-        <circle className="f-s" cx="58" cy="58" r="7" />
-        <circle className="f-s" cx="142" cy="58" r="7" />
-      </g>
-      <g data-capa="body">
-        <ellipse className="o f-p" cx="100" cy="118" rx="70" ry="69" />
-        <path className="o-fino" d="M92 52 q4 -10 8 0 q4 -10 8 0" />
-      </g>
       <g data-capa="cheeks">
-        <ellipse className="o f-s" cx="45" cy="110" rx="21" ry="23" />
-        <ellipse className="o f-s" cx="155" cy="110" rx="21" ry="23" />
+        <ellipse className="f-s" cx="56" cy="124" rx="17" ry="14" />
+        <ellipse className="f-s" cx="144" cy="124" rx="17" ry="14" />
       </g>
       <g data-capa="belly">
-        <ellipse className="f-s" cx="100" cy="152" rx="40" ry="31" />
+        <ellipse className="f-s" cx="100" cy="158" rx="40" ry="24" />
       </g>
-      {c.mostrarProp ? (
-        <g data-capa="prop" className="asis-prop">
-          <circle className="o f-yellow" cx="100" cy="146" r="26" />
-          <circle className="o-fino" cx="100" cy="146" r="18" />
-          <path className="o-fino" d="M100 134 Q102 144 112 146 Q102 148 100 158 Q98 148 88 146 Q98 144 100 134Z" />
-        </g>
-      ) : null}
-      <g data-capa="body-front">
-        <ellipse className="o f-p" cx="75" cy="140" rx="11" ry="9" />
-        <ellipse className="o f-p" cx="125" cy="140" rx="11" ry="9" />
-      </g>
+      <path className="f-ds" d="M95 112 Q100 108 105 112 Q103 117 100 118 Q97 117 95 112 Z" />
     </>
   ),
+  propDelante: (c) =>
+    c.mostrarProp ? (
+      <g data-capa="prop" className="asis-prop">
+        <circle className="f-yellow-shade" cx="100" cy="152" r="22" />
+        <circle className="f-yellow" cx="98" cy="150" r="18" />
+        <path className="f-yellow-shade" d="M98 139 Q99.5 148 108 150 Q99.5 152 98 161 Q96.5 152 88 150 Q96.5 148 98 139 Z" />
+      </g>
+    ) : null,
 };
 
 /* ───────── Brote · tortuga ───────── */
-const brote: Figura = {
+const brote: Rig = {
   nombre: "Brote",
+  cuerpo: { cx: 90, top: 42, w: 106, h: 142, r: 50 },
   ojos: [
-    { x: 72, y: 66 },
-    { x: 104, y: 66 },
+    { x: 74, y: 84 },
+    { x: 106, y: 84 },
   ],
-  boca: { x: 88, y: 84 },
-  cabeza: { x: 88, y: 28, w: 76 },
-  cuello: { x: 90, y: 102, w: 72 },
-  ceja: "ninguna",
-  ojo: "calma",
-  bocaBase: "mini",
-  anchoCara: 46,
-  render: (c) => (
+  rOjo: 14,
+  boca: { x: 90, y: 108 },
+  hombros: [
+    { x: 39, y: 124 },
+    { x: 141, y: 124 },
+  ],
+  brazo: { rx: 11, ry: 20 },
+  pies: [
+    { x: 70, y: 186 },
+    { x: 110, y: 186 },
+  ],
+  pie: "f-sand",
+  cabeza: { x: 90, y: 44, w: 84 },
+  cuello: { x: 90, y: 124, w: 92 },
+  anchoCara: 54,
+  idle: { brazos: { modo: "colgar", a: 6 }, ojos: { modo: "abierto", tapa: 0.56 }, boca: "cerrada" },
+  atras: (c) => (
     <>
-      {c.mostrarProp ? (
-        <g data-capa="prop" className="asis-prop">
-          <path className="t" d="M150 66 Q151 50 157 38" style={{ "--tc": "var(--char-lime)", strokeWidth: "calc(var(--sw) * 1.3)" } as React.CSSProperties} />
-          <path className="o f-lime" d="M156 40 Q140 22 128 34 Q141 46 156 40Z" />
-          <path className="o f-lime" d="M158 38 Q172 18 186 30 Q173 44 158 38Z" />
-        </g>
-      ) : null}
       <g data-capa="details">
         <clipPath id={`${c.uid}-shell`}>
-          <ellipse cx="124" cy="118" rx="58" ry="64" />
+          <ellipse cx="132" cy="124" rx="54" ry="60" />
         </clipPath>
-        <ellipse className="f-d" cx="124" cy="118" rx="58" ry="64" />
-        {c.fino ? (
-          <g clipPath={`url(#${c.uid}-shell)`} className="fc-d">
-            <path
-              className="o-fino"
-              d="M110 92 L138 92 L150 112 L138 132 L110 132 L100 112Z M110 92 L102 56 M138 92 L148 56 M150 112 L186 112 M138 132 L148 178 M110 132 L102 178"
-            />
-          </g>
-        ) : null}
-        <ellipse className="o f-none fc-d" cx="124" cy="118" rx="58" ry="64" />
+        <ellipse className="f-d" cx="132" cy="124" rx="54" ry="60" />
+        <g clipPath={`url(#${c.uid}-shell)`}>
+          <ellipse className="f-ds" cx="168" cy="150" rx="46" ry="72" />
+          {c.fino ? (
+            <>
+              <path className="f-ds" d="M126 92 l12 7 v14 l-12 7 l-12 -7 v-14 Z" />
+              <path className="f-ds" d="M118 130 l11 6 v13 l-11 6 l-11 -6 v-13 Z" />
+            </>
+          ) : null}
+        </g>
       </g>
-      <g data-capa="body">
-        <ellipse className="o f-p" cx="70" cy="184" rx="16" ry="8" />
-        <ellipse className="o f-p" cx="112" cy="184" rx="16" ry="8" />
-        <ellipse className="o f-p" cx="90" cy="128" rx="42" ry="54" />
-      </g>
-      <g data-capa="belly">
-        <ellipse className="o f-s" cx="90" cy="138" rx="29" ry="40" />
-        {c.fino ? <path className="o-fino fc-sand" d="M64 122 Q90 128 116 122 M62 142 Q90 148 118 142 M66 162 Q90 168 114 162" /> : null}
-      </g>
-      <g data-capa="body-front">
-        <ellipse className="o f-p" cx="52" cy="126" rx="11" ry="22" transform="rotate(14 52 126)" />
-        <ellipse className="o f-p" cx="128" cy="124" rx="11" ry="21" transform="rotate(-14 128 124)" />
-        <ellipse className="o f-p" cx="88" cy="64" rx="46" ry="40" />
-      </g>
+      {c.mostrarProp ? (
+        <g data-capa="prop" className="asis-prop">
+          <path className="t" style={{ "--tc": "var(--char-lime-shade)", strokeWidth: 5 } as React.CSSProperties} d="M150 72 Q152 58 158 48" />
+          <ellipse className="f-lime" cx="146" cy="46" rx="13" ry="7" transform="rotate(-25 146 46)" />
+          <ellipse className="f-lime-shade" cx="170" cy="42" rx="13" ry="7" transform="rotate(20 170 42)" />
+        </g>
+      ) : null}
     </>
+  ),
+  frente: (c) => (
+    <g data-capa="belly">
+      <ellipse className="f-s" cx="90" cy="146" rx="30" ry="34" />
+      {c.fino ? (
+        <>
+          <rect className="f-ss" x="70" y="134" width="40" height="3" rx="1.5" />
+          <rect className="f-ss" x="66" y="148" width="48" height="3" rx="1.5" />
+          <rect className="f-ss" x="70" y="162" width="40" height="3" rx="1.5" />
+        </>
+      ) : null}
+    </g>
   ),
 };
 
 /* ───────── Tuerca · castor ───────── */
-const tuerca: Figura = {
+const tuerca: Rig = {
   nombre: "Tuerca",
+  cuerpo: { cx: 95, top: 54, w: 124, h: 130, r: 56 },
   ojos: [
-    { x: 74, y: 90 },
-    { x: 110, y: 90 },
+    { x: 78, y: 96 },
+    { x: 112, y: 96 },
   ],
-  boca: { x: 92, y: 102 },
-  cabeza: { x: 92, y: 54, w: 84 },
-  cuello: { x: 92, y: 124, w: 92 },
-  ceja: "gruñon",
-  ojo: "punto",
-  bocaBase: "ninguna",
-  anchoCara: 62,
-  render: (c) => (
+  rOjo: 14,
+  boca: { x: 95, y: 134 },
+  hombros: [
+    { x: 39, y: 128 },
+    { x: 151, y: 128 },
+  ],
+  brazo: { rx: 12, ry: 21 },
+  pies: [
+    { x: 76, y: 186 },
+    { x: 114, y: 186 },
+  ],
+  pie: "f-d",
+  cabeza: { x: 95, y: 56, w: 96 },
+  cuello: { x: 95, y: 140, w: 106 },
+  anchoCara: 64,
+  idle: { brazos: { modo: "cruzados" }, ojos: { modo: "abierto", tapa: 0.46, inclina: 8 }, boca: "cerrada" },
+  atras: (c) => (
     <>
       <g data-capa="details">
         <clipPath id={`${c.uid}-tail`}>
-          <path d="M126 150 Q148 92 178 96 Q198 104 188 150 Q176 190 140 180 Z" />
+          <path d="M138 152 C148 100 196 98 192 148 C190 184 152 192 140 170 Z" />
         </clipPath>
-        <path className="f-d" d="M126 150 Q148 92 178 96 Q198 104 188 150 Q176 190 140 180 Z" />
-        {c.fino ? (
-          <g clipPath={`url(#${c.uid}-tail)`} style={{ stroke: "var(--char-gray)", strokeWidth: 3, fill: "none" }}>
-            <path d="M140 100 L196 156 M128 120 L188 180 M120 144 L160 184 M160 92 L200 132 M150 180 L196 112 M136 170 L190 96 M126 150 L172 92" />
-          </g>
-        ) : null}
-        <path className="o f-none fc-d" d="M126 150 Q148 92 178 96 Q198 104 188 150 Q176 190 140 180 Z" />
-        <ellipse className="o f-d" cx="70" cy="186" rx="16" ry="7" />
-        <ellipse className="o f-d" cx="114" cy="186" rx="16" ry="7" />
+        <path className="f-d" d="M138 152 C148 100 196 98 192 148 C190 184 152 192 140 170 Z" />
+        <g clipPath={`url(#${c.uid}-tail)`}>
+          <ellipse className="f-ds" cx="182" cy="170" rx="34" ry="30" />
+          {c.fino ? (
+            <path
+              className="t"
+              style={{ "--tc": "var(--char-gray)", strokeWidth: 3 } as React.CSSProperties}
+              d="M150 108 L196 154 M140 128 L186 174 M136 152 L168 184 M168 104 L198 134 M154 182 L196 120 M140 168 L188 104"
+            />
+          ) : null}
+        </g>
       </g>
       {c.mostrarProp ? (
         <g data-capa="prop" className="asis-prop">
-          <g transform="rotate(-38 140 44)">
-            <rect className="o f-yellow-soft" x="116" y="39" width="9" height="10" rx="2" />
-            <rect className="o f-yellow" x="124" y="39" width="30" height="10" rx="1.5" />
-            <path className="o f-sand" d="M154 39 L166 44 L154 49Z" />
-            <path className="f-ink" d="M162 42.4 L166 44 L162 45.6Z" />
+          <g transform="rotate(-36 142 48)">
+            <rect className="f-yellow-soft" x="118" y="43" width="9" height="10" rx="2" />
+            <rect className="f-yellow" x="126" y="43" width="30" height="10" rx="1.5" />
+            <rect className="f-yellow-shade" x="126" y="49" width="30" height="4" />
+            <path className="f-sand" d="M156 43 L168 48 L156 53 Z" />
+            <path className="f-ink" d="M164 46.3 L168 48 L164 49.7 Z" />
           </g>
         </g>
       ) : null}
       <g data-capa="ears">
-        <circle className="o f-p" cx="52" cy="58" r="13" />
-        <circle className="o f-p" cx="132" cy="58" r="13" />
-        <circle className="f-s" cx="52" cy="58" r="6" />
-        <circle className="f-s" cx="132" cy="58" r="6" />
+        <circle className="f-p" cx="58" cy="62" r="15" />
+        <circle className="f-p" cx="132" cy="62" r="15" />
+        <circle className="f-ss" cx="58" cy="62" r="7" />
+        <circle className="f-ss" cx="132" cy="62" r="7" />
       </g>
-      <g data-capa="body">
-        <ellipse className="o f-p" cx="92" cy="120" rx="62" ry="67" />
-      </g>
+    </>
+  ),
+  frente: () => (
+    <>
       <g data-capa="belly">
-        <ellipse className="f-s" cx="92" cy="146" rx="36" ry="32" />
+        <ellipse className="f-s" cx="95" cy="158" rx="38" ry="24" />
       </g>
-      <g data-capa="body-front">
-        <path className="o f-p" d="M52 148 Q92 164 132 148 Q138 162 126 168 Q92 180 58 168 Q46 162 52 148Z" />
-        {c.fino ? <path className="o-fino" d="M92 160 Q95 166 92 172" /> : null}
-        <path className="o f-white" d="M84 106 h8 v11 a2 2 0 0 1 -2 2 h-4 a2 2 0 0 1 -2 -2Z M92 106 h8 v11 a2 2 0 0 1 -2 2 h-4 a2 2 0 0 1 -2 -2Z" />
-        <ellipse className="f-ink" cx="92" cy="101" rx="5" ry="3.5" />
-      </g>
+      <ellipse className="f-ss" cx="95" cy="120" rx="20" ry="12" />
+      <ellipse className="f-charcoal" cx="95" cy="114" rx="7" ry="5" />
+      <rect className="f-white" x="88" y="122" width="7" height="10" rx="2" />
+      <rect className="f-white" x="96" y="122" width="7" height="10" rx="2" />
     </>
   ),
 };
 
 /* ───────── Tic · gallo ───────── */
-const tic: Figura = {
+const tic: Rig = {
   nombre: "Tic",
+  cuerpo: { cx: 100, top: 60, w: 128, h: 124, r: 60 },
   ojos: [
-    { x: 84, y: 96 },
-    { x: 116, y: 96 },
+    { x: 82, y: 98 },
+    { x: 118, y: 98 },
   ],
-  boca: { x: 100, y: 112 },
-  cabeza: { x: 100, y: 66, w: 78 },
-  cuello: { x: 100, y: 132, w: 96 },
-  ceja: "fruncido",
-  ojo: "punto",
-  bocaBase: "ninguna",
-  anchoCara: 64,
-  render: (c) => (
+  rOjo: 15,
+  boca: { x: 100, y: 121 },
+  hombros: [
+    { x: 40, y: 128 },
+    { x: 160, y: 128 },
+  ],
+  brazo: { rx: 12, ry: 21 },
+  pies: [
+    { x: 82, y: 187 },
+    { x: 118, y: 187 },
+  ],
+  pie: "f-yellow",
+  cabeza: { x: 100, y: 64, w: 88 },
+  cuello: { x: 100, y: 140, w: 106 },
+  anchoCara: 66,
+  pico: true,
+  idle: { brazos: { modo: "cintura" }, ojos: { modo: "abierto", tapa: 0.4, inclina: 22 }, boca: "cerrada" },
+  atras: (c) => (
     <>
       {c.mostrarProp ? (
         <g data-capa="prop" className="asis-prop">
-          <path className="f-ink" d="M42 60 L56 76 L52 58Z" />
-          <circle className="f-ink" cx="34" cy="44" r="22" />
-          <circle cx="34" cy="44" r="12" style={{ fill: "none", stroke: "var(--char-white)", strokeWidth: "calc(var(--sw) * 0.62)" }} />
-          <path d="M34 44 L34 36 M34 44 L40 47" style={{ fill: "none", stroke: "var(--char-white)", strokeWidth: "calc(var(--sw) * 0.62)", strokeLinecap: "round" }} />
+          <path className="f-charcoal" d="M42 62 L56 78 L52 58 Z" />
+          <circle className="f-charcoal" cx="34" cy="46" r="22" />
+          <circle className="t" style={{ "--tc": "var(--char-white)", strokeWidth: 3 } as React.CSSProperties} cx="34" cy="46" r="12" />
+          <path className="t" style={{ "--tc": "var(--char-white)", strokeWidth: 3 } as React.CSSProperties} d="M34 46 L34 38 M34 46 L40 49" />
         </g>
       ) : null}
       <g data-capa="details">
-        <path className="o f-d" d="M72 70 C60 50 80 38 88 52 C88 32 114 30 113 50 C122 36 144 44 130 70 Z" />
-        <ellipse className="o f-yellow" cx="84" cy="188" rx="11" ry="5.5" />
-        <ellipse className="o f-yellow" cx="116" cy="188" rx="11" ry="5.5" />
-      </g>
-      <g data-capa="body">
-        <ellipse className="o f-p" cx="100" cy="124" rx="64" ry="62" />
-      </g>
-      <g data-capa="belly">
-        <ellipse className="f-s" cx="100" cy="158" rx="26" ry="19" />
-      </g>
-      <g data-capa="body-front">
-        <path className="o f-p" d="M42 118 Q22 140 46 154 Q58 144 54 128 Z" />
-        <path className="o f-p" d="M158 118 Q178 140 154 154 Q142 144 146 128 Z" />
-        <path className="o f-yellow" d="M89 110 Q100 101 111 110 Q100 121 89 110Z" />
+        <circle className="f-d" cx="86" cy="60" r="12" />
+        <circle className="f-d" cx="100" cy="50" r="14" />
+        <circle className="f-ds" cx="114" cy="60" r="12" />
       </g>
     </>
+  ),
+  frente: () => (
+    <g data-capa="belly">
+      <ellipse className="f-s" cx="100" cy="160" rx="34" ry="22" />
+    </g>
   ),
 };
 
 /* ───────── Cima · cabra de montaña ───────── */
-const cima: Figura = {
+const cima: Rig = {
   nombre: "Cima",
+  cuerpo: { cx: 100, top: 58, w: 116, h: 128, r: 48 },
   ojos: [
-    { x: 84, y: 82 },
-    { x: 116, y: 82 },
+    { x: 84, y: 96 },
+    { x: 116, y: 96 },
   ],
-  boca: { x: 100, y: 99 },
-  cabeza: { x: 100, y: 48, w: 78 },
-  cuello: { x: 100, y: 120, w: 76 },
-  ceja: "decidido",
-  ojo: "punto",
-  bocaBase: "frown",
-  anchoCara: 50,
-  render: (c) => (
+  rOjo: 14,
+  boca: { x: 100, y: 130 },
+  hombros: [
+    { x: 44, y: 130 },
+    { x: 156, y: 130 },
+  ],
+  brazo: { rx: 11, ry: 20 },
+  pies: [
+    { x: 82, y: 187 },
+    { x: 118, y: 187 },
+  ],
+  pie: "f-ds",
+  cabeza: { x: 100, y: 60, w: 86 },
+  cuello: { x: 100, y: 146, w: 100 },
+  anchoCara: 58,
+  idle: { brazos: { modo: "colgar", a: [-8, 34] }, ojos: { modo: "abierto", tapa: 0.3, inclina: 14 }, boca: "cerrada" },
+  atras: (c) => (
     <>
       {c.mostrarProp ? (
         <g data-capa="prop" className="asis-prop">
-          <rect className="o f-sand" x="146" y="92" width="8" height="96" rx="4" />
-          <path className="o f-lime asis-bandera" d="M154 96 Q170 90 186 98 Q176 108 186 120 Q170 114 154 118 Z" />
+          <rect className="f-sand-shade" x="160" y="90" width="6" height="98" rx="3" />
+          <g className="asis-bandera">
+            <path className="f-lime" d="M166 94 Q180 88 194 96 Q184 106 194 118 Q180 112 166 116 Z" />
+            <path className="f-lime-shade" d="M166 106 Q180 102 190 108 Q186 112 194 118 Q180 112 166 116 Z" />
+          </g>
         </g>
       ) : null}
-      <g data-capa="body">
-        <rect className="o f-p" x="74" y="156" width="20" height="30" rx="6" />
-        <rect className="o f-p" x="106" y="156" width="20" height="30" rx="6" />
-        <path className="o f-ink" d="M74 180 h20 v6 a4 4 0 0 1 -4 4 h-12 a4 4 0 0 1 -4 -4Z M106 180 h20 v6 a4 4 0 0 1 -4 4 h-12 a4 4 0 0 1 -4 -4Z" />
-        <path className="o f-p" d="M66 112 Q50 174 88 174 L112 174 Q150 174 134 112 Z" />
-      </g>
       <g data-capa="details">
-        <path className="o f-d" d="M80 54 C70 30 50 28 44 46 C55 40 66 46 70 60 Z" />
-        <path className="o f-d" d="M120 54 C130 30 150 28 156 46 C145 40 134 46 130 60 Z" />
+        <path className="f-ds" d="M80 68 C70 40 50 38 46 56 C56 50 66 56 72 72 Z" />
+        <path className="f-ds" d="M120 68 C130 40 150 38 154 56 C144 50 134 56 128 72 Z" />
       </g>
       <g data-capa="ears-inner">
-        <ellipse className="o f-s" cx="48" cy="84" rx="20" ry="10" transform="rotate(24 48 84)" />
-        <ellipse className="o f-s" cx="152" cy="84" rx="20" ry="10" transform="rotate(-24 152 84)" />
+        <ellipse className="f-s" cx="50" cy="98" rx="18" ry="9" transform="rotate(26 50 98)" />
+        <ellipse className="f-s" cx="150" cy="98" rx="18" ry="9" transform="rotate(-26 150 98)" />
       </g>
-      <g data-capa="body-front">
-        <ellipse className="o f-p" cx="100" cy="84" rx="46" ry="38" />
-        <path className="o f-p" d="M86 114 L91 132 L96 120 L100 136 L104 120 L109 132 L114 114" />
-        <path className="o f-p" d="M64 128 Q44 140 60 156 Q68 148 66 136" />
-        <circle className="o f-p" cx="146" cy="140" r="9" />
-      </g>
+    </>
+  ),
+  frente: () => (
+    <>
+      <ellipse className="f-s" cx="100" cy="124" rx="25" ry="15" />
+      <ellipse className="f-ds" cx="100" cy="118" rx="5.5" ry="3.5" />
+      <path className="f-s" d="M91 136 L100 156 L109 136 Z" />
     </>
   ),
 };
 
 /* ───────── Antojo · mapache ───────── */
-const antojo: Figura = {
+const antojo: Rig = {
   nombre: "Antojo",
+  cuerpo: { cx: 95, top: 56, w: 120, h: 128, r: 54 },
   ojos: [
-    { x: 74, y: 90 },
-    { x: 110, y: 90 },
+    { x: 78, y: 98 },
+    { x: 112, y: 98 },
   ],
-  boca: { x: 96, y: 112 },
-  cabeza: { x: 92, y: 56, w: 82 },
-  cuello: { x: 92, y: 128, w: 88 },
-  ceja: "picaro",
-  ojo: "picaro",
-  bocaBase: "sonrisa-lado",
-  ojosBlancos: true,
-  anchoCara: 58,
-  render: (c) => (
+  rOjo: 13,
+  boca: { x: 98, y: 126 },
+  hombros: [
+    { x: 41, y: 130 },
+    { x: 149, y: 130 },
+  ],
+  brazo: { rx: 12, ry: 21 },
+  pies: [
+    { x: 81, y: 187 },
+    { x: 109, y: 187 },
+  ],
+  pie: "f-d",
+  cabeza: { x: 95, y: 58, w: 92 },
+  cuello: { x: 95, y: 140, w: 102 },
+  anchoCara: 62,
+  parpado: "d",
+  idle: { brazos: { modo: "colgar", a: [-6, -34] }, ojos: { modo: "abierto", tapa: 0.5, ceja: "esceptico", mirada: [0.9, 0] }, boca: "lado" },
+  atras: (c) => (
     <>
       <g data-capa="details">
         <clipPath id={`${c.uid}-tail`}>
-          <path d="M124 162 Q192 172 194 122 Q196 80 164 90 Q178 110 168 132 Q156 152 122 142 Z" />
+          <path d="M130 170 Q196 178 196 126 Q196 84 166 92 Q182 112 172 136 Q160 156 128 148 Z" />
         </clipPath>
-        <path className="f-p" d="M124 162 Q192 172 194 122 Q196 80 164 90 Q178 110 168 132 Q156 152 122 142 Z" />
-        <g clipPath={`url(#${c.uid}-tail)`} style={{ stroke: "var(--a-detail)", strokeWidth: 12, fill: "none" }}>
-          <path d={c.fino ? "M150 172 L160 136 M174 168 L178 126 M200 140 L170 112 M196 100 L168 98" : "M160 172 L168 132 M200 140 L172 110"} />
+        <path className="f-p" d="M130 170 Q196 178 196 126 Q196 84 166 92 Q182 112 172 136 Q160 156 128 148 Z" />
+        <g clipPath={`url(#${c.uid}-tail)`}>
+          <path className="t" style={{ "--tc": "var(--a-detail)", strokeWidth: 12 } as React.CSSProperties} d={c.fino ? "M152 180 L162 140 M176 176 L182 130 M200 142 L172 114 M198 100 L170 98" : "M162 180 L170 136 M200 142 L172 112"} />
         </g>
-        <path className="o f-none fc-p" d="M124 162 Q192 172 194 122 Q196 80 164 90 Q178 110 168 132 Q156 152 122 142 Z" />
-        <ellipse className="o f-d" cx="72" cy="186" rx="15" ry="7" />
-        <ellipse className="o f-d" cx="112" cy="186" rx="15" ry="7" />
-      </g>
-      <g data-capa="ears">
-        <path className="o f-p" d="M48 70 L56 30 L84 54 Z" />
-        <path className="o f-p" d="M136 70 L128 30 L100 54 Z" />
-        <path className="f-s" d="M56 60 L60 42 L72 54 Z" />
-        <path className="f-s" d="M128 60 L124 42 L112 54 Z" />
-      </g>
-      <g data-capa="body">
-        <ellipse className="o f-p" cx="92" cy="122" rx="58" ry="65" />
-      </g>
-      <g data-capa="belly">
-        <ellipse className="f-s" cx="92" cy="150" rx="33" ry="29" />
-      </g>
-      <g data-capa="details">
-        <path className="f-d" d="M48 92 Q58 72 92 84 Q126 72 136 92 Q132 108 112 104 Q92 98 72 104 Q52 108 48 92Z" />
-        <ellipse className="f-ink" cx="92" cy="100" rx="5" ry="3.5" />
       </g>
       {c.mostrarProp ? (
         <g data-capa="prop" className="asis-prop">
-          <path className="t" d="M142 150 Q151 132 160 150" style={{ "--tc": "var(--char-sand)" } as React.CSSProperties} />
-          <path className="o f-cream" d="M136 150 L166 150 L171 186 L131 186 Z" />
+          <path className="t" style={{ "--tc": "var(--char-cream-shade)" } as React.CSSProperties} d="M146 152 Q155 136 164 152" />
+          <path className="f-cream" d="M138 152 L170 152 L174 186 L134 186 Z" />
+          <path className="f-cream-shade" d="M158 152 L170 152 L174 186 L160 186 Z" />
         </g>
       ) : null}
-      <g data-capa="body-front">
-        <circle className="o f-p" cx="146" cy="152" r="9" />
+      <g data-capa="ears">
+        <path className="f-p" d="M52 76 L60 34 L90 60 Z" />
+        <path className="f-p" d="M138 76 L130 34 L100 60 Z" />
+        <path className="f-s" d="M60 64 L64 46 L76 58 Z" />
+        <path className="f-s" d="M130 64 L126 46 L114 58 Z" />
       </g>
+    </>
+  ),
+  frente: () => (
+    <>
+      <g data-capa="belly">
+        <ellipse className="f-s" cx="95" cy="160" rx="34" ry="22" />
+      </g>
+      <path className="f-d" d="M44 102 Q54 78 95 90 Q136 78 146 102 Q142 118 118 114 Q95 108 72 114 Q48 118 44 102 Z" />
+      <ellipse className="f-d" cx="95" cy="116" rx="6" ry="4.5" />
     </>
   ),
 };
 
-export const FIGURAS: Record<AsistenteId, Figura> = { centavo, brote, tuerca, tic, cima, antojo };
+export const RIGS: Record<AsistenteId, Rig> = { centavo, brote, tuerca, tic, cima, antojo };
+/** Compatibilidad con el nombre anterior */
+export const FIGURAS = RIGS;

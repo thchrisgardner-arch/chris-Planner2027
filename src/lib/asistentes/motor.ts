@@ -53,12 +53,12 @@ function centavo({ db, today, tono }: ContextoAsistente): Mensaje {
   const ingresos = sum(db.transactions.filter((x) => x.type === "ingreso" && x.date.startsWith(key)).map((x) => x.amount));
   const totalMes = sum(delMes.map((x) => x.amount));
   const accion = { label: "Ver gastos", href: "/finanzas?tab=movimientos" };
-  if (!db.transactions.length) return m(t("centavo", "sinDatos", tono), "neutral", 0, { label: "Registrar", href: "/finanzas" });
+  if (!db.transactions.length) return m(t("centavo", "sinDatos", tono), "idle", 0, { label: "Registrar", href: "/finanzas" });
 
   // Gasto de hoy muy por encima del promedio
   const promedio = gastos.length ? sum(gastos.map((x) => x.amount)) / gastos.length : 0;
   const altoHoy = delMes.filter((x) => x.date === today).sort((a, b) => b.amount - a.amount)[0];
-  if (altoHoy && promedio && altoHoy.amount >= promedio * 2.5) return m(t("centavo", "gastoAlto", tono, { monto: formatKpiCOP(altoHoy.amount) }), "alerta", 2, accion);
+  if (altoHoy && promedio && altoHoy.amount >= promedio * 2.5) return m(t("centavo", "gastoAlto", tono, { monto: formatKpiCOP(altoHoy.amount) }), "preocupado", 2, accion);
 
   // Categoría que sube mucho frente al mes anterior
   const porCat = (k: string) => {
@@ -76,17 +76,17 @@ function centavo({ db, today, tono }: ContextoAsistente): Mensaje {
       if (!peor || pct > peor.pct) peor = { cat, pct };
     }
   }
-  if (peor) return m(t("centavo", "categoriaSube", tono, { cat: peor.cat, pct: peor.pct, mes: mesCorto(prev) }), "alerta", 2, accion);
+  if (peor) return m(t("centavo", "categoriaSube", tono, { cat: peor.cat, pct: peor.pct, mes: mesCorto(prev) }), "preocupado", 2, accion);
 
-  if (totalMes > ingresos && ingresos > 0) return m(t("centavo", "balanceNegativo", tono, { dif: formatKpiCOP(totalMes - ingresos) }), "alerta", 2, accion);
+  if (totalMes > ingresos && ingresos > 0) return m(t("centavo", "balanceNegativo", tono, { dif: formatKpiCOP(totalMes - ingresos) }), "preocupado", 2, accion);
 
   const cerca = db.savings_goals
     .map((g) => ({ g, pct: g.target_amount ? Math.round((g.current_amount / g.target_amount) * 100) : 0 }))
     .filter((x) => x.pct >= 80 && x.pct < 100)
     .sort((a, b) => b.pct - a.pct)[0];
-  if (cerca) return m(t("centavo", "ahorroCerca", tono, { meta: cerca.g.name, pct: cerca.pct }), "contento", 1, { label: "Ver ahorros", href: "/finanzas?tab=ahorros" });
+  if (cerca) return m(t("centavo", "ahorroCerca", tono, { meta: cerca.g.name, pct: cerca.pct }), "feliz", 1, { label: "Ver ahorros", href: "/finanzas?tab=ahorros" });
 
-  return m(t("centavo", "resumen", tono, { gastos: formatKpiCOP(totalMes) }), "neutral", 0, accion);
+  return m(t("centavo", "resumen", tono, { gastos: formatKpiCOP(totalMes) }), "idle", 0, accion);
 }
 
 function brote({ db, today, tono }: ContextoAsistente): Mensaje {
@@ -97,32 +97,32 @@ function brote({ db, today, tono }: ContextoAsistente): Mensaje {
   const rachas = db.habits.map((h) => ({ h, r: streak(h, db.habit_logs, today) })).sort((a, b) => b.r - a.r);
 
   const riesgo = faltan.map((h) => ({ h, r: streak(h, db.habit_logs, addDays(today, -1)) })).filter((x) => x.r >= 3).sort((a, b) => b.r - a.r)[0];
-  if (riesgo && bogotaHour() >= 17) return m(t("brote", "rachaRiesgo", tono, { habito: riesgo.h.name, racha: riesgo.r }), "alerta", 3, accion);
-  if (faltan.length) return m(t("brote", "pendientes", tono, { n: faltan.length === 1 ? "1 hábito" : `${faltan.length} hábitos` }), "neutral", 1, accion);
+  if (riesgo && bogotaHour() >= 17) return m(t("brote", "rachaRiesgo", tono, { habito: riesgo.h.name, racha: riesgo.r }), "preocupado", 3, accion);
+  if (faltan.length) return m(t("brote", "pendientes", tono, { n: faltan.length === 1 ? "1 hábito" : `${faltan.length} hábitos` }), "idle", 1, accion);
   if (deHoy.length) {
-    if (rachas[0]?.r >= 5) return m(t("brote", "racha", tono, { racha: rachas[0].r, habito: rachas[0].h.name }), "contento", 1, accion);
-    return m(t("brote", "todoListo", tono), "contento", 1, accion);
+    if (rachas[0]?.r >= 5) return m(t("brote", "racha", tono, { racha: rachas[0].r, habito: rachas[0].h.name }), "feliz", 1, accion);
+    return m(t("brote", "todoListo", tono), "feliz", 1, accion);
   }
   return m(t("brote", "descanso", tono), "dormido", 0);
 }
 
 function tuerca({ db, today, tono }: ContextoAsistente): Mensaje {
   const accion = { label: "Ver proyectos", href: "/proyectos" };
-  if (!db.projects.length && !db.tasks.length) return m(t("tuerca", "sinDatos", tono), "neutral", 0, { label: "Nuevo proyecto", href: "/proyectos" });
+  if (!db.projects.length && !db.tasks.length) return m(t("tuerca", "sinDatos", tono), "idle", 0, { label: "Nuevo proyecto", href: "/proyectos" });
   const pendientes = db.tasks.filter((x) => x.status !== "completada");
   const vencida = pendientes.filter((x) => x.due_date && x.due_date < today).sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""))[0];
   if (vencida) return m(t("tuerca", "vencida", tono, { tarea: vencida.name, cuando: relativeDay(vencida.due_date!, today).toLowerCase() }), "molesto", 2, accion);
 
   for (const p of db.projects.filter((x) => x.status === "en_proceso")) {
     const tareas = db.tasks.filter((x) => x.project_id === p.id);
-    if (!tareas.length) return m(t("tuerca", "sinTareas", tono, { proyecto: p.name }), "alerta", 1, accion);
+    if (!tareas.length) return m(t("tuerca", "sinTareas", tono, { proyecto: p.name }), "preocupado", 1, accion);
     const ultima = [p.created_at, ...tareas.map((x) => x.created_at)].sort().at(-1)!.slice(0, 10);
     const quieto = dias(ultima, today);
-    if (quieto >= 7 && tareas.some((x) => x.status !== "completada")) return m(t("tuerca", "estancado", tono, { proyecto: p.name, dias: quieto }), "alerta", 2, accion);
+    if (quieto >= 7 && tareas.some((x) => x.status !== "completada")) return m(t("tuerca", "estancado", tono, { proyecto: p.name, dias: quieto }), "preocupado", 2, accion);
   }
   const siguiente = pendientes.sort((a, b) => (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999"))[0];
-  if (siguiente) return m(t("tuerca", "siguiente", tono, { tarea: siguiente.name }), "neutral", 1, accion);
-  return m(t("tuerca", "todoListo", tono), "contento", 0, accion);
+  if (siguiente) return m(t("tuerca", "siguiente", tono, { tarea: siguiente.name }), "idle", 1, accion);
+  return m(t("tuerca", "todoListo", tono), "feliz", 0, accion);
 }
 
 function tic({ db, today, tono, ahoraMin }: ContextoAsistente): Mensaje {
@@ -136,7 +136,7 @@ function tic({ db, today, tono, ahoraMin }: ContextoAsistente): Mensaje {
   if (proximo) {
     const hh = String(Math.floor(ahora / 60)).padStart(2, "0");
     const mm = String(ahora % 60).padStart(2, "0");
-    return m(t("tic", "ahora", tono, { hora: formatTime(proximo.start_time), evento: proximo.title, ahora: formatTime(`${hh}:${mm}`) }), "alerta", 3, accion);
+    return m(t("tic", "ahora", tono, { hora: formatTime(proximo.start_time), evento: proximo.title, ahora: formatTime(`${hh}:${mm}`) }), "preocupado", 3, accion);
   }
   // Choque de horario hoy
   const conHora = hoy.filter((e) => e.start_time);
@@ -150,48 +150,48 @@ function tic({ db, today, tono, ahoraMin }: ContextoAsistente): Mensaje {
   const vence =
     db.calendar_events.find((e) => e.date === manana && (e.type === "pago" || e.type === "vencimiento")) ??
     db.tasks.find((x) => x.due_date === manana && x.status !== "completada");
-  if (vence) return m(t("tic", "manana", tono, { que: "title" in vence ? vence.title : vence.name }), "alerta", 2, accion);
+  if (vence) return m(t("tic", "manana", tono, { que: "title" in vence ? vence.title : vence.name }), "preocupado", 2, accion);
   if (hoy.length) {
     const primero = hoy.find((e) => e.start_time);
-    return m(t("tic", "hoy", tono, { n: hoy.length === 1 ? "1 compromiso" : `${hoy.length} compromisos`, hora: primero ? formatTime(primero.start_time) : "todo el día" }), "neutral", 1, accion);
+    return m(t("tic", "hoy", tono, { n: hoy.length === 1 ? "1 compromiso" : `${hoy.length} compromisos`, hora: primero ? formatTime(primero.start_time) : "todo el día" }), "idle", 1, accion);
   }
-  if (!db.calendar_events.length) return m(t("tic", "sinDatos", tono), "neutral", 0, { label: "Nuevo evento", href: "/calendario" });
-  return m(t("tic", "libre", tono), "contento", 0, accion);
+  if (!db.calendar_events.length) return m(t("tic", "sinDatos", tono), "idle", 0, { label: "Nuevo evento", href: "/calendario" });
+  return m(t("tic", "libre", tono), "feliz", 0, accion);
 }
 
 function cima({ db, today, tono }: ContextoAsistente): Mensaje {
   const accion = { label: "Ver objetivos", href: "/objetivos" };
   const metas = db.annual_goals;
-  if (!metas.length) return m(t("cima", "sinDatos", tono), "neutral", 0, { label: "Nuevo objetivo", href: "/objetivos" });
+  if (!metas.length) return m(t("cima", "sinDatos", tono), "idle", 0, { label: "Nuevo objetivo", href: "/objetivos" });
   const reciente = metas.find((g) => g.status === "logrado" && g.progress >= 100);
   const avg = Math.round(metas.reduce((s, g) => s + g.progress, 0) / metas.length);
   const mesN = Number(today.slice(5, 7));
   const esperado = Math.round((mesN / 12) * 100);
   const mes = mesCorto(monthKey(today));
-  if (reciente && metas.every((g) => g.progress < 100 || g === reciente)) return m(t("cima", "logrado", tono, { meta: reciente.title }), "contento", 1, accion);
-  if (avg < esperado - 10) return m(t("cima", "atrasado", tono, { pct: avg, mes }), "alerta", 2, accion);
-  if (avg > esperado + 10) return m(t("cima", "adelantado", tono, { pct: avg, mes }), "contento", 1, accion);
-  return m(t("cima", "enRitmo", tono, { pct: avg, mes }), "neutral", 1, accion);
+  if (reciente && metas.every((g) => g.progress < 100 || g === reciente)) return m(t("cima", "logrado", tono, { meta: reciente.title }), "feliz", 1, accion);
+  if (avg < esperado - 10) return m(t("cima", "atrasado", tono, { pct: avg, mes }), "preocupado", 2, accion);
+  if (avg > esperado + 10) return m(t("cima", "adelantado", tono, { pct: avg, mes }), "feliz", 1, accion);
+  return m(t("cima", "enRitmo", tono, { pct: avg, mes }), "idle", 1, accion);
 }
 
 function antojo({ db, tono }: ContextoAsistente): Mensaje {
   const accion = { label: "Ver wishlist", href: "/wishlist" };
   const pendientes = db.wishlist_items.filter((w) => w.status !== "comprado" && w.status !== "descartado");
-  if (!pendientes.length) return m(t("antojo", "sinDatos", tono), "neutral", 0, { label: "Agregar deseo", href: "/wishlist" });
+  if (!pendientes.length) return m(t("antojo", "sinDatos", tono), "idle", 0, { label: "Agregar deseo", href: "/wishlist" });
   const disponible = sum(db.accounts.map((a) => accountBalance(a, db.transactions)));
   const ahorro = sum(db.savings_goals.map((g) => g.current_amount));
   const libre = disponible - ahorro;
   const porPrecio = [...pendientes].sort((a, b) => a.price - b.price);
   const cabe = porPrecio.find((w) => w.price > 0 && w.price <= libre);
-  if (cabe) return m(t("antojo", "alcanza", tono, { deseo: cabe.name }), "contento", 1, accion);
+  if (cabe) return m(t("antojo", "alcanza", tono, { deseo: cabe.name }), "feliz", 1, accion);
   const conMeta = pendientes.find((w) => w.savings_goal_id);
   if (conMeta) {
     const g = db.savings_goals.find((x) => x.id === conMeta.savings_goal_id);
     const pct = g && conMeta.price ? Math.min(100, Math.round((g.current_amount / conMeta.price) * 100)) : 0;
-    return m(t("antojo", "ahorrando", tono, { deseo: conMeta.name, pct }), "neutral", 1, accion);
+    return m(t("antojo", "ahorrando", tono, { deseo: conMeta.name, pct }), "idle", 1, accion);
   }
   const w = porPrecio[0];
-  return m(t("antojo", "esperar", tono, { deseo: w.name, falta: formatKpiCOP(Math.max(0, w.price - Math.max(0, libre))) }), "neutral", 1, accion);
+  return m(t("antojo", "esperar", tono, { deseo: w.name, falta: formatKpiCOP(Math.max(0, w.price - Math.max(0, libre))) }), "idle", 1, accion);
 }
 
 const REGLAS: Record<AsistenteId, (c: ContextoAsistente) => Mensaje> = { centavo, brote, tuerca, tic, cima, antojo };
@@ -224,8 +224,8 @@ export const motorLocal: MotorAsistentes = {
   },
   responder(id, pregunta, ctx) {
     const q = normalizar(pregunta.trim());
-    if (!q) return m(NO_SE[ctx.tono], "neutral", 0);
-    if (/^(hola|buenas|hey|que mas)/.test(q)) return m(SALUDO[ctx.tono](FICHAS[id].nombre), "contento", 0);
+    if (!q) return m(NO_SE[ctx.tono], "idle", 0);
+    if (/^(hola|buenas|hey|que mas)/.test(q)) return m(SALUDO[ctx.tono](FICHAS[id].nombre), "feliz", 0);
     if (PALABRAS[id].some((p) => q.includes(p))) return REGLAS[id](ctx);
     return m(NO_SE[ctx.tono], "dormido", 0);
   },
