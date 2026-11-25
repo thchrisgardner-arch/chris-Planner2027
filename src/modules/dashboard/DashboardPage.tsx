@@ -38,17 +38,7 @@ export function DashboardPage() {
     <>
       <PageHeader
         eyebrow={formatLongDate(today)}
-        title={
-          firstName ? (
-            <>
-              {greeting()},
-              <br />
-              {firstName}
-            </>
-          ) : (
-            greeting()
-          )
-        }
+        title={firstName ? `${greeting()}, ${firstName}` : greeting()}
       >
         <div className="w-[210px]">
           <Select

@@ -64,7 +64,7 @@ function Kpi({ label, value, hint, inverse }: { label: string; value: number; hi
   return (
     <Card variant={inverse ? "inverse" : "default"} className="flex min-h-[140px] flex-col">
       <h2 className={cn("text-[14px]", inverse ? "text-on-fg" : "text-fg")}>{label}</h2>
-      <p className={cn("figure mt-auto pt-5 text-[32px] sm:text-[38px]", inverse ? "text-on-fg" : value === 0 ? "text-dim" : "text-fg")} title={formatCOP(value)}>
+      <p className={cn("figure mt-auto whitespace-nowrap pt-5 text-[28px] min-[400px]:text-[32px] sm:text-[48px]", inverse ? "text-on-fg" : value === 0 ? "text-dim" : "text-fg")} title={formatCOP(value)}>
         {formatKpiCOP(value)}
       </p>
       {hint ? <p className={cn("mt-1.5 text-[12.5px]", inverse ? "text-on-fg/60" : "text-muted")}>{hint}</p> : null}
@@ -152,7 +152,7 @@ function Summary() {
                     <p className="label flex items-center gap-1.5">
                       <span className="h-2 w-2 rounded-full" style={{ background: s.c }} /> {s.k}
                     </p>
-                    <p className={cn("figure mt-2 text-[24px]", s.v === 0 && "text-dim")}>{formatKpiCOP(s.v)}</p>
+                    <p className={cn("figure mt-2 text-[32px]", s.v === 0 && "text-dim")}>{formatKpiCOP(s.v)}</p>
                     <p className="num text-[11.5px] text-dim">{Math.round(pct(s.v, benTotal))} %</p>
                   </div>
                 ))}

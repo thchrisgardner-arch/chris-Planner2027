@@ -61,15 +61,15 @@ export function WishlistPage() {
           <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
             <Card className="flex min-h-[120px] flex-col p-5 sm:p-5">
               <h2 className="text-[14px]">Valor de lo pendiente</h2>
-              <p className={cn("figure mt-auto pt-4 text-[30px]", activeTotal === 0 && "text-dim")} title={formatCOP(activeTotal)}>
+              <p className={cn("figure mt-auto pt-4 text-[38px]", activeTotal === 0 && "text-dim")} title={formatCOP(activeTotal)}>
                 {formatKpiCOP(activeTotal)}
               </p>
             </Card>
             <Card className="flex min-h-[120px] flex-col p-5 sm:p-5">
               <h2 className="text-[14px]">Comprados</h2>
-              <p className={cn("figure mt-auto pt-4 text-[30px]", bought === 0 && "text-dim")}>{bought}</p>
+              <p className={cn("figure mt-auto pt-4 text-[38px]", bought === 0 && "text-dim")}>{bought}</p>
             </Card>
-            <Select value={status} onChange={(e) => setStatus(e.target.value as typeof status)} aria-label="Estado" className="self-center">
+            <Select value={status} onChange={(e) => setStatus(e.target.value as typeof status)} aria-label="Estado" className="max-md:col-span-2 md:h-auto md:min-h-[120px] md:items-start md:rounded-[24px] md:bg-card md:p-5 md:text-[14px] md:font-bold md:hover:bg-elev">
               <option value="activos">Pendientes</option>
               <option value="">Todos</option>
               {WISH_STATUSES.map((s) => (
@@ -78,13 +78,13 @@ export function WishlistPage() {
                 </option>
               ))}
             </Select>
-            <Select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Categoría" className="self-center">
+            <Select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Categoría" className="max-md:col-span-2 md:h-auto md:min-h-[120px] md:items-start md:rounded-[24px] md:bg-card md:p-5 md:text-[14px] md:font-bold md:hover:bg-elev">
               <option value="">Todas las categorías</option>
               {WISH_CATEGORIES.map((c) => (
                 <option key={c}>{c}</option>
               ))}
             </Select>
-            <Select value={store} onChange={(e) => setStore(e.target.value)} aria-label="Tienda" className="self-center">
+            <Select value={store} onChange={(e) => setStore(e.target.value)} aria-label="Tienda" className="max-md:col-span-2 md:h-auto md:min-h-[120px] md:items-start md:rounded-[24px] md:bg-card md:p-5 md:text-[14px] md:font-bold md:hover:bg-elev">
               <option value="">Todas las tiendas</option>
               {STORES.filter((s) => db.wishlist_items.some((w) => w.store === s.id)).map((s) => (
                 <option key={s.id} value={s.id}>

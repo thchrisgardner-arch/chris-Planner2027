@@ -95,9 +95,8 @@ function HabitCard({ habit, today }: { habit: Habit; today: string }) {
 
       <div className="mt-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div>
-          <p className={cn("figure text-[56px]", s === 0 && "text-dim")}>
-            {s}
-            <span className="ml-1.5 text-[18px] text-muted">{s === 1 ? "día" : "días"}</span>
+          <p className={cn("num text-[44px] font-bold leading-none tracking-[-0.03em]", s === 0 && "text-dim")}>
+            {s} {s === 1 ? "día" : "días"}
           </p>
           <p className="mt-1 text-[13px] text-muted">Racha actual</p>
         </div>

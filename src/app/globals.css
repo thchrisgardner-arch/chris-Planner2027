@@ -128,8 +128,8 @@ body {
   /* Cifras protagonistas: grandes y finas */
   .figure {
     font-variant-numeric: tabular-nums;
-    font-weight: 300;
-    letter-spacing: -0.03em;
+    font-weight: 700;
+    letter-spacing: -0.035em;
     line-height: 1;
   }
   .focus-ring {
