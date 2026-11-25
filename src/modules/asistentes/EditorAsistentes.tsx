@@ -27,6 +27,12 @@ import {
   type Colores,
 } from "@/lib/asistentes/tipos";
 import { cn } from "@/utils/cn";
+import { Lock } from "lucide-react";
+import { useGamificacion } from "./Gamificacion";
+import { vinculoRequerido } from "@/lib/asistentes/progreso";
+
+/** Combinación dorada (vínculo 10) */
+const DORADA: Colores = { primario: "yellow", secundario: "yellow-soft", detalle: "ink" };
 
 const TAMANOS = [48, 96, 160, 320] as const;
 
@@ -369,6 +375,14 @@ function Propiedades({
   prop: string;
 }) {
   const ficha = FICHAS[id];
+  const g = useGamificacion();
+  const vinculo = g.vinculos[id].nivel;
+  /** Nivel de vínculo que falta para usar algo (0 = disponible). Sin gamificación, todo está disponible. */
+  const falta = (tipo: "combinacion" | "accesorio", valor: string) => {
+    const req = vinculoRequerido(tipo, valor);
+    return g.activo && vinculo < req ? req : 0;
+  };
+  const combos = [...ficha.combinaciones, DORADA];
   const [nombre, setNombre] = useState(a.nombre);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -403,19 +417,30 @@ function Propiedades({
           <Muestras key={k} etiqueta={k[0].toUpperCase() + k.slice(1)} valor={a.colores[k]} onChange={(c) => onCambio({ colores: { ...a.colores, [k]: c } })} />
         ))}
         <p className="mb-2 mt-4 text-[12.5px] text-muted">Combinaciones sugeridas</p>
-        <div className="grid max-w-[300px] grid-cols-4 gap-2">
-          {ficha.combinaciones.map((combo, i) => {
+        <div className="grid max-w-[300px] grid-cols-5 gap-2">
+          {combos.map((combo, i) => {
             const igual = sameColores(combo, a.colores);
+            const req = falta("combinacion", i === combos.length - 1 ? "dorada" : String(i));
+            const nombreCombo = i === combos.length - 1 ? "Combinación dorada" : `Combinación ${i + 1}`;
             return (
               <button
                 key={i}
                 type="button"
-                aria-label={`Combinación ${i + 1}: ${CHAR_COLOR_LABEL[combo.primario]}, ${CHAR_COLOR_LABEL[combo.secundario]} y ${CHAR_COLOR_LABEL[combo.detalle]}`}
+                aria-label={req ? `${nombreCombo}, bloqueada: vínculo ${req} con ${a.nombre}` : `${nombreCombo}: ${CHAR_COLOR_LABEL[combo.primario]}, ${CHAR_COLOR_LABEL[combo.secundario]} y ${CHAR_COLOR_LABEL[combo.detalle]}`}
+                title={req ? `Vínculo ${req} con ${a.nombre}` : nombreCombo}
                 aria-pressed={igual}
-                onClick={() => onCambio({ colores: { ...combo } })}
-                className={cn("focus-ring grid aspect-square cursor-pointer place-items-center rounded-[16px] bg-bg transition-shadow", igual && "ring-2 ring-fg")}
+                aria-disabled={req ? true : undefined}
+                onClick={() => !req && onCambio({ colores: { ...combo } })}
+                className={cn(
+                  "focus-ring relative grid aspect-square place-items-center rounded-[16px] bg-bg transition-shadow",
+                  igual && "ring-2 ring-fg",
+                  req ? "cursor-not-allowed" : "cursor-pointer",
+                )}
               >
-                <Asistente id={id} size={48} colores={combo} animado={false} decorativo mostrarProp={a.mostrarProp} />
+                <span className={cn(req && "opacity-35 grayscale")}>
+                  <Asistente id={id} size={48} colores={combo} animado={false} decorativo mostrarProp={a.mostrarProp} />
+                </span>
+                {req ? <Candado /> : null}
               </button>
             );
           })}
@@ -443,21 +468,33 @@ function Propiedades({
 
       <Bloque titulo="Accesorio">
         <div className="grid max-w-[300px] grid-cols-5 gap-1.5" role="radiogroup" aria-label="Accesorio">
-          {ACCESORIOS.map((x) => (
-            <button
-              key={x}
-              type="button"
-              role="radio"
-              aria-checked={a.accesorio === x}
-              aria-label={ACCESORIO_LABEL[x]}
-              title={ACCESORIO_LABEL[x]}
-              onClick={() => onCambio({ accesorio: x })}
-              className={cn("focus-ring grid aspect-square cursor-pointer place-items-center overflow-hidden rounded-[14px] bg-bg", a.accesorio === x && "ring-2 ring-fg")}
-            >
-              <Asistente id={id} size={44} colores={a.colores} accesorio={x} mostrarProp={false} animado={false} decorativo />
-            </button>
-          ))}
+          {ACCESORIOS.map((x) => {
+            const req = x === "ninguno" ? 0 : falta("accesorio", x);
+            return (
+              <button
+                key={x}
+                type="button"
+                role="radio"
+                aria-checked={a.accesorio === x}
+                aria-disabled={req ? true : undefined}
+                aria-label={req ? `${ACCESORIO_LABEL[x]}, bloqueado: vínculo ${req} con ${a.nombre}` : ACCESORIO_LABEL[x]}
+                title={req ? `Vínculo ${req} con ${a.nombre}` : ACCESORIO_LABEL[x]}
+                onClick={() => !req && onCambio({ accesorio: x })}
+                className={cn(
+                  "focus-ring relative grid aspect-square place-items-center overflow-hidden rounded-[14px] bg-bg",
+                  a.accesorio === x && "ring-2 ring-fg",
+                  req ? "cursor-not-allowed" : "cursor-pointer",
+                )}
+              >
+                <span className={cn(req && "opacity-35 grayscale")}>
+                  <Asistente id={id} size={44} colores={a.colores} accesorio={x} mostrarProp={false} animado={false} decorativo />
+                </span>
+                {req ? <Candado /> : null}
+              </button>
+            );
+          })}
         </div>
+        {g.activo ? <ProximoDesbloqueo vinculo={vinculo} nombre={a.nombre} /> : null}
         <label className="mt-3 flex items-center justify-between gap-3 text-[13.5px]">
           Mostrar {prop}
           <Switch checked={a.mostrarProp} onChange={(v) => onCambio({ mostrarProp: v })} label={`Mostrar ${prop}`} />
@@ -517,3 +554,20 @@ function Muestras({ etiqueta, valor, onChange }: { etiqueta: string; valor: Char
 }
 
 const sameColores = (x: Colores, y: Colores) => x.primario === y.primario && x.secundario === y.secundario && x.detalle === y.detalle;
+
+function Candado() {
+  return (
+    <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-fg text-on-fg" aria-hidden>
+      <Lock size={11} />
+    </span>
+  );
+}
+
+function ProximoDesbloqueo({ vinculo, nombre }: { vinculo: number; nombre: string }) {
+  if (vinculo >= 10) return <p className="mt-2 text-[12.5px] text-muted">Vínculo máximo con {nombre}: todo desbloqueado.</p>;
+  return (
+    <p className="mt-2 text-[12.5px] text-muted">
+      Vínculo {vinculo} con {nombre}. Lo bloqueado se abre al ganar XP en su módulo.
+    </p>
+  );
+}

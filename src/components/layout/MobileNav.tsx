@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { PildorasProgreso } from "@/modules/asistentes/Protagonismo";
 import { Logo } from "./Logo";
 import { MAIN_NAV, isActive } from "./nav";
 import { SidebarContent } from "./Sidebar";
@@ -17,6 +18,7 @@ export function MobileTopbar() {
       <Link href="/" aria-label="Ir al inicio" className="mr-auto">
         <Logo />
       </Link>
+      <PildorasProgreso compacto />
       <NotificationsButton />
       <Avatar size={40} />
     </div>

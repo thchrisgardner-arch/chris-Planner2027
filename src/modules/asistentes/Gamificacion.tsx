@@ -197,7 +197,7 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
   }, [db, status, today, principal, emitir]);
 
   const saludes = useMemo(() => {
-    const base = calcularTodas(db, today);
+    const base = calcularTodas(db, today || "2000-01-01");
     for (const [id, v] of Object.entries(forzarSalud) as [AsistenteId, number | null][]) {
       base[id] = { ...base[id], puntaje: v, animo: v === null ? "dormido" : v >= 85 ? "radiante" : v >= 65 ? "feliz" : v >= 45 ? "tranquilo" : v >= 25 ? "preocupado" : "triste" };
     }
@@ -216,7 +216,7 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
     return Object.fromEntries(ASISTENTE_IDS.map((id) => [id, vinculoDeXP(porA[id])])) as Record<AsistenteId, ReturnType<typeof vinculoDeXP>>;
   }, [progreso]);
   const general = animoGeneral(ASISTENTE_IDS.filter((id) => estado.ajustes[id].activo).map((id) => saludes[id]));
-  const semana = semanaDe(today);
+  const semana = today ? semanaDe(today) : "";
   const revisionPendiente =
     progreso.ajustes.gamificacion && !revisionOculta && status === "ready" && progreso.ui.iniciado !== undefined && progreso.ui.iniciado < today && progreso.ui.ultimaRevision !== semana;
 

@@ -18,7 +18,7 @@ import {
   TasksCard,
   WishlistCard,
 } from "./DashboardWidgets";
-import { TarjetaAsistentePrincipal } from "@/modules/asistentes/Presencia";
+import { HeroAsistente } from "@/modules/asistentes/Protagonismo";
 
 function greeting() {
   const h = bogotaHour();
@@ -60,7 +60,7 @@ export function DashboardPage() {
       </PageHeader>
 
       <div className="flex flex-col gap-3">
-        <TarjetaAsistentePrincipal />
+        <HeroAsistente />
         <KpiRow refMonth={refMonth} />
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-12">
