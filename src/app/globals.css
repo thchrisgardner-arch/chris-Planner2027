@@ -1,26 +1,132 @@
 @import "tailwindcss";
 
+/* ───────────── LIFE OS · Design tokens ───────────── */
+@theme {
+  /* Tema claro (fondos hueso + tarjetas blancas, como los referentes) */
+  --color-bg: #f3f4f1;          /* fondo de la app */
+  --color-bg-2: #f4f4f2;        /* pozos dentro de tarjetas */
+  --color-card: #ffffff;        /* tarjetas */
+  --color-elev: #ececea;        /* chips, pistas de progreso, hover */
+  --color-line: #e3e6e0;        /* bordes */
+  --color-line-strong: #cfd5ce; /* bordes al pasar el cursor */
+  --color-card-border: rgb(17 20 18 / 0.07);
+  --color-on-fg: #ffffff;       /* texto sobre fondo negro (botones, día de hoy) */
+
+  --color-brand: #2ee56b;       /* rellenos: progreso, ingresos */
+  --color-brand-soft: #15803d;  /* texto positivo legible sobre blanco */
+  --color-violet: #7c5cf0;      /* proyectos, objetivos */
+  --color-warn: #e07b12;        /* gastos, advertencias */
+  --color-info: #3b82f6;        /* calendario, info secundaria */
+  --color-danger: #dc4b43;
+
+  --color-fg: #111412;
+  --color-muted: #5d665f;
+  --color-dim: #8e968f;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-inter), ui-monospace, monospace;
+
+  --ease-os: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ── Modo oscuro (Configuración → Apariencia) ── */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: #0f1110;
+  --color-bg-2: #1b1e1c;
+  --color-card: #161917;
+  --color-elev: #242826;
+  --color-line: #2a2f2c;
+  --color-line-strong: #3b423e;
+  --color-card-border: rgb(255 255 255 / 0.06);
+  --color-on-fg: #111412;
+
+  --color-brand-soft: #4ade80;
+  --color-violet: #a78bfa;
+  --color-warn: #f5a54a;
+  --color-info: #60a5fa;
+  --color-danger: #f87171;
+
+  --color-fg: #f2f4f2;
+  --color-muted: #a3aba5;
+  --color-dim: #6f7872;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  background: var(--color-bg);
+  color: var(--color-fg);
+  transition: background-color 200ms ease, color 200ms ease;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  font-size: 14.5px;
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--color-brand) 35%, transparent);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  opacity: 0.55;
+  cursor: pointer;
+}
+
+@layer components {
+  .card {
+    background: var(--color-card);
+    border: 1px solid var(--color-card-border);
+    border-radius: 28px;
+    box-shadow: none;
+  }
+  .label {
+    font-size: 11.5px;
+    letter-spacing: 0.02em;
+    color: var(--color-muted);
+  }
+  .num {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.025em;
+  }
+  .focus-ring {
+    outline: none;
+  }
+  .focus-ring:focus-visible {
+    box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px color-mix(in oklab, var(--color-fg) 55%, transparent);
+  }
+}
+
+@keyframes os-fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes os-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-in {
+  animation: os-fade-up 220ms var(--ease-os) both;
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--color-elev) 0%, var(--color-bg-2) 50%, var(--color-elev) 100%);
+  background-size: 200% 100%;
+  animation: os-shimmer 1.4s linear infinite;
+  border-radius: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
 }

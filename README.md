@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LIFE OS 2027
 
-## Getting Started
+Sistema personal para administrar finanzas, proyectos, hábitos, wishlist, objetivos y calendario.
+Español · COP · America/Bogota.
 
-First, run the development server:
+## Ejecutar
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev        # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Estado de los datos
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Modo | Cuándo | Dónde se guardan |
+|---|---|---|
+| **Local** (actual) | Sin variables de Supabase | `localStorage` de este navegador. No hay nube ni sincronización entre dispositivos. |
+| **Supabase** | Con `.env.local` configurado | PostgreSQL con Auth y RLS: cada persona ve solo sus datos. |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+La app indica el modo activo en el menú lateral y en Configuración.
 
-## Learn More
+### Conectar Supabase (lo que falta)
 
-To learn more about Next.js, take a look at the following resources:
+1. Crear un proyecto en supabase.com.
+2. En **SQL Editor**, ejecutar `supabase/migrations/0001_life_os.sql` (22 tablas, RLS y triggers).
+3. Copiar `.env.example` a `.env.local` y completar `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+4. Reiniciar `npm run dev`. Aparece `/login` (correo + contraseña) y los datos pasan a la nube.
+5. Para desplegar en Vercel, agregar las mismas dos variables en el proyecto.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Los datos guardados en modo local no se migran solos: expórtalos desde Configuración → *Exportar mis datos (JSON)*.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Arquitectura
 
-## Deploy on Vercel
+```
+src/
+  app/            rutas (App Router). (app)/ comparte el shell con sidebar
+  components/     ui/ (design system), layout/ (sidebar, header, navegación móvil), charts/, providers/
+  modules/        dashboard, finance, projects, habits, other (wishlist, objetivos, calendario, configuración)
+                  cada módulo tiene sus constantes, cálculos (selectors) y formularios
+  hooks/          useToday (fecha Bogotá), useNotifications (avisos calculados)
+  lib/            supabase.ts, store/DataProvider (estado + persistencia)
+  services/       DataAdapter: localAdapter y supabaseAdapter con el mismo contrato
+  types/          entidades (coinciden con el SQL)
+  utils/          dinero, fechas, cn
+supabase/migrations/   esquema SQL
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**Reglas financieras**
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Los importes se manejan como pesos enteros en el cliente y como `numeric(14,2)` en la base de datos: nunca hay errores de redondeo por punto flotante.
+- El saldo de una cuenta no se guarda: se calcula como saldo inicial + ingresos − gastos ± transferencias completadas.
+- Una transferencia es un único registro con cuenta origen y destino. No cuenta como ingreso ni como gasto.
+- Los movimientos *pendientes* no afectan el saldo.
+- Las tarjetas de crédito guardan la deuda como saldo negativo.
+
+## Fases
+
+**Entrega 1 (lista):** shell responsive, dashboard con 9 widgets, Finanzas (resumen, movimientos con filtros y CSV, cuentas, transferencias, ahorros), Proyectos (lista y Kanban, tareas y subtareas), Hábitos (rachas, semana y mes), Wishlist, Objetivos 2027, Calendario (mes, semana, día) y Configuración (perfil, categorías, exportar y borrar datos).
+
+**Wishlist con enlace:** al pegar el enlace de un producto, `GET /api/producto?url=` lo lee en el servidor (`src/services/linkPreview.ts`) y completa nombre, precio e imagen con los datos Open Graph / JSON-LD de la página. Solo acepta http/https públicos (valida cada redirección contra IPs privadas), con tiempo límite y tamaño máximo. Probado: Falabella, Alkosto, IKEA y Homecenter (sin imagen). Mercado Libre pide verificación anti-bots y su API ahora exige credenciales: se informa y se completa a mano.
+
+**Siguiente fase:** presupuestos con alertas al 80 % y 100 %, deudas y pagos, análisis financiero con proyecciones, entrenamiento, plan de comidas y lista de mercado, hitos de objetivos, foto de perfil, notificaciones persistentes. Las tablas ya existen en el SQL.

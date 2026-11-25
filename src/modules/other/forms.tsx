@@ -1,0 +1,403 @@
+"use client";
+
+import { useRef, useState } from "react";
+import { AmountInput, FormModal } from "@/components/ui/FormModal";
+import { DatePicker, TimeSelect } from "@/components/ui/DatePicker";
+import { ChoiceGroup, Field, Input, Select, Textarea } from "@/components/ui/Field";
+import { useData } from "@/lib/store/DataProvider";
+import type {
+  AnnualGoal,
+  CalendarEvent,
+  EventType,
+  GoalArea,
+  GoalStatus,
+  Priority,
+  WishClassification,
+  WishStatus,
+  WishlistItem,
+} from "@/types/db";
+import { todayISO } from "@/utils/dates";
+import { formatAmountInput, parseCOP } from "@/utils/money";
+import { PRIORITIES } from "@/modules/projects/constants";
+import { StorePicker } from "./StorePicker";
+import { detectStore, findStore } from "./stores";
+import { ProductLinkFinder, type ProductResult } from "./ProductLinkFinder";
+
+/** Categoría sugerida según la tienda (solo si la persona no la cambió). */
+const STORE_CATEGORY: Record<string, string> = {
+  apple: "Tecnología",
+  samsung: "Tecnología",
+  alkosto: "Tecnología",
+  ktronix: "Tecnología",
+  zara: "Ropa",
+  hm: "Ropa",
+  shein: "Ropa",
+  nike: "Ropa",
+  adidas: "Ropa",
+  ikea: "Hogar",
+  homecenter: "Hogar",
+};
+import { EVENT_TYPES, GOAL_AREAS, GOAL_STATUSES, WISH_CATEGORIES, WISH_CLASSIFICATIONS, WISH_STATUSES } from "./constants";
+
+type Errors = Record<string, string>;
+
+function isValidUrl(v: string) {
+  try {
+    const u = new URL(v);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+/* ───────────── Wishlist ───────────── */
+export function WishlistForm({ open, onClose, record }: { open: boolean; onClose: () => void; record?: WishlistItem }) {
+  const { db, insert, update } = useData();
+  const [name, setName] = useState(record?.name ?? "");
+  const [image, setImage] = useState(record?.image_url ?? "");
+  const [description, setDescription] = useState(record?.description ?? "");
+  const [price, setPrice] = useState(record ? formatAmountInput(String(record.price)) : "");
+  const [category, setCategory] = useState(record?.category ?? WISH_CATEGORIES[0]);
+  const [classification, setClassification] = useState<WishClassification>(record?.classification ?? "gusto");
+  const [priority, setPriority] = useState<Priority>(record?.priority ?? "media");
+  const [desired, setDesired] = useState(record?.desired_date ?? "");
+  const [link, setLink] = useState(record?.link ?? "");
+  const [status, setStatus] = useState<WishStatus>(record?.status ?? "en_consideracion");
+  const [goalId, setGoalId] = useState(record?.savings_goal_id ?? "");
+  const [store, setStore] = useState<string | null>(record?.store ?? null);
+  /** La tienda se reconoce sola desde el enlace mientras la persona no la elija a mano. */
+  const [storeTouched, setStoreTouched] = useState(Boolean(record?.store));
+  const [categoryTouched, setCategoryTouched] = useState(Boolean(record));
+  const [imgBroken, setImgBroken] = useState(false);
+  const [errors, setErrors] = useState<Errors>({});
+  /** Campos que llenó la búsqueda: se pueden reemplazar en otra búsqueda; lo escrito a mano no se pisa. */
+  const auto = useRef<Set<"name" | "price" | "image">>(new Set());
+
+  const onLink = (v: string) => {
+    setLink(v);
+    if (!storeTouched) setStore(detectStore(v)?.id ?? null);
+    // Al borrar el enlace se limpia solo lo que había llenado la búsqueda
+    if (!v.trim() && auto.current.size) {
+      if (auto.current.has("name")) setName("");
+      if (auto.current.has("price")) setPrice("");
+      if (auto.current.has("image")) setImage("");
+      auto.current.clear();
+    }
+  };
+
+  const applyResult = (r: ProductResult) => {
+    const canFill = (field: "name" | "price" | "image", current: string) => !current.trim() || auto.current.has(field);
+    if (r.title && canFill("name", name)) {
+      setName(r.title);
+      auto.current.add("name");
+    }
+    const cop = r.currency === null || r.currency === "COP";
+    if (r.price !== null && cop && canFill("price", price)) {
+      setPrice(formatAmountInput(String(r.price)));
+      auto.current.add("price");
+    }
+    if (r.image && canFill("image", image)) {
+      setImage(r.image);
+      setImgBroken(false);
+      auto.current.add("image");
+    }
+    const detected = detectStore(r.url) ?? detectStore(link);
+    if (detected && !storeTouched) setStore(detected.id);
+    if (detected && !categoryTouched && STORE_CATEGORY[detected.id]) setCategory(STORE_CATEGORY[detected.id]);
+  };
+
+  const submit = async () => {
+    const e: Errors = {};
+    const p = parseCOP(price);
+    if (!name.trim()) e.name = "Escribe el nombre.";
+    if (!p || p <= 0) e.price = "Ingresa un precio estimado.";
+    if (image && !isValidUrl(image)) e.image = "Pega un enlace de imagen válido (https://…).";
+    if (link && !isValidUrl(link)) e.link = "Enlace no válido.";
+    setErrors(e);
+    if (Object.keys(e).length) return false;
+    const data = {
+      name: name.trim(),
+      image_url: image.trim() || null,
+      description: description.trim() || null,
+      price: p!,
+      category,
+      classification,
+      priority,
+      desired_date: desired || null,
+      link: link.trim() || null,
+      store,
+      status,
+      savings_goal_id: goalId || null,
+    };
+    if (record) {
+      await update("wishlist_items", record.id, data);
+      return "Elemento actualizado.";
+    }
+    await insert("wishlist_items", data);
+    return "Agregado a tu wishlist.";
+  };
+
+  return (
+    <FormModal open={open} onClose={onClose} title={record ? "Editar deseo" : "Agregar a la wishlist"} onSubmit={submit} size="lg">
+      <ProductLinkFinder value={link} onChange={onLink} onResult={applyResult} error={errors.link} autoSearch={!record} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Nombre" error={errors.name}>
+          {(id) => (
+            <Input
+              id={id}
+              value={name}
+              placeholder="Ej. Monitor 27″"
+              onChange={(e) => {
+                setName(e.target.value);
+                auto.current.delete("name");
+              }}
+            />
+          )}
+        </Field>
+        <Field label="Precio estimado" error={errors.price}>
+          {(id) => (
+            <AmountInput
+              id={id}
+              value={price}
+              onChange={(v) => {
+                setPrice(v);
+                auto.current.delete("price");
+              }}
+              invalid={!!errors.price}
+            />
+          )}
+        </Field>
+        <Field label="Imagen (enlace)" error={errors.image} hint={image ? undefined : "Se completa con la búsqueda, o pega la URL de una imagen."} className="sm:col-span-2">
+          {(id) => (
+            <div className="relative">
+              <Input
+                id={id}
+                value={image}
+                placeholder="https://…"
+                onChange={(e) => {
+                  setImage(e.target.value);
+                  setImgBroken(false);
+                  auto.current.delete("image");
+                }}
+                className={image ? "pl-14" : undefined}
+              />
+              {image ? (
+                <span className="absolute left-1.5 top-1/2 grid h-8 w-10 -translate-y-1/2 place-items-center overflow-hidden rounded-[9px] border border-line bg-white">
+                  {!imgBroken ? (
+                    // Miniatura de la imagen elegida
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={image} alt="" referrerPolicy="no-referrer" onError={() => setImgBroken(true)} className="h-full w-full object-contain" />
+                  ) : null}
+                </span>
+              ) : null}
+            </div>
+          )}
+        </Field>
+        <Field label="Categoría">
+          {(id) => (
+            <Select
+              id={id}
+              value={category}
+              onChange={(e) => {
+                setCategory(e.target.value);
+                setCategoryTouched(true);
+              }}
+            >
+              {WISH_CATEGORIES.map((c) => (
+                <option key={c}>{c}</option>
+              ))}
+            </Select>
+          )}
+        </Field>
+        <Field label="Estado">
+          {(id) => (
+            <Select id={id} value={status} onChange={(e) => setStatus(e.target.value as WishStatus)}>
+              {WISH_STATUSES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+        <Field label="Fecha deseada de compra">
+          {(id) => <DatePicker id={id} value={desired} onChange={(e) => setDesired(e.target.value)} />}
+        </Field>
+        <Field label="Objetivo de ahorro asociado" hint={db.savings_goals.length === 0 ? "Crea uno en Finanzas → Ahorros." : undefined}>
+          {(id) => (
+            <Select id={id} value={goalId} onChange={(e) => setGoalId(e.target.value)}>
+              <option value="">Ninguno</option>
+              {db.savings_goals.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+      </div>
+      <Field label="Tienda" hint={store && !storeTouched ? `${findStore(store)?.name ?? "Tienda"} reconocida desde el enlace.` : undefined}>
+        {() => (
+          <StorePicker
+            value={store}
+            onChange={(v) => {
+              setStore(v);
+              setStoreTouched(true);
+            }}
+          />
+        )}
+      </Field>
+      <Field label="Clasificación">
+        {() => <ChoiceGroup value={classification} onChange={setClassification} options={WISH_CLASSIFICATIONS} />}
+      </Field>
+      <Field label="Prioridad">{() => <ChoiceGroup value={priority} onChange={setPriority} options={PRIORITIES} />}</Field>
+      <Field label="Descripción (opcional)">
+        {(id) => <Textarea id={id} value={description} onChange={(e) => setDescription(e.target.value)} />}
+      </Field>
+    </FormModal>
+  );
+}
+
+/* ───────────── Objetivo anual ───────────── */
+export function GoalForm({ open, onClose, record }: { open: boolean; onClose: () => void; record?: AnnualGoal }) {
+  const { insert, update } = useData();
+  const [title, setTitle] = useState(record?.title ?? "");
+  const [description, setDescription] = useState(record?.description ?? "");
+  const [area, setArea] = useState<GoalArea>(record?.area ?? "personal");
+  const [date, setDate] = useState(record?.target_date ?? "");
+  const [priority, setPriority] = useState<Priority>(record?.priority ?? "media");
+  const [progress, setProgress] = useState(record?.progress ?? 0);
+  const [status, setStatus] = useState<GoalStatus>(record?.status ?? "no_iniciado");
+  const [errors, setErrors] = useState<Errors>({});
+
+  const submit = async () => {
+    const e: Errors = {};
+    if (!title.trim()) e.title = "Escribe el objetivo.";
+    setErrors(e);
+    if (Object.keys(e).length) return false;
+    const data = {
+      title: title.trim(),
+      description: description.trim() || null,
+      area,
+      target_date: date || null,
+      priority,
+      progress,
+      status: progress >= 100 ? "logrado" : status,
+    } as const;
+    if (record) {
+      await update("annual_goals", record.id, data);
+      return "Objetivo actualizado.";
+    }
+    await insert("annual_goals", data);
+    return "Objetivo 2027 creado.";
+  };
+
+  return (
+    <FormModal open={open} onClose={onClose} title={record ? "Editar objetivo" : "Nuevo objetivo 2027"} onSubmit={submit}>
+      <Field label="Título" error={errors.title}>
+        {(id) => <Input id={id} value={title} placeholder="Ej. Correr una media maratón" onChange={(e) => setTitle(e.target.value)} />}
+      </Field>
+      <Field label="Área">
+        {() => <ChoiceGroup value={area} onChange={setArea} options={GOAL_AREAS.map(({ value, label }) => ({ value, label }))} />}
+      </Field>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Fecha objetivo">
+          {(id) => <DatePicker id={id} value={date} onChange={(e) => setDate(e.target.value)} />}
+        </Field>
+        <Field label="Estado">
+          {(id) => (
+            <Select id={id} value={status} onChange={(e) => setStatus(e.target.value as GoalStatus)}>
+              {GOAL_STATUSES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+      </div>
+      <Field label={`Progreso: ${progress} %`}>
+        {(id) => (
+          <input
+            id={id}
+            type="range"
+            min={0}
+            max={100}
+            step={5}
+            value={progress}
+            onChange={(e) => setProgress(Number(e.target.value))}
+            className="w-full cursor-pointer accent-[#9b82f6]"
+          />
+        )}
+      </Field>
+      <Field label="Prioridad">{() => <ChoiceGroup value={priority} onChange={setPriority} options={PRIORITIES} />}</Field>
+      <Field label="Descripción (opcional)">
+        {(id) => <Textarea id={id} value={description} onChange={(e) => setDescription(e.target.value)} />}
+      </Field>
+    </FormModal>
+  );
+}
+
+/* ───────────── Evento ───────────── */
+export function EventForm({
+  open,
+  onClose,
+  record,
+  defaults,
+}: {
+  open: boolean;
+  onClose: () => void;
+  record?: CalendarEvent;
+  defaults?: Partial<CalendarEvent>;
+}) {
+  const { insert, update } = useData();
+  const init = { ...defaults, ...record };
+  const [title, setTitle] = useState(init.title ?? "");
+  const [date, setDate] = useState(init.date ?? todayISO());
+  const [start, setStart] = useState(init.start_time ?? "");
+  const [end, setEnd] = useState(init.end_time ?? "");
+  const [type, setType] = useState<EventType>(init.type ?? "personal");
+  const [notes, setNotes] = useState(init.notes ?? "");
+  const [errors, setErrors] = useState<Errors>({});
+
+  const submit = async () => {
+    const e: Errors = {};
+    if (!title.trim()) e.title = "Escribe un título.";
+    if (!date) e.date = "Elige una fecha.";
+    if (start && end && end <= start) e.end = "Debe terminar después de empezar.";
+    setErrors(e);
+    if (Object.keys(e).length) return false;
+    const data = { title: title.trim(), date, start_time: start || null, end_time: end || null, type, notes: notes.trim() || null };
+    if (record) {
+      await update("calendar_events", record.id, data);
+      return "Evento actualizado.";
+    }
+    await insert("calendar_events", data);
+    return "Evento agregado al calendario.";
+  };
+
+  return (
+    <FormModal open={open} onClose={onClose} title={record ? "Editar evento" : "Nuevo evento"} onSubmit={submit}>
+      <Field label="Título" error={errors.title}>
+        {(id) => <Input id={id} value={title} placeholder="Ej. Pago arriendo, Pierna en el gym" onChange={(e) => setTitle(e.target.value)} />}
+      </Field>
+      <Field label="Tipo">
+        {() => <ChoiceGroup value={type} onChange={setType} options={EVENT_TYPES.map(({ value, label }) => ({ value, label }))} />}
+      </Field>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <Field label="Fecha" error={errors.date} className="col-span-2 sm:col-span-1">
+          {(id) => <DatePicker id={id} clearable={false} value={date} onChange={(e) => setDate(e.target.value)} />}
+        </Field>
+        <Field label="Inicio">
+          {(id) => <TimeSelect id={id} value={start} onChange={(e) => setStart(e.target.value)} />}
+        </Field>
+        <Field label="Fin" error={errors.end}>
+          {(id) => <TimeSelect id={id} value={end} onChange={(e) => setEnd(e.target.value)} />}
+        </Field>
+      </div>
+      <Field label="Notas (opcional)">
+        {(id) => <Textarea id={id} value={notes} onChange={(e) => setNotes(e.target.value)} />}
+      </Field>
+    </FormModal>
+  );
+}
