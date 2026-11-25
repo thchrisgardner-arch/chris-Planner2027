@@ -162,8 +162,8 @@ export function Sidebar({ expanded, onToggle }: { expanded: boolean; onToggle: (
         expanded ? "w-[232px] px-4" : "w-[84px] items-center px-0",
       )}
     >
-      <div className={cn("mb-8 flex items-center", expanded ? "justify-between px-1.5" : "flex-col gap-4")}>
-        <Link href="/" aria-label="LIFE OS, ir al inicio" className="focus-ring rounded-[12px]">
+      <div className={cn("mb-8 flex items-center", expanded ? "justify-between gap-2 px-0.5" : "flex-col gap-4")}>
+        <Link href="/" aria-label="LIFE for LIFE, ir al inicio" className="focus-ring min-w-0 rounded-[12px]">
           {expanded ? <Logo /> : <LogoMark size={40} />}
         </Link>
         <button
@@ -171,7 +171,7 @@ export function Sidebar({ expanded, onToggle }: { expanded: boolean; onToggle: (
           onClick={onToggle}
           aria-label={expanded ? "Contraer menú" : "Expandir menú"}
           title={expanded ? "Contraer menú" : "Expandir menú"}
-          className="focus-ring grid h-9 w-9 cursor-pointer place-items-center rounded-full text-fg transition-colors hover:bg-card"
+          className="focus-ring grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-full text-fg transition-colors hover:bg-card"
         >
           {expanded ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
         </button>

@@ -1,5 +1,5 @@
 /**
- * Dinero en LIFE OS.
+ * Dinero en LIFE for LIFE.
  * Los importes en COP se manejan en el cliente como enteros (pesos) para que
  * todas las sumas sean exactas. En la base de datos se guardan como numeric(14,2).
  */

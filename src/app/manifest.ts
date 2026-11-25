@@ -1,10 +1,10 @@
 import type { MetadataRoute } from "next";
 
-/** Manifiesto: permite instalar LIFE OS en la pantalla de inicio (necesario para avisos en iPhone). */
+/** Manifiesto: permite instalar LIFE for LIFE en la pantalla de inicio (necesario para avisos en iPhone). */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "LIFE OS 2027",
-    short_name: "LIFE OS",
+    name: "LIFE for LIFE",
+    short_name: "LIFE for LIFE",
     description: "Sistema personal para administrar finanzas, proyectos, hábitos, objetivos y calendario.",
     lang: "es-CO",
     start_url: "/",

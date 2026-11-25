@@ -1,4 +1,4 @@
-/* LIFE OS · service worker: solo avisos (no guarda la app en caché). */
+/* LIFE for LIFE · service worker: solo avisos (no guarda la app en caché). */
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 
@@ -7,9 +7,9 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch {
-    data = { title: "LIFE OS", body: event.data ? event.data.text() : "" };
+    data = { title: "LIFE for LIFE", body: event.data ? event.data.text() : "" };
   }
-  const title = data.title || "LIFE OS";
+  const title = data.title || "LIFE for LIFE";
   event.waitUntil(
     self.registration.showNotification(title, {
       body: data.body || "",

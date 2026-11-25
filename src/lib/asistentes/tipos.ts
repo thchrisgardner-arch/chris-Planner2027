@@ -1,4 +1,4 @@
-/** Tipos base de los asistentes de LIFE OS. */
+/** Tipos base de los asistentes de LIFE for LIFE. */
 
 export const ASISTENTE_IDS = ["centavo", "brote", "tuerca", "tic", "cima", "antojo"] as const;
 export type AsistenteId = (typeof ASISTENTE_IDS)[number];

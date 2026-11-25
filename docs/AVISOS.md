@@ -8,7 +8,7 @@ El código ya está listo. Para que los avisos lleguen al iPhone faltan estos pa
 4. **Recordatorio cada hora (GitHub).** En el repositorio → Settings → Secrets and variables → Actions, crea:
    - `APP_URL`: la dirección de Vercel, por ejemplo `https://chris-planner2027.vercel.app`
    - `CRON_SECRET`: el mismo valor del paso 3.
-5. **En el iPhone.** Abre la dirección de Vercel en Safari → Compartir → **Agregar a inicio**. Abre LIFE OS desde el ícono → Configuración → Progreso → **Activar avisos** → elige las horas → **Probar**.
+5. **En el iPhone.** Abre la dirección de Vercel en Safari → Compartir → **Agregar a inicio**. Abre LIFE for LIFE desde el ícono → Configuración → Progreso → **Activar avisos** → elige las horas → **Probar**.
 
 Notas:
 - Los avisos salen a la hora elegida (hora de Colombia) y pueden llegar unos minutos tarde.

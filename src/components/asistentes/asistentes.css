@@ -1,4 +1,4 @@
-/* ═════════ Asistentes: tokens de color (derivados de la paleta de LIFE OS) ═════════
+/* ═════════ Asistentes: tokens de color (derivados de la paleta de LIFE for LIFE) ═════════
    Estilo plano de dos tonos: cada color tiene su sombra (-shade). Sin contornos ni degradados. */
 :root {
   --char-lime: #5ce65c; /* --accent */

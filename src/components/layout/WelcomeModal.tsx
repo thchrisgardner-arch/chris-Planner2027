@@ -48,7 +48,7 @@ export function WelcomeModal({ onDone }: { onDone: () => void }) {
     <FormModal
       open={open}
       onClose={close}
-      title="Te damos la bienvenida a LIFE OS"
+      title="Te damos la bienvenida a LIFE for LIFE"
       description="Tu centro de control personal para 2027."
       submitLabel="Comenzar"
       size="sm"

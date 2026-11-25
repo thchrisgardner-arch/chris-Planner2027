@@ -1,5 +1,5 @@
 /**
- * Fechas en LIFE OS: siempre se trabaja con strings "YYYY-MM-DD" en hora de Bogotá,
+ * Fechas en LIFE for LIFE: siempre se trabaja con strings "YYYY-MM-DD" en hora de Bogotá,
  * así un movimiento del 31 a las 11 p. m. no salta al mes siguiente.
  */
 export const TIMEZONE = "America/Bogota";

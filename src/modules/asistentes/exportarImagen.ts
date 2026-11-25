@@ -109,7 +109,7 @@ export async function descargarResumen({ titulo, filas, svg, archivo }: { titulo
   // Marca
   ctx.fillStyle = "#3fc43f";
   ctx.font = `700 52px ${fuente}`;
-  const marca = "LIFE OS 2027";
+  const marca = "LIFE for LIFE";
   ctx.fillText(marca, (W - ctx.measureText(marca).width) / 2, H - 90);
 
   const a = document.createElement("a");

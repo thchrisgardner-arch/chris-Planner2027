@@ -121,7 +121,7 @@ function AppearanceCard() {
   const { toast } = useFeedback();
   return (
     <Card id="apariencia">
-      <CardHeader title="Apariencia" subtitle="Elige cómo se ve LIFE OS en este dispositivo" />
+      <CardHeader title="Apariencia" subtitle="Elige cómo se ve LIFE for LIFE en este dispositivo" />
       <div className="grid grid-cols-3 gap-3" role="radiogroup" aria-label="Tema">
         {THEME_OPTIONS.map((o) => {
           const active = pref === o.value;
@@ -195,7 +195,7 @@ function ProfileCard() {
 
   return (
     <Card id="perfil">
-      <CardHeader title="Perfil" subtitle="Cómo te saluda LIFE OS" />
+      <CardHeader title="Perfil" subtitle="Cómo te saluda LIFE for LIFE" />
       <div className="mb-5 flex items-center gap-4">
         <span className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-brand text-[20px] text-[#0a0a0a]" aria-hidden>
           {initials(name || profile?.full_name) || <UserRound size={26} />}
@@ -209,7 +209,7 @@ function ProfileCard() {
         <Field label="Correo" hint={mode === "supabase" ? undefined : "Lo podrás agregar cuando llegue la sincronización."}>
           {(id) => <Input id={id} value={profile?.email ?? ""} placeholder="Sin correo" disabled />}
         </Field>
-        <Field label="Moneda principal" hint="LIFE OS trabaja en pesos colombianos.">
+        <Field label="Moneda principal" hint="LIFE for LIFE trabaja en pesos colombianos.">
           {(id) => (
             <Select id={id} value="COP" disabled>
               <option value="COP">COP · Peso colombiano</option>

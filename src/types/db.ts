@@ -1,4 +1,4 @@
-/** Tipos de las entidades de LIFE OS. Coinciden con supabase/migrations/0001_life_os.sql */
+/** Tipos de las entidades de LIFE for LIFE. Coinciden con supabase/migrations/0001_life_os.sql */
 
 export type ID = string;
 

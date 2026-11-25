@@ -28,7 +28,7 @@ interface Paso {
 
 const PASOS: Paso[] = [
   {
-    titulo: "Bienvenido a LIFE OS",
+    titulo: "Bienvenido a LIFE for LIFE",
     texto: "Te muestro en un minuto cómo funciona. Puedes saltarlo cuando quieras.",
   },
   {
