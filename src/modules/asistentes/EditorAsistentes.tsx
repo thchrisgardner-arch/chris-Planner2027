@@ -77,7 +77,7 @@ export function EditorAsistentes() {
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[260px_minmax(0,1fr)_300px] [&>*]:min-w-0">
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_300px] xl:h-[calc(100dvh-13rem)] xl:min-h-[600px] xl:grid-cols-[260px_minmax(0,1fr)_300px] [&>*]:min-w-0 xl:[&>*]:min-h-0">
         {/* Lista: columna en escritorio, carrusel en tablet y móvil */}
         <Lista estado={estado} sel={sel} onSel={elegir} onActivo={(id, v) => {
           if (!actualizar(id, { activo: v })) toast("El asistente principal no se puede desactivar. Elige otro principal primero.", "error");
@@ -115,7 +115,7 @@ function Lista({
   onActivo: (id: AsistenteId, v: boolean) => void;
 }) {
   return (
-    <div className="card p-2 md:col-span-2 xl:col-span-1">
+    <div className="card p-2 md:col-span-2 xl:col-span-1 xl:overflow-y-auto">
       <ul className="flex gap-1.5 overflow-x-auto xl:flex-col xl:overflow-visible" role="listbox" aria-label="Asistentes">
         {ASISTENTE_IDS.map((id) => {
           const a = estado.ajustes[id];
@@ -206,7 +206,7 @@ function Escenario({
   };
 
   return (
-    <div className="card flex min-h-[420px] flex-col p-3 md:min-h-[560px]">
+    <div className="card flex min-h-[420px] flex-col p-3 md:min-h-[560px] xl:h-full xl:min-h-0">
       {/* Barra de vista flotante */}
       <div className="mx-auto flex flex-wrap items-center justify-center gap-1 rounded-full bg-bg p-1">
         <button
@@ -238,7 +238,7 @@ function Escenario({
       </div>
 
       {/* Escenario */}
-      <div className={cn("relative mt-3 flex flex-1 flex-col items-center justify-center gap-4 overflow-hidden rounded-[20px] px-4 py-8 transition-colors", oscuro ? "bg-neutral-900" : "bg-bg")}>
+      <div className={cn("relative mt-3 flex min-h-0 flex-1 flex-col items-center justify-center gap-4 overflow-hidden rounded-[20px] px-4 py-6 transition-colors", oscuro ? "bg-neutral-900" : "bg-bg")}>
         <div aria-live="polite" className="max-w-[340px] rounded-[20px] bg-bg-2 px-4 py-3 text-center text-[14.5px] leading-snug text-fg shadow-[0_0_0_1px_var(--color-line)]">
           {respuesta ? <span className="mb-1 block text-[12px] text-muted">Tú: {respuesta.q}</span> : null}
           {a.avisos === "nunca" && !respuesta ? <span className="text-muted">Avisos apagados: {a.nombre} no mostrará burbujas en la app.</span> : mensaje.texto}
@@ -381,7 +381,7 @@ function Propiedades({
   }, [id, a.nombre]);
 
   return (
-    <div className="card self-start p-0">
+    <div className="card self-start p-0 xl:h-full xl:self-stretch xl:overflow-y-auto">
       <Bloque titulo="Nombre">
         <Input
           value={nombre}
