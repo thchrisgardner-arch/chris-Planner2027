@@ -196,10 +196,17 @@ function ListView({ projects, loose }: { projects: Project[]; loose: Task[] }) {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <Link
+                  href={`/proyectos/${p.id}`}
+                  className="focus-ring inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-fg pl-4 pr-3 text-[13px] font-medium text-on-fg transition-transform active:scale-95"
+                  aria-label={`Abrir el panel de ${p.name}`}
+                >
+                  Abrir <ArrowUpRight size={16} />
+                </Link>
                 <Select
                   value={p.status}
                   aria-label={`Estado de ${p.name}`}
-                  className="h-10 w-[160px] rounded-full bg-bg-2 text-[13px]"
+                  className="h-10 w-[150px] rounded-full bg-bg-2 text-[13px]"
                   onChange={async (e) => {
                     await update("projects", p.id, { status: e.target.value as ProjectStatus });
                     toast(`${p.name}: ${projectStatusLabel(e.target.value as ProjectStatus)}`);
@@ -286,10 +293,14 @@ function KanbanView({ projects }: { projects: Project[] }) {
                   const prog = projectProgress(p, db.tasks);
                   return (
                     <div key={p.id} className="rounded-[18px] bg-bg-2 p-3.5">
-                      <Link href={`/proyectos/${p.id}`} className="focus-ring block w-full rounded-[12px] text-left" aria-label={`Abrir ${p.name}`}>
+                      <Link href={`/proyectos/${p.id}`} className="focus-ring group block w-full rounded-[12px] text-left" aria-label={`Abrir ${p.name}`}>
                         <div className="flex items-center gap-2">
                           <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: p.color }} />
-                          <p className="truncate text-[14px] font-medium">{p.name}</p>
+                          <p className="min-w-0 flex-1 truncate text-[14px] font-medium">{p.name}</p>
+                          {/* Flecha visible para entrar al panel del proyecto (clave en celular) */}
+                          <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-fg text-on-fg transition-transform group-active:scale-95">
+                            <ArrowUpRight size={17} />
+                          </span>
                         </div>
                         <p className="mt-1 text-[11.5px] text-muted">
                           {p.due_date ? relativeDay(p.due_date, today) : "Sin fecha"} · {prog.done}/{prog.total} tareas
