@@ -110,7 +110,7 @@ function Escalera({ className, principal }: { className?: string; principal: Asi
 }
 
 /* ═════════ Resumen de la semana ═════════ */
-function useSemana(today: string) {
+export function useSemana(today: string) {
   const g = useGamificacion();
   return useMemo(() => {
     const inicio = semanaDe(today);

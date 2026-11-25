@@ -14,6 +14,8 @@ import { GlobalSearch } from "./GlobalSearch";
 import { Avatar, NotificationsButton } from "./HeaderActions";
 import { GamificacionProvider } from "@/modules/asistentes/Gamificacion";
 import { CapaReacciones, PildorasProgreso, ReaccionNegativa } from "@/modules/asistentes/Protagonismo";
+import { CapaCelebraciones } from "@/modules/asistentes/Celebraciones";
+import { PanelDemo } from "@/modules/asistentes/PanelDemo";
 
 const RAIL_KEY = "lifeos:ui:rail-expanded";
 
@@ -104,6 +106,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <>
           <CapaReacciones />
           <ReaccionNegativa />
+          <CapaCelebraciones />
+          <PanelDemo />
         </>
       ) : null}
       {status === "ready" && profile && !profile.full_name && !onboarded ? <WelcomeModal onDone={() => setOnboarded(true)} /> : null}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ArrowUp, ChevronDown, FileText, ListTodo, Plus, RotateCcw, Sun, Moon, Calendar } from "lucide-react";
 import { Asistente } from "@/components/asistentes/Asistente";
 import { Input, Select } from "@/components/ui/Field";
@@ -43,7 +44,16 @@ const TAMANOS = [48, 96, 160, 320] as const;
 export function EditorAsistentes() {
   const { estado, actualizar, hacerPrincipal, restablecer } = useAsistentes();
   const { toast, confirm } = useFeedback();
+  const params = useSearchParams();
+  const asisParam = params.get("asis");
   const [sel, setSel] = useState<AsistenteId>(estado.principal);
+  // ?asis=<id> (p. ej. desde "Probarlo" en una celebración) selecciona ese asistente
+  useEffect(() => {
+    if (asisParam && (ASISTENTE_IDS as readonly string[]).includes(asisParam)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSel(asisParam as AsistenteId);
+    }
+  }, [asisParam]);
   const [salto, setSalto] = useState(0);
   const ultimoToast = useRef(0);
   const a = estado.ajustes[sel];

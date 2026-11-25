@@ -20,13 +20,14 @@ import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "@/modules/finance/constan
 import { borrarAsistentes, exportarAsistentes } from "@/lib/asistentes/estado";
 import { EditorAsistentes } from "@/modules/asistentes/EditorAsistentes";
 import { borrarProgreso, exportarProgreso } from "@/modules/asistentes/Gamificacion";
+import { AjustesProgreso } from "@/modules/asistentes/AjustesProgreso";
 
-type Seccion = "perfil" | "apariencia" | "asistentes" | "datos";
+type Seccion = "perfil" | "apariencia" | "asistentes" | "progreso" | "datos";
 const SECCIONES: { value: Seccion; label: string }[] = [
   { value: "perfil", label: "Perfil" },
   { value: "apariencia", label: "Apariencia" },
   { value: "asistentes", label: "Tus asistentes" },
-  { value: "datos", label: "Tus datos" },
+  { value: "progreso", label: "Progreso" },
 ];
 const esSeccion = (v: string | null): v is Seccion => SECCIONES.some((s) => s.value === v);
 
@@ -61,6 +62,8 @@ export function SettingsPage() {
         </div>
       ) : seccion === "asistentes" ? (
         <EditorAsistentes />
+      ) : seccion === "progreso" ? (
+        <AjustesProgreso />
       ) : (
         <div className="grid gap-3 xl:grid-cols-2 [&>*]:min-w-0">
           <StorageCard />

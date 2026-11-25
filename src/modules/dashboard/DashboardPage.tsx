@@ -19,6 +19,7 @@ import {
   WishlistCard,
 } from "./DashboardWidgets";
 import { HeroAsistente } from "@/modules/asistentes/Protagonismo";
+import { InvitacionRevision } from "@/modules/asistentes/Revision";
 
 function greeting() {
   const h = bogotaHour();
@@ -60,6 +61,7 @@ export function DashboardPage() {
       </PageHeader>
 
       <div className="flex flex-col gap-3">
+        <InvitacionRevision />
         <HeroAsistente />
         <KpiRow refMonth={refMonth} />
 
