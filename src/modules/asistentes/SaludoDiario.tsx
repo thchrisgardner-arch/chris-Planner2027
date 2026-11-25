@@ -18,6 +18,7 @@ import { addDays, weekdayMon } from "@/utils/dates";
 import { cn } from "@/utils/cn";
 import { useGamificacion } from "./Gamificacion";
 import { IconoRacha } from "./Protagonismo";
+import { tutorialPendiente, useTutorialActivo } from "@/modules/tutorial/Tutorial";
 
 const DIAS = ["L", "M", "M", "J", "V", "S", "D"];
 
@@ -27,7 +28,9 @@ export function SaludoDiario() {
   const today = useToday();
   const { estado } = useAsistentes();
   const panel = useRef<HTMLDivElement>(null);
-  const visible = g.saludoVisible;
+  const tutorial = useTutorialActivo();
+  // Espera a que termine el tutorial (y no sale el día en que el tutorial está por empezar)
+  const visible = g.saludoVisible && !tutorial && !tutorialPendiente();
 
   useEffect(() => {
     if (!visible) return;

@@ -221,6 +221,7 @@ export function QuickAdd({ compact, fab }: { compact?: boolean; fab?: boolean })
             onClick={toggle}
             aria-label="Crear nuevo"
             aria-expanded={isOpen}
+            data-tour="agregar"
             className={cn(
               "focus-ring grid h-14 w-14 shrink-0 cursor-pointer place-items-center rounded-full bg-fg text-on-fg transition-transform duration-200 active:scale-95",
               isOpen && "rotate-45",
@@ -233,7 +234,7 @@ export function QuickAdd({ compact, fab }: { compact?: boolean; fab?: boolean })
             <Plus size={21} />
           </Button>
         ) : (
-          <Button variant="primary" onClick={toggle} aria-expanded={isOpen} className="pr-2">
+          <Button variant="primary" onClick={toggle} aria-expanded={isOpen} data-tour="agregar" className="pr-2">
             Nuevo
             <span className="grid h-7 w-7 place-items-center rounded-full bg-on-fg text-fg">
               <ArrowUpRight size={16} />

@@ -14,6 +14,7 @@ import { useAsistentes } from "@/lib/asistentes/estado";
 import { FICHAS, type Tono } from "@/lib/asistentes/definiciones";
 import type { Accesorio, AsistenteId, Colores } from "@/lib/asistentes/tipos";
 import { useGamificacion, type Celebracion } from "./Gamificacion";
+import { useTutorialActivo } from "@/modules/tutorial/Tutorial";
 
 const DORADA: Colores = { primario: "yellow", secundario: "yellow-soft", detalle: "ink" };
 
@@ -90,7 +91,8 @@ export function CapaCelebraciones() {
   const panel = useRef<HTMLDivElement>(null);
   const cola = g.celebraciones;
   // Espera a que se cierre el pop-up diario de racha
-  const abierta = cola.length > 0 && i < cola.length && !g.saludoVisible;
+  const tutorial = useTutorialActivo();
+  const abierta = cola.length > 0 && i < cola.length && !g.saludoVisible && !tutorial;
   const c: Celebracion | undefined = cola[i];
 
   const cerrar = () => {

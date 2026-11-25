@@ -9,6 +9,7 @@ import { useAsistentes } from "@/lib/asistentes/estado";
 import { DESBLOQUEOS, LOGROS, etapaDe } from "@/lib/asistentes/progreso";
 import { ASISTENTE_IDS, type AsistenteId } from "@/lib/asistentes/tipos";
 import { useGamificacion } from "./Gamificacion";
+import { iniciarTutorial } from "@/modules/tutorial/Tutorial";
 
 const ANIMOS: { value: string; label: string; salud: number | null | undefined }[] = [
   { value: "auto", label: "Automático", salud: undefined },
@@ -147,6 +148,16 @@ export function PanelDemo() {
               }}
             >
               Pop-up diario de racha
+            </button>
+            <button
+              type="button"
+              className={btn}
+              onClick={() => {
+                setAbierto(false);
+                iniciarTutorial();
+              }}
+            >
+              Tutorial
             </button>
             <button type="button" className={btn} onClick={() => g.romperRachaDemo(true)}>
               Racha rota con protector

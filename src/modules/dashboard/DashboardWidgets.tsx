@@ -116,7 +116,7 @@ export function KpiRow({ refMonth }: { refMonth: string }) {
   const noAccounts = db.accounts.length === 0;
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <div data-tour="kpis" className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
       <StatCard
         variant="inverse"
         label="Balance disponible"
@@ -260,7 +260,7 @@ export function HabitsWeekCard({ className }: { className?: string }) {
       }));
 
   return (
-    <Card className={cn("flex flex-col", className)}>
+    <Card data-tour="habitos" className={cn("flex flex-col", className)}>
       <CardHeader
         title="Hábitos de la semana"
         subtitle={todays.length ? `${doneToday} de ${todays.length} hoy` : "Toca una casilla para marcarla"}

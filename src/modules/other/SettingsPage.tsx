@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check, Cloud, Download, FlaskConical, UserRound, HardDrive, Monitor, Moon, Plus, Sun, Trash2, X } from "lucide-react";
+import { Check, Cloud, Download, FlaskConical, GraduationCap, UserRound, HardDrive, Monitor, Moon, Plus, Sun, Trash2, X } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -21,6 +21,7 @@ import { borrarAsistentes, exportarAsistentes } from "@/lib/asistentes/estado";
 import { EditorAsistentes } from "@/modules/asistentes/EditorAsistentes";
 import { borrarProgreso, exportarProgreso } from "@/modules/asistentes/Gamificacion";
 import { AjustesProgreso } from "@/modules/asistentes/AjustesProgreso";
+import { iniciarTutorial } from "@/modules/tutorial/Tutorial";
 
 type Seccion = "perfil" | "apariencia" | "asistentes" | "progreso" | "datos";
 const SECCIONES: { value: Seccion; label: string }[] = [
@@ -53,8 +54,14 @@ export function SettingsPage() {
         <Segmented size="md" label="Secciones de configuración" value={seccion} onChange={elegir} options={SECCIONES} />
       </div>
       {seccion === "perfil" ? (
-        <div className="max-w-[820px]">
+        <div className="grid max-w-[820px] gap-3">
           <ProfileCard />
+          <Card>
+            <CardHeader title="Tutorial" subtitle="Un recorrido corto que te señala cómo funciona cada parte de la app" />
+            <Button variant="primary" onClick={iniciarTutorial}>
+              <GraduationCap size={18} /> Ver el tutorial otra vez
+            </Button>
+          </Card>
         </div>
       ) : seccion === "apariencia" ? (
         <div className="max-w-[820px]">

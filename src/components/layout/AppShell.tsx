@@ -17,6 +17,7 @@ import { CapaReacciones, PildorasProgreso, ReaccionNegativa } from "@/modules/as
 import { CapaCelebraciones } from "@/modules/asistentes/Celebraciones";
 import { PanelDemo } from "@/modules/asistentes/PanelDemo";
 import { SaludoDiario } from "@/modules/asistentes/SaludoDiario";
+import { Tutorial } from "@/modules/tutorial/Tutorial";
 import { SincronizarAvisos } from "@/modules/avisos/AvisosCelular";
 
 const RAIL_KEY = "lifeos:ui:rail-expanded";
@@ -111,6 +112,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <ReaccionNegativa />
           <CapaCelebraciones />
           {bienvenida ? null : <SaludoDiario />}
+          {bienvenida ? null : <Tutorial />}
           <SincronizarAvisos />
           <PanelDemo />
         </>
