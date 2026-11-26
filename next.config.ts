@@ -3,6 +3,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
+  // En este equipo «localhost:5209» lo ocupa otro proyecto: se abre por 127.0.0.1, y en desarrollo
+  // Next bloquea la conexión en vivo (HMR) de orígenes no autorizados; sin ella la app no arranca.
+  allowedDevOrigins: ["127.0.0.1"],
   partialPrefetching: true,
   // El service worker de avisos nunca se cachea, para que los cambios lleguen de inmediato
   async headers() {
