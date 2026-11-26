@@ -184,3 +184,22 @@ body {
     font-weight: 700;
   }
 }
+
+/*
+ * Pantallas táctiles: todo control mide al menos 44 × 44 px para el dedo, sin cambiar su aspecto.
+ * Un ::after transparente crece solo lo que falta (si el control ya mide 44 px, no crece).
+ * Va en la capa base: las clases de utilidad (absolute, after:…) siempre ganan.
+ */
+@layer base {
+  @media (pointer: coarse) {
+    :where(a[href], button, [role="button"], [role="tab"], [role="switch"], [role="radio"], [role="checkbox"], summary) {
+      position: relative;
+    }
+    :where(a[href], button, [role="button"], [role="tab"], [role="switch"], [role="radio"], [role="checkbox"], summary)::after {
+      content: "";
+      position: absolute;
+      inset-block: min(0px, calc(50% - 22px));
+      inset-inline: min(0px, calc(50% - 22px));
+    }
+  }
+}

@@ -35,11 +35,29 @@ import { cn } from "@/utils/cn";
 let abierta = false;
 const oyentes = new Set<() => void>();
 const avisar = () => oyentes.forEach((f) => f());
+/**
+ * En iPhone el teclado solo se abre si el foco llega dentro del mismo toque. Un campo invisible
+ * lo recibe de inmediato y luego se lo pasa al campo de la captura (que monta un instante después).
+ */
+let puente: HTMLInputElement | null = null;
+function quitarPuente() {
+  puente?.remove();
+  puente = null;
+}
 export function abrirCaptura() {
+  if (typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches && !puente) {
+    puente = document.createElement("input");
+    puente.setAttribute("aria-hidden", "true");
+    puente.tabIndex = -1;
+    Object.assign(puente.style, { position: "fixed", top: "0", left: "0", width: "1px", height: "1px", opacity: "0", fontSize: "16px", border: "0", padding: "0" });
+    document.body.appendChild(puente);
+    puente.focus();
+  }
   abierta = true;
   avisar();
 }
 function cerrarCaptura() {
+  quitarPuente();
   abierta = false;
   avisar();
 }
@@ -114,6 +132,14 @@ function useAtajos() {
 
 export function CapturaRapida() {
   useAtajos();
+  // Acceso directo del ícono ("Registrar gasto") y aviso de racha: /?captura=1
+  useEffect(() => {
+    const u = new URL(window.location.href);
+    if (u.searchParams.get("captura") !== "1") return;
+    u.searchParams.delete("captura");
+    window.history.replaceState(window.history.state, "", `${u.pathname}${u.search}${u.hash}`);
+    abrirCaptura();
+  }, []);
   const open = useSyncExternalStore(suscribir, () => abierta, () => false);
   if (!open) return null;
   return <Panel />;
@@ -134,6 +160,13 @@ function Panel() {
   const [ed, setEd] = useState<Edicion>({});
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+
+  // El campo real ya tiene el foco (y el teclado): el puente invisible sobra
+  useEffect(() => {
+    input.current?.focus();
+    const t = setTimeout(quitarPuente, 400);
+    return () => clearTimeout(t);
+  }, []);
 
   const categoriasGasto = useMemo(
     () => [...EXPENSE_CATEGORIES, ...db.transaction_categories.filter((c) => c.kind === "gasto").map((c) => c.name).filter((c) => !EXPENSE_CATEGORIES.includes(c))],

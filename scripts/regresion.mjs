@@ -14,7 +14,8 @@ const salida = process.argv[2] ?? "docs/regresion/antes";
 const base = (process.argv[3] ?? "http://localhost:5209").replace(/\/$/, "");
 const extra = process.argv.includes("--800") ? [{ nombre: "800", w: 800, h: 600, movil: false }] : [];
 
-const RUTAS = ["/", "/finanzas", "/proyectos", "/salud", "/wishlist", "/objetivos", "/calendario", "/progreso", "/configuracion"];
+// RUTAS="/configuracion?seccion=progreso,/salud" para capturar solo esas
+const RUTAS = process.env.RUTAS ? process.env.RUTAS.split(",") : ["/", "/finanzas", "/proyectos", "/salud", "/wishlist", "/objetivos", "/calendario", "/progreso", "/configuracion"];
 const TAMANOS = [{ nombre: "1440", w: 1440, h: 900, movil: false }, { nombre: "375", w: 375, h: 812, movil: true }, ...extra];
 const TEMAS = ["claro", "oscuro"];
 
@@ -83,7 +84,7 @@ for (const tema of TEMAS) {
     await cdp("Emulation.setTouchEmulationEnabled", { enabled: t.movil });
     for (const ruta of RUTAS) {
       eventos.length = 0;
-      await cdp("Page.navigate", { url: `${base}${ruta}?demo=1` });
+      await cdp("Page.navigate", { url: `${base}${ruta}${ruta.includes("?") ? "&" : "?"}demo=1` });
       for (let k = 0; k < 100 && !eventos.some((e) => e.method === "Page.loadEventFired"); k++) await esperar(100);
       // Espera a que cargue la app (sin esqueleto) y cierra cualquier pop-up del día
       for (let k = 0; k < 60; k++) {
@@ -104,7 +105,7 @@ for (const tema of TEMAS) {
       if (ancho.value > t.w) errores.push(`${ruta} ${t.nombre} ${tema}: scroll horizontal (${ancho.value}px)`);
       const h = Math.min(alto.value, 8000);
       const { data } = await cdp("Page.captureScreenshot", { format: "png", captureBeyondViewport: true, clip: { x: 0, y: 0, width: t.w, height: h, scale: 1 } });
-      const nombre = `${ruta === "/" ? "inicio" : ruta.slice(1)}-${t.nombre}-${tema}.png`;
+      const nombre = `${ruta === "/" ? "inicio" : ruta.slice(1).replace(/[?=&/]+/g, "-")}-${t.nombre}-${tema}.png`;
       writeFileSync(join(salida, nombre), Buffer.from(data, "base64"));
       console.log("ok", nombre);
     }

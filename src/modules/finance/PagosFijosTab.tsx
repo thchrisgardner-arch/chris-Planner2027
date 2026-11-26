@@ -18,6 +18,7 @@ import { useAsistentes } from "@/lib/asistentes/estado";
 import { useToday } from "@/hooks/useToday";
 import {
   almacenPagosFijos,
+  completarPendiente,
   fechaDelMes,
   nuevoIdPago,
   pagosDelMes,
@@ -206,14 +207,8 @@ function ConfirmarPago({ item, onClose }: { item: PagoDelMes; onClose: () => voi
           setError("Ingresa un valor mayor a 0.");
           return false;
         }
-        const tx = item.tx!;
         // Se reemplaza el pendiente por un gasto con fecha de hoy (así la XP cuenta el día en que pagas)
-        const nuevo = await insert("transactions", { ...omitirBase(tx), amount: v, status: "completado", date: today });
-        await remove("transactions", tx.id);
-        almacenPagosFijos.cambiar((d) => ({
-          ...d,
-          generados: { ...d.generados, [item.pago.id]: { ...(d.generados[item.pago.id] ?? {}), [monthKey(item.fecha)]: nuevo.id } },
-        }));
+        await completarPendiente(item.tx!, { insert, remove }, { amount: v, date: today });
         return `${item.pago.nombre}: pagado.`;
       }}
     >
@@ -222,12 +217,6 @@ function ConfirmarPago({ item, onClose }: { item: PagoDelMes; onClose: () => voi
       </Field>
     </FormModal>
   );
-}
-
-function omitirBase<T extends { id: string; user_id: string; created_at: string }>(r: T): Omit<T, "id" | "user_id" | "created_at"> {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { id, user_id, created_at, ...resto } = r;
-  return resto;
 }
 
 function PagoFijoForm({ pago, onClose }: { pago?: PagoFijo; onClose: () => void }) {

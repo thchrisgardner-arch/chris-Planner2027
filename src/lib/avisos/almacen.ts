@@ -18,6 +18,29 @@ export interface EstadoAvisos {
   habitosPendientes: number;
   tareasPendientes: number;
   asistente: string;
+  /* ── Versión 2: recordatorios por asistente (solo conteos y horas; nunca nombres ni montos) ── */
+  version?: 2;
+  /** Nombre y modo de avisos de cada asistente activo (el campo `avisos` del editor) */
+  voces?: Partial<Record<IdVoz, { nombre: string; modo: "nunca" | "resumen-diario" | "en-el-momento" }>>;
+  principal?: IdVoz;
+  /** Horas elegidas (null = apagado) */
+  recordatorios?: { habitos: number | null; agenda: number | null; racha: boolean };
+  hoy?: DiaAvisos;
+  /** Lo de mañana, por si el dispositivo no se abre ese día */
+  manana?: DiaAvisos;
+}
+
+export type IdVoz = "centavo" | "brote" | "tuerca" | "tic" | "cima" | "antojo";
+
+export interface DiaAvisos {
+  eventos: number;
+  /** Hora del primer evento ("10:00") o null */
+  primerEvento: string | null;
+  /** Pagos fijos pendientes que vencen ese día o en los dos siguientes */
+  pagosVencen: number;
+  pagosVencidos: number;
+  /** Hábitos programados ese día */
+  habitos: number;
 }
 
 export interface SuscripcionGuardada {

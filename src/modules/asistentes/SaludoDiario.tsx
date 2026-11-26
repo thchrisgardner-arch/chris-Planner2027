@@ -129,6 +129,7 @@ export function SaludoDiario() {
                   s.hoy && !s.hecho && "ring-2 ring-[var(--char-yellow)] ring-offset-2 ring-offset-bg",
                   s.futuro && "opacity-50",
                 )}
+                role="img"
                 aria-label={`${s.d}: ${s.hecho ? "hecho" : s.protegido ? "protegido" : s.futuro ? "por venir" : "sin actividad"}`}
               >
                 {s.hecho ? <Check size={17} strokeWidth={3} /> : s.protegido ? <ShieldCheck size={16} /> : null}

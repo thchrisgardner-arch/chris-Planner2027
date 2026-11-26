@@ -21,6 +21,7 @@ import { Tutorial } from "@/modules/tutorial/Tutorial";
 import { SincronizarAvisos } from "@/modules/avisos/AvisosCelular";
 import { CapturaRapida } from "@/modules/captura/CapturaRapida";
 import { GenerarPagosFijos } from "@/modules/finance/PagosFijosTab";
+import { PWA } from "@/modules/pwa/AppInstalable";
 
 const RAIL_KEY = "lifeos:ui:rail-expanded";
 
@@ -118,6 +119,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <SincronizarAvisos />
           <GenerarPagosFijos />
           <CapturaRapida />
+          <PWA />
           <PanelDemo />
         </>
       ) : null}

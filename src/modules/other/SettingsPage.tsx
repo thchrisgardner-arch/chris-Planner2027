@@ -25,6 +25,7 @@ import { borrarProgreso, exportarProgreso } from "@/modules/asistentes/Gamificac
 import { borrarPerfil } from "@/lib/salud/perfil";
 import { borrarTodoEspacio } from "@/lib/proyectos/espacio";
 import { almacenCaptura } from "@/lib/captura/aprendizaje";
+import { TarjetaInstalar } from "@/modules/pwa/AppInstalable";
 import { almacenPagosFijos } from "@/lib/finanzas/pagosFijos";
 import { AjustesProgreso } from "@/modules/asistentes/AjustesProgreso";
 import { iniciarTutorial } from "@/modules/tutorial/Tutorial";
@@ -69,6 +70,7 @@ export function SettingsPage() {
               <GraduationCap size={18} /> Ver el tutorial otra vez
             </Button>
           </Card>
+          <TarjetaInstalar />
         </div>
       ) : seccion === "apariencia" ? (
         <div className="max-w-[820px]">

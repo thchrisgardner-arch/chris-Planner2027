@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, startTransition, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { localAdapter } from "@/services/localAdapter";
 import { supabaseAdapter } from "@/services/supabaseAdapter";
@@ -91,10 +91,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     try {
       setMode(getAdapter().mode);
       const [data, prof] = await Promise.all([getAdapter().loadAll(), getAdapter().loadProfile()]);
-      setDb(data);
-      setProfile(prof);
-      setStatus("ready");
-      setError(null);
+      // En una transición: React arma la app por partes y le cede el hilo al navegador entre una y
+      // otra (sin una tarea larga que congele la pantalla al abrir).
+      startTransition(() => {
+        setDb(data);
+        setProfile(prof);
+        setStatus("ready");
+        setError(null);
+      });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Error desconocido";
       if (msg === "AUTH_REQUIRED") setStatus("auth_required");

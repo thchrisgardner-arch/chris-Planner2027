@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeftRight, Download, PiggyBank, Plus, Search, Upload } from "lucide-react";
+import { ArrowLeftRight, Download, Pencil, PiggyBank, Plus, Search, Trash2, Upload } from "lucide-react";
+import { Deslizable } from "@/components/ui/Deslizable";
+import { completarPendiente } from "@/lib/finanzas/pagosFijos";
 import { AsistenteModulo } from "@/modules/asistentes/Presencia";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -208,7 +210,7 @@ function toCSV(rows: Transaction[], accountName: (id: string | null) => string) 
 }
 
 function Movements() {
-  const { db, update } = useData();
+  const { db, insert, remove } = useData();
   const open = useForms();
   const del = useDeleteRecord();
   const { toast } = useFeedback();
@@ -322,7 +324,19 @@ function Movements() {
             const sign = t.type === "ingreso" ? "+" : t.type === "gasto" ? "−" : "";
             const shop = t.type === "transferencia" ? undefined : detectStoreInText(t.description);
             return (
-              <li key={t.id} className="flex items-center gap-3 py-3">
+              <li key={t.id}>
+                <Deslizable
+                  acciones={[
+                    { label: "Editar", icono: <Pencil size={18} />, onAccion: () => open({ kind: "transaction", record: t }) },
+                    {
+                      label: "Borrar",
+                      icono: <Trash2 size={18} />,
+                      tono: "peligro",
+                      onAccion: () => del("transactions", t.id, "¿Eliminar este movimiento?", `${t.description} · ${formatCOP(t.amount)}`),
+                    },
+                  ]}
+                >
+                <div className="flex items-center gap-3 py-3">
                 {shop ? (
                   <StoreLogo store={shop} size={40} />
                 ) : (
@@ -349,7 +363,7 @@ function Movements() {
                     title="Aún no suma a tus saldos. Toca para marcarlo como completado."
                     aria-label={`${t.description}: pendiente, aún no suma a tus saldos. Marcar como completado`}
                     onClick={async () => {
-                      await update("transactions", t.id, { status: "completado" });
+                      await completarPendiente(t, { insert, remove });
                       toast("Movimiento completado: ya suma a tus saldos.");
                     }}
                     className="focus-ring shrink-0 cursor-pointer rounded-full"
@@ -371,6 +385,8 @@ function Movements() {
                   onEdit={() => open({ kind: "transaction", record: t })}
                   onDelete={() => del("transactions", t.id, "¿Eliminar este movimiento?", `${t.description} · ${formatCOP(t.amount)}`)}
                 />
+                </div>
+                </Deslizable>
               </li>
             );
           })}

@@ -1,4 +1,4 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -6,12 +6,16 @@ const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 /** true solo cuando las dos variables de entorno están definidas en .env.local */
 export const isSupabaseConfigured = Boolean(url && anonKey);
 
-let client: SupabaseClient | null = null;
+let client: Promise<SupabaseClient> | null = null;
 
-export function getSupabase(): SupabaseClient {
+/**
+ * Cliente de Supabase. Se descarga solo cuando hace falta (import dinámico): en modo local la
+ * librería no viaja al navegador y la app abre más rápido.
+ */
+export function getSupabase(): Promise<SupabaseClient> {
   if (!isSupabaseConfigured) {
-    throw new Error("Supabase no está configurado: faltan NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+    return Promise.reject(new Error("Supabase no está configurado: faltan NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY."));
   }
-  if (!client) client = createClient(url!, anonKey!);
+  client ??= import("@supabase/supabase-js").then(({ createClient }) => createClient(url!, anonKey!));
   return client;
 }

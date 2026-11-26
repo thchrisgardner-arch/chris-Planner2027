@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  // Carpeta de compilación configurable: permite medir una build de producción (Lighthouse) sin
+  // tocar la de un servidor de desarrollo que esté corriendo. Por defecto, .next
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   cacheComponents: true,
   // En este equipo «localhost:5209» lo ocupa otro proyecto: se abre por 127.0.0.1, y en desarrollo
   // Next bloquea la conexión en vivo (HMR) de orígenes no autorizados; sin ella la app no arranca.

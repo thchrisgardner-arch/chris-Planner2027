@@ -5,7 +5,7 @@
  * persona borra no vuelve a aparecer ese mes.
  */
 import { crearAlmacen } from "@/lib/almacenLocal";
-import { daysInMonth, monthKey } from "@/utils/dates";
+import { daysInMonth, monthKey, todayISO } from "@/utils/dates";
 import type { Database, Transaction } from "@/types/db";
 
 export type TipoPagoFijo = "arriendo" | "servicio" | "suscripcion" | "cuota" | "otro";
@@ -83,3 +83,37 @@ export function resumenMes(lista: PagoDelMes[]) {
 }
 
 export const mesDe = monthKey;
+
+type Ops = {
+  insert: (t: "transactions", d: Omit<Transaction, "id" | "user_id" | "created_at">) => Promise<Transaction>;
+  remove: (t: "transactions", id: string) => Promise<void>;
+};
+
+/**
+ * Completa un movimiento pendiente: lo reemplaza por uno nuevo con fecha de hoy (así la XP cuenta el
+ * día en que se paga y no el día en que la app creó el pendiente) y mantiene el vínculo con su pago fijo.
+ */
+export async function completarPendiente(tx: Transaction, ops: Ops, cambios: { amount?: number; date?: string } = {}) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { id, user_id, created_at, ...resto } = tx;
+  const hoy = cambios.date ?? todayISO();
+  const nuevo = await ops.insert("transactions", { ...resto, ...cambios, date: hoy, status: "completado" });
+  await ops.remove("transactions", tx.id);
+  almacenPagosFijos.cambiar((d) => {
+    let cambio = false;
+    const generados = Object.fromEntries(
+      Object.entries(d.generados).map(([pago, meses]) => [
+        pago,
+        Object.fromEntries(
+          Object.entries(meses).map(([mes, txId]) => {
+            if (txId !== tx.id) return [mes, txId];
+            cambio = true;
+            return [mes, nuevo.id];
+          }),
+        ),
+      ]),
+    );
+    return cambio ? { ...d, generados } : d;
+  });
+  return nuevo;
+}

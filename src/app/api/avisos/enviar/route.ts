@@ -1,5 +1,6 @@
 import { almacenListo, borrar, guardar, todas } from "@/lib/avisos/almacen";
 import { ahoraBogota, armarAviso, enviar, pushListo } from "@/lib/avisos/envio";
+import { armarAvisos } from "@/lib/avisos/mensajes";
 
 /**
  * GET /api/avisos/enviar  (Authorization: Bearer CRON_SECRET)
@@ -21,19 +22,28 @@ export async function GET(request: Request) {
   const resultado = { hora, enviados: 0, omitidos: 0, vencidos: 0, errores: 0 };
   for (const [id, s] of Object.entries(subs)) {
     if (!s.horas.includes(hora) || s.ultimoEnvio === marca) continue;
-    const aviso = armarAviso(s.estado, fecha, hora);
-    if (!aviso) {
+    // Versión 2: un aviso por asistente y tema; versión 1: el aviso general de siempre
+    const avisos = s.estado?.version === 2 ? armarAvisos(s.estado, fecha, hora) : [armarAviso(s.estado, fecha, hora)].filter((a) => a !== null);
+    if (!avisos.length) {
       resultado.omitidos += 1;
       continue;
     }
-    const r = await enviar(s, aviso);
-    if (r === "ok") {
-      resultado.enviados += 1;
-      await guardar(id, { ...s, ultimoEnvio: marca });
-    } else if (r === "vencida") {
+    let vencida = false;
+    let alguno = false;
+    for (const aviso of avisos) {
+      const r = await enviar(s, aviso);
+      if (r === "ok") {
+        resultado.enviados += 1;
+        alguno = true;
+      } else if (r === "vencida") {
+        vencida = true;
+        break;
+      } else resultado.errores += 1;
+    }
+    if (vencida) {
       resultado.vencidos += 1;
       await borrar(id);
-    } else resultado.errores += 1;
+    } else if (alguno) await guardar(id, { ...s, ultimoEnvio: marca });
   }
   return Response.json(resultado, { headers: { "cache-control": "no-store" } });
 }

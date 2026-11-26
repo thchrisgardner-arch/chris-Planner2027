@@ -85,7 +85,7 @@ export default function LoginPage() {
     setError(null);
     try {
       if (isSupabaseConfigured) {
-        const { error: err } = await getSupabase().auth.signInWithPassword({ email: email.trim(), password });
+        const { error: err } = await (await getSupabase()).auth.signInWithPassword({ email: email.trim(), password });
         if (err) throw new Error(err.message === "Invalid login credentials" ? "Correo o contraseña incorrectos." : err.message);
       } else {
         const ok = await verifyLocalAccount(email, password);
@@ -110,7 +110,7 @@ export default function LoginPage() {
     setError(null);
     try {
       if (isSupabaseConfigured) {
-        const { data, error: err } = await getSupabase().auth.signUp({
+        const { data, error: err } = await (await getSupabase()).auth.signUp({
           email: email.trim(),
           password,
           options: { data: { full_name: name.trim() } },
@@ -135,7 +135,7 @@ export default function LoginPage() {
 
   const resetPassword = async () => {
     if (!isSupabaseConfigured) return;
-    const { error: err } = await getSupabase().auth.resetPasswordForEmail(email.trim());
+    const { error: err } = await (await getSupabase()).auth.resetPasswordForEmail(email.trim());
     if (err) setError(err.message);
     else setNotice("Te enviamos un enlace para restablecer la contraseña.");
   };

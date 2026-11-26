@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Check, Plus } from "lucide-react";
+import { Deslizable } from "@/components/ui/Deslizable";
 import { AsistenteModulo, useCelebracion, useVacioAsistente } from "@/modules/asistentes/Presencia";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -109,7 +110,14 @@ function HabitCard({ habit, today }: { habit: Habit; today: string }) {
     }
   };
 
+  // En el celular, deslizar la tarjeta a la derecha marca el hábito de hoy
+  const pendienteHoy = isScheduled(habit, today) && !logFor(db.habit_logs, habit.id, today);
   return (
+    <Deslizable
+      redondeo={24}
+      fondo=""
+      derecha={pendienteHoy ? { label: "Hecho hoy", icono: <Check size={18} />, tono: "marca", onAccion: () => void toggle(today) } : null}
+    >
     <Card>
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
@@ -207,5 +215,6 @@ function HabitCard({ habit, today }: { habit: Habit; today: string }) {
         })}
       </div>
     </Card>
+    </Deslizable>
   );
 }

@@ -23,7 +23,7 @@ function normalize<T>(table: TableName, row: Record<string, unknown>): T {
 }
 
 async function userId(): Promise<string> {
-  const { data, error } = await getSupabase().auth.getUser();
+  const { data, error } = await (await getSupabase()).auth.getUser();
   if (error || !data.user) throw new Error("AUTH_REQUIRED");
   return data.user.id;
 }
@@ -33,7 +33,7 @@ export const supabaseAdapter: DataAdapter = {
 
   async loadAll() {
     await userId();
-    const sb = getSupabase();
+    const sb = (await getSupabase());
     const db = emptyDatabase() as Record<TableName, unknown[]>;
     const results = await Promise.all(TABLES.map((t) => sb.from(t).select("*").order("created_at")));
     results.forEach((res, i) => {
@@ -45,7 +45,7 @@ export const supabaseAdapter: DataAdapter = {
   },
 
   async loadProfile() {
-    const sb = getSupabase();
+    const sb = (await getSupabase());
     const { data: auth } = await sb.auth.getUser();
     if (!auth.user) throw new Error("AUTH_REQUIRED");
     const { data } = await sb.from("profiles").select("*").eq("id", auth.user.id).maybeSingle();
@@ -63,14 +63,14 @@ export const supabaseAdapter: DataAdapter = {
     const id = await userId();
     const { email: _email, ...rest } = patch;
     void _email;
-    const { error } = await getSupabase().from("profiles").upsert({ id, ...rest });
+    const { error } = await (await getSupabase()).from("profiles").upsert({ id, ...rest });
     if (error) throw new Error(error.message);
     return this.loadProfile();
   },
 
   async insert(table, data) {
     const user_id = await userId();
-    const { data: row, error } = await getSupabase()
+    const { data: row, error } = await (await getSupabase())
       .from(table)
       .insert({ ...data, user_id })
       .select()
@@ -80,17 +80,17 @@ export const supabaseAdapter: DataAdapter = {
   },
 
   async update(table, id, patch) {
-    const { data: row, error } = await getSupabase().from(table).update(patch as Record<string, unknown>).eq("id", id).select().single();
+    const { data: row, error } = await (await getSupabase()).from(table).update(patch as Record<string, unknown>).eq("id", id).select().single();
     if (error) throw new Error(error.message);
     return normalize(table, row);
   },
 
   async remove(table, id) {
-    const { error } = await getSupabase().from(table).delete().eq("id", id);
+    const { error } = await (await getSupabase()).from(table).delete().eq("id", id);
     if (error) throw new Error(error.message);
   },
 
   async signOut() {
-    await getSupabase().auth.signOut();
+    await (await getSupabase()).auth.signOut();
   },
 };

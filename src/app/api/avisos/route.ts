@@ -1,4 +1,4 @@
-import { almacenListo, borrar, guardar, idDe, leer, type EstadoAvisos, type SuscripcionGuardada } from "@/lib/avisos/almacen";
+import { almacenListo, borrar, guardar, idDe, leer, type DiaAvisos, type EstadoAvisos, type SuscripcionGuardada } from "@/lib/avisos/almacen";
 
 // Suscripción a avisos del celular. Dinámica por naturaleza (POST/DELETE); con cacheComponents no se
 // declaran `dynamic` ni `runtime`.
@@ -24,6 +24,40 @@ function validarEstado(e: unknown): e is EstadoAvisos {
   );
 }
 
+const IDS = ["centavo", "brote", "tuerca", "tic", "cima", "antojo"] as const;
+const MODOS = ["nunca", "resumen-diario", "en-el-momento"];
+const conteo = (n: unknown) => (Number.isInteger(n) && (n as number) >= 0 && (n as number) < 1000 ? (n as number) : 0);
+const horaOpc = (h: unknown) => (Number.isInteger(h) && (h as number) >= 0 && (h as number) <= 23 ? (h as number) : null);
+function limpiarDia(d: unknown): DiaAvisos | undefined {
+  if (!d || typeof d !== "object") return undefined;
+  const x = d as Record<string, unknown>;
+  return {
+    eventos: conteo(x.eventos),
+    primerEvento: typeof x.primerEvento === "string" && /^\d{2}:\d{2}$/.test(x.primerEvento) ? x.primerEvento : null,
+    pagosVencen: conteo(x.pagosVencen),
+    pagosVencidos: conteo(x.pagosVencidos),
+    habitos: conteo(x.habitos),
+  };
+}
+/** Campos de la versión 2, saneados (solo conteos, horas y nombres cortos) */
+function limpiarV2(e: EstadoAvisos): EstadoAvisos {
+  if (e.version !== 2) return e;
+  const voces: EstadoAvisos["voces"] = {};
+  for (const id of IDS) {
+    const v = e.voces?.[id];
+    if (v && typeof v.nombre === "string" && v.nombre.length <= 40 && MODOS.includes(v.modo)) voces[id] = { nombre: v.nombre, modo: v.modo };
+  }
+  const r = e.recordatorios;
+  return {
+    ...e,
+    voces,
+    principal: IDS.includes(e.principal as (typeof IDS)[number]) ? e.principal : "centavo",
+    recordatorios: r ? { habitos: horaOpc(r.habitos), agenda: horaOpc(r.agenda), racha: r.racha === true } : undefined,
+    hoy: limpiarDia(e.hoy),
+    manana: limpiarDia(e.manana),
+  };
+}
+
 /** POST /api/avisos  { subscription, horas?, estado? } → crea o actualiza la suscripción */
 export async function POST(request: Request) {
   if (!almacenListo()) return Response.json({ error: "Falta conectar el almacenamiento de avisos en Vercel." }, { status: 503 });
@@ -32,7 +66,7 @@ export async function POST(request: Request) {
   const id = idDe(body.subscription.endpoint);
   const previa = await leer(id);
   const horas = HORAS_VALIDAS(body.horas) ? body.horas : (previa?.horas ?? [9, 20]);
-  const estado = validarEstado(body.estado) ? body.estado : previa?.estado;
+  const estado = validarEstado(body.estado) ? limpiarV2(body.estado) : previa?.estado;
   const ok = await guardar(id, { subscription: body.subscription, horas, estado, actualizado: new Date().toISOString(), ultimoEnvio: previa?.ultimoEnvio });
   if (!ok) return Response.json({ error: "Hay demasiados dispositivos con avisos activos." }, { status: 429 });
   return Response.json({ id, horas }, { headers: { "cache-control": "no-store" } });
