@@ -77,9 +77,13 @@ export function BarChart({
   const empty = max === 0;
   const active = hover ?? activeIndex ?? data.length - 1;
   const series = Math.max(1, ...data.map((d) => d.values.length));
+  // El lector de pantalla recibe los valores, no solo las etiquetas
+  const resumen = data
+    .map((d) => `${d.label}: ${d.values.map((v, s) => `${seriesLabels?.[s] ? `${seriesLabels[s]} ` : ""}${v.toLocaleString("es-CO")}`).join(", ")}`)
+    .join("; ");
 
   return (
-    <div className="w-full" role="img" aria-label={empty ? "Gráfico sin datos todavía" : `Gráfico de barras: ${data.map((d) => d.label).join(", ")}`}>
+    <div className="w-full" role="img" aria-label={empty ? "Gráfico sin datos todavía" : `Gráfico de barras. ${resumen}`}>
       <div className="relative flex items-end gap-2 sm:gap-3" style={{ height }}>
         {data.map((d, i) => {
           const isActive = !empty && i === active;
@@ -89,6 +93,8 @@ export function BarChart({
               className="relative flex h-full min-w-0 flex-1 items-end justify-center gap-1"
               onMouseEnter={() => !empty && setHover(i)}
               onMouseLeave={() => setHover(null)}
+              // En el celular no hay «pasar el mouse»: tocar la barra muestra su detalle
+              onClick={() => !empty && setHover((h) => (h === i ? null : i))}
             >
               {isActive && formatTooltip ? (
                 <div
@@ -104,7 +110,8 @@ export function BarChart({
               ) : null}
               {Array.from({ length: series }, (_, s) => {
                 const v = d.values[s] ?? 0;
-                const h = empty ? GHOST[(i + s * 3) % GHOST.length] : Math.max(4, (v / max) * 100);
+                // Un valor 0 no dibuja barra (antes se veía una barrita mínima que parecía un dato)
+                const h = empty ? GHOST[(i + s * 3) % GHOST.length] : v > 0 ? Math.max(4, (v / max) * 100) : 0;
                 const fill = empty ? "bg-elev/70" : isActive ? (s === 0 ? "bg-brand" : "bg-fg") : s === 0 ? "bg-elev" : "bg-line-strong";
                 return (
                   <div
@@ -184,7 +191,7 @@ function HeatRowView({ row }: { row: HeatRow }) {
             className={cn("focus-ring h-9 cursor-pointer rounded-[12px] transition-transform duration-150 hover:scale-[1.04]", HEAT[c.state])}
           />
         ) : (
-          <span key={c.key} title={c.title} aria-label={c.title} className={cn("h-9 rounded-[12px]", HEAT[c.state])} />
+          <span key={c.key} role="img" title={c.title} aria-label={c.title} className={cn("h-9 rounded-[12px]", HEAT[c.state])} />
         ),
       )}
     </>

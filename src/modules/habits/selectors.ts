@@ -1,5 +1,5 @@
 import type { Habit, HabitLog } from "@/types/db";
-import { addDays, weekdayMon } from "@/utils/dates";
+import { addDays, fechaLocal, weekdayMon } from "@/utils/dates";
 
 export const HABIT_COLORS = ["#2ee56b", "#85e6a5", "#66a9f7", "#9b82f6", "#f4a340"];
 
@@ -33,7 +33,10 @@ export function completion(habit: Habit, logs: HabitLog[], from: string, to: str
   const done = new Set(logs.filter((l) => l.habit_id === habit.id).map((l) => l.date));
   let scheduled = 0;
   let completed = 0;
-  for (let d = from; d <= to; d = addDays(d, 1)) {
+  // No cuenta días anteriores a que existiera el hábito (salvo que tenga registros más viejos, p. ej. importados)
+  const primero = [fechaLocal(habit.created_at), ...done].sort()[0];
+  const inicio = primero > from ? primero : from;
+  for (let d = inicio; d <= to; d = addDays(d, 1)) {
     if (!isScheduled(habit, d)) continue;
     scheduled++;
     if (done.has(d)) completed++;

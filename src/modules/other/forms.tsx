@@ -17,6 +17,9 @@ import type {
   WishlistItem,
 } from "@/types/db";
 import { todayISO } from "@/utils/dates";
+import { Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { useDeleteRecord } from "@/components/ui/RowActions";
 import { formatAmountInput, parseCOP } from "@/utils/money";
 import { PRIORITIES } from "@/modules/projects/constants";
 import { StorePicker } from "./StorePicker";
@@ -351,6 +354,7 @@ export function EventForm({
   defaults?: Partial<CalendarEvent>;
 }) {
   const { insert, update } = useData();
+  const del = useDeleteRecord();
   const init = { ...defaults, ...record };
   const [title, setTitle] = useState(init.title ?? "");
   const [date, setDate] = useState(init.date ?? todayISO());
@@ -376,8 +380,26 @@ export function EventForm({
     return "Evento agregado al calendario.";
   };
 
+  const eliminar = async () => {
+    if (!record) return;
+    const ok = await del("calendar_events", record.id, `¿Eliminar el evento ${record.title}?`);
+    if (ok) onClose();
+  };
+
   return (
-    <FormModal open={open} onClose={onClose} title={record ? "Editar evento" : "Nuevo evento"} onSubmit={submit}>
+    <FormModal
+      open={open}
+      onClose={onClose}
+      title={record ? "Editar evento" : "Nuevo evento"}
+      onSubmit={submit}
+      extraFooter={
+        record ? (
+          <Button type="button" variant="ghost" className="text-danger" onClick={eliminar}>
+            <Trash2 size={16} /> Eliminar
+          </Button>
+        ) : null
+      }
+    >
       <Field label="Título" error={errors.title}>
         {(id) => <Input id={id} value={title} placeholder="Ej. Pago arriendo, Pierna en el gym" onChange={(e) => setTitle(e.target.value)} />}
       </Field>

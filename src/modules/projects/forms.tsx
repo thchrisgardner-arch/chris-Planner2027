@@ -131,6 +131,11 @@ export function TaskForm({
     };
     if (record) {
       await update("tasks", record.id, data);
+      // Si la tarea cambió de proyecto, sus subtareas se van con ella (si no, seguirían sumando al proyecto anterior)
+      if ((record.project_id ?? null) !== data.project_id) {
+        const hijas = db.tasks.filter((t) => t.parent_task_id === record.id);
+        await Promise.all(hijas.map((t) => update("tasks", t.id, { project_id: data.project_id })));
+      }
       return "Tarea actualizada.";
     }
     await insert("tasks", data);

@@ -36,6 +36,30 @@ export function totalBalance(accounts: Account[], txs: Transaction[], until?: st
   return sum(accounts.map((a) => accountBalance(a, txs, until)));
 }
 
+/**
+ * Texto del aviso al borrar una cuenta. Borrar la cuenta borra sus movimientos, incluidas las
+ * transferencias con otras cuentas, y eso cambia el saldo de esas otras cuentas: se dice cuánto.
+ */
+export function avisoBorrarCuenta(account: Account, accounts: Account[], txs: Transaction[]): string | undefined {
+  const propios = txs.filter((t) => t.account_id === account.id || t.to_account_id === account.id);
+  if (!propios.length) return undefined;
+  const partes = [propios.length === 1 ? "También se eliminará su único movimiento." : `También se eliminarán sus ${propios.length} movimientos.`];
+  const restantes = txs.filter((t) => !propios.includes(t));
+  const cambios = accounts
+    .filter((o) => o.id !== account.id)
+    .map((o) => ({ o, antes: accountBalance(o, txs), despues: accountBalance(o, restantes) }))
+    .filter((c) => c.antes !== c.despues);
+  if (cambios.length) {
+    const fmt = (n: number) => `$${Math.round(n).toLocaleString("es-CO")}`;
+    partes.push(
+      `Incluye transferencias con otras cuentas, así que cambiará su saldo: ${cambios
+        .map((c) => `${c.o.name} pasará de ${fmt(c.antes)} a ${fmt(c.despues)}`)
+        .join("; ")}.`,
+    );
+  }
+  return partes.join(" ");
+}
+
 export interface PeriodTotals {
   income: number;
   expense: number;

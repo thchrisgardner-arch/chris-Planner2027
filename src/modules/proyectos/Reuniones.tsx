@@ -41,7 +41,7 @@ function minutosHasta(fecha: string, hora: string) {
   const objetivo = new Date(`${fecha}T${hora || "00:00"}:00-05:00`).getTime();
   return Math.round((objetivo - Date.now()) / 60000);
 }
-function cuenta(r: Reunion): { texto: string; tono: "ahora" | "pronto" | "luego" | "pasada" } {
+export function cuenta(r: Reunion): { texto: string; tono: "ahora" | "pronto" | "luego" | "pasada" } {
   const m = minutosHasta(r.fecha, r.inicio);
   const fin = minutosHasta(r.fecha, r.fin || r.inicio);
   if (m <= 0 && fin >= 0) return { texto: "Ahora", tono: "ahora" };

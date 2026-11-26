@@ -194,6 +194,7 @@ function HabitCard({ habit, today }: { habit: Habit; today: string }) {
           return (
             <span
               key={d}
+              role="img"
               title={`Día ${n}: ${state}`}
               aria-label={`Día ${n}: ${state}`}
               className={cn(

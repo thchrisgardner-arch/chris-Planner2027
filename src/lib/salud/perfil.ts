@@ -64,6 +64,19 @@ export function guardarPerfil(p: Partial<PerfilFisico>) {
   oyentes.forEach((f) => f());
 }
 
+/** «Borrar todo»: olvida el perfil físico de este navegador. */
+export function borrarPerfil() {
+  cache = null;
+  if (typeof window !== "undefined" && !enDemo()) {
+    try {
+      window.localStorage.removeItem(CLAVE);
+    } catch {
+      /* sin almacenamiento */
+    }
+  }
+  oyentes.forEach((f) => f());
+}
+
 export function usePerfilFisico() {
   return useSyncExternalStore(
     (f) => {

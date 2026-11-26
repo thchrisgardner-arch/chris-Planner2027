@@ -30,6 +30,7 @@ import { projectProgress, projectStatusLabel } from "@/modules/projects/constant
 import { isScheduled, logFor } from "@/modules/habits/selectors";
 import { CALENDAR_EXTRA, eventType, wishStatusLabel } from "@/modules/other/constants";
 import { findStore } from "@/modules/other/stores";
+import { ahorroPorDeseo } from "@/modules/other/wishlistAhorro";
 
 /* ───────── Piezas compartidas ───────── */
 
@@ -119,7 +120,7 @@ export function KpiRow({ refMonth }: { refMonth: string }) {
     <div data-tour="kpis" className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
       <StatCard
         variant="inverse"
-        label="Balance disponible"
+        label="Dinero disponible"
         value={formatKpiCOP(k.balance)}
         href="/finanzas?tab=cuentas"
         className="sm:col-span-2 xl:col-span-1"
@@ -517,6 +518,7 @@ const PRIORITY_ORDER = { alta: 0, media: 1, baja: 2 } as const;
 export function WishlistCard({ className }: { className?: string }) {
   const { db } = useData();
   const open = useForms();
+  const ahorros = ahorroPorDeseo(db.wishlist_items, db.savings_goals);
   const items = db.wishlist_items
     .filter((w) => w.status !== "comprado" && w.status !== "descartado")
     .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority] || a.created_at.localeCompare(b.created_at))
@@ -530,7 +532,7 @@ export function WishlistCard({ className }: { className?: string }) {
           {items.map((w) => {
             const shop = findStore(w.store);
             const goal = db.savings_goals.find((g) => g.id === w.savings_goal_id);
-            const saved = goal ? Math.min(goal.current_amount, w.price) : 0;
+            const saved = goal ? (ahorros.get(w.id) ?? 0) : 0;
             return (
               <button
                 key={w.id}

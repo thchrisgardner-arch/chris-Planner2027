@@ -27,7 +27,7 @@ import { CalendarioProyecto } from "./CalendarioProyecto";
 import { Imagenes, useArchivoUrl, useSubirImagenes } from "./Imagenes";
 import { NotasProyecto } from "./NotasProyecto";
 import { Grabadora, TarjetaVoz } from "./NotasVoz";
-import { Reuniones } from "./Reuniones";
+import { Reuniones, cuenta } from "./Reuniones";
 
 const SECCIONES = [
   { id: "tareas", label: "Tareas", icon: CheckSquare },
@@ -89,7 +89,8 @@ function Espacio({ proyecto: p }: { proyecto: Project }) {
   const imagenes = e.imagenes.filter((i) => i.proyectoId === p.id);
   const portadaId = e.portadas[p.id];
   const portada = useArchivoUrl(portadaId);
-  const proxima = reuniones.filter((r) => `${r.fecha}${r.inicio}` >= `${today}`).sort((a, b) => `${a.fecha}${a.inicio}`.localeCompare(`${b.fecha}${b.inicio}`))[0];
+  // Las reuniones que ya terminaron hoy no cuentan como «próxima»
+  const proxima = reuniones.filter((r) => r.fecha >= today && cuenta(r).tono !== "pasada").sort((a, b) => `${a.fecha}${a.inicio}`.localeCompare(`${b.fecha}${b.inicio}`))[0];
 
   const agregarTarea = async () => {
     const nombre = nueva.trim();
@@ -236,7 +237,7 @@ function Espacio({ proyecto: p }: { proyecto: Project }) {
                 onChange={(ev) => setNueva(ev.target.value)}
                 placeholder="Escribe una tarea y presiona Enter"
                 aria-label="Nueva tarea"
-                className="min-w-0 flex-1 bg-transparent py-1.5 text-[14px] outline-none placeholder:text-dim"
+                className="min-w-0 flex-1 rounded-[8px] bg-transparent px-1 py-1.5 text-[14px] outline-none placeholder:text-dim focus-visible:ring-2 focus-visible:ring-fg"
               />
               <Button type="submit" size="sm" variant="primary" disabled={!nueva.trim()}>
                 Agregar

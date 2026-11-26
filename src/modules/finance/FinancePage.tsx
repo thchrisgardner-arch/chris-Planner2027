@@ -24,7 +24,7 @@ import { detectStoreInText } from "@/modules/other/stores";
 import { ActivityCard as ActivityWidget } from "@/modules/dashboard/DashboardWidgets";
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, accountTypeLabel } from "./constants";
 import { Deudas } from "./DeudasTab";
-import { accountBalance, expensesByBeneficiary, expensesByCategory, monthTotals, totalBalance } from "./selectors";
+import { accountBalance, avisoBorrarCuenta, expensesByBeneficiary, expensesByCategory, monthTotals, totalBalance } from "./selectors";
 
 type Tab = "resumen" | "movimientos" | "cuentas" | "ahorros" | "deudas";
 
@@ -96,11 +96,11 @@ function Summary() {
   return (
     <div className="grid gap-3">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-        <Kpi inverse label="Dinero disponible" value={available} hint="Todas las cuentas" />
+        <Kpi inverse label="Dinero disponible" value={available} hint={cardDebt ? "Todas las cuentas, ya restada la deuda de tarjetas" : "Todas las cuentas"} />
         <Kpi label="Ingresos del mes" value={m.income} hint={monthLabel(key)} />
         <Kpi label="Gastos del mes" value={m.expense} hint={monthLabel(key)} />
         <Kpi label="Balance neto" value={m.net} hint="Ingresos − gastos" />
-        <Kpi label="Ahorro acumulado" value={saved} hint="En tus metas" />
+        <Kpi label="Ahorro acumulado" value={saved} hint="En tus metas (parte de tu dinero)" />
         <Kpi label="Deuda en tarjetas" value={Math.abs(cardDebt)} hint="Saldo negativo de tarjetas" />
       </div>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-12">
@@ -204,7 +204,7 @@ function toCSV(rows: Transaction[], accountName: (id: string | null) => string) 
 }
 
 function Movements() {
-  const { db } = useData();
+  const { db, update } = useData();
   const open = useForms();
   const del = useDeleteRecord();
   const { toast } = useFeedback();
@@ -323,7 +323,21 @@ function Movements() {
                     <span className="text-dim"> · {relativeDay(t.date, today) === formatShortDate(t.date) ? formatShortDate(t.date) : relativeDay(t.date, today)}</span>
                   </p>
                 </div>
-                {t.status === "pendiente" ? <Badge tone="warn">Pendiente</Badge> : null}
+                {t.status === "pendiente" ? (
+                  // Los pendientes no suman al saldo: se dice y se pueden completar con un toque
+                  <button
+                    type="button"
+                    title="Aún no suma a tus saldos. Toca para marcarlo como completado."
+                    aria-label={`${t.description}: pendiente, aún no suma a tus saldos. Marcar como completado`}
+                    onClick={async () => {
+                      await update("transactions", t.id, { status: "completado" });
+                      toast("Movimiento completado: ya suma a tus saldos.");
+                    }}
+                    className="focus-ring shrink-0 cursor-pointer rounded-full"
+                  >
+                    <Badge tone="warn">Pendiente · completar</Badge>
+                  </button>
+                ) : null}
                 <p
                   className={cn(
                     "num shrink-0 text-right text-[14.5px] font-medium",
@@ -384,37 +398,40 @@ function Accounts() {
               <RowActions
                 label={a.name}
                 onEdit={() => open({ kind: "account", record: a })}
-                onDelete={() =>
-                  del(
-                    "accounts",
-                    a.id,
-                    `¿Eliminar la cuenta ${a.name}?`,
-                    count ? `También se eliminarán sus ${count} movimientos.` : undefined,
-                  )
-                }
+                onDelete={() => del("accounts", a.id, `¿Eliminar la cuenta ${a.name}?`, avisoBorrarCuenta(a, db.accounts, db.transactions))}
               />
             </div>
             <p className={cn("figure mt-8 text-[38px]", balance < 0 ? "text-danger" : balance === 0 ? "text-dim" : "text-fg")}>{formatCOP(balance)}</p>
             <p className="mt-2 text-[12px] text-dim">
-              Saldo inicial {formatCOP(a.initial_balance)} · {count} movimientos
+              Saldo inicial {formatCOP(a.initial_balance)} · {count} {count === 1 ? "movimiento" : "movimientos"}
             </p>
-            <div className="mt-5 flex gap-2">
+            <div className="mt-5 flex flex-wrap items-center gap-2">
               <Button size="sm" variant="secondary" className="bg-bg-2" onClick={() => open({ kind: "transaction", defaults: { account_id: a.id } })}>
                 <Plus size={14} /> Movimiento
               </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={db.accounts.length < 2}
-                title={db.accounts.length < 2 ? "Necesitas al menos dos cuentas" : undefined}
-                onClick={() => open({ kind: "transaction", defaults: { type: "transferencia", account_id: a.id } })}
-              >
-                <ArrowLeftRight size={14} /> Transferir
-              </Button>
+              {db.accounts.length < 2 ? (
+                // Un botón deshabilitado no explica nada en el celular: se dice en texto
+                <span className="text-[12.5px] text-muted">Agrega otra cuenta para transferir</span>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => open({ kind: "transaction", defaults: { type: "transferencia", account_id: a.id } })}
+                >
+                  <ArrowLeftRight size={14} /> Transferir
+                </Button>
+              )}
             </div>
           </Card>
         );
       })}
+      <button
+        type="button"
+        onClick={() => open({ kind: "account" })}
+        className="focus-ring flex min-h-[180px] cursor-pointer flex-col items-center justify-center gap-2 rounded-[24px] border border-dashed border-line-strong text-[14px] font-medium text-muted transition-colors hover:bg-card hover:text-fg"
+      >
+        <Plus size={22} /> Agregar cuenta
+      </button>
     </div>
   );
 }

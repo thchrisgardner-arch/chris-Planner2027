@@ -1,8 +1,9 @@
 import { forwardRef, useId } from "react";
 import { cn } from "@/utils/cn";
+import { flechasGrupo } from "@/utils/teclado";
 
 const control =
-  "w-full rounded-[14px] border border-transparent bg-elev px-4 text-[15px] text-fg outline-none placeholder:text-dim transition-colors duration-200 focus:border-fg aria-invalid:border-danger/70";
+  "w-full rounded-[14px] border border-line-strong bg-elev px-4 text-[15px] text-fg outline-none placeholder:text-dim transition-colors duration-200 focus:border-fg aria-invalid:border-danger/70";
 
 export function Field({
   label,
@@ -64,7 +65,7 @@ export function ChoiceGroup<T extends string>({
   className?: string;
 }) {
   return (
-    <div className={cn("flex flex-wrap gap-1.5", className)} role="radiogroup">
+    <div className={cn("flex flex-wrap gap-1.5", className)} role="radiogroup" onKeyDown={(e) => flechasGrupo(e, options.map((o) => o.value), value, onChange)}>
       {options.map((o) => {
         const active = o.value === value;
         return (
@@ -73,6 +74,7 @@ export function ChoiceGroup<T extends string>({
             type="button"
             role="radio"
             aria-checked={active}
+            tabIndex={active || !options.some((x) => x.value === value) ? 0 : -1}
             onClick={() => onChange(o.value)}
             className={cn(
               "focus-ring h-9 cursor-pointer rounded-full px-4 text-[13.5px] transition-all duration-200",

@@ -128,28 +128,26 @@ function Lista({
   return (
     <div className="card p-2 md:col-span-2 xl:col-span-1 xl:overflow-y-auto">
       {/* Celular: cuadrícula de 3 (los 6 a la vista, sin cortes); escritorio grande: lista vertical */}
-      <ul className="grid grid-cols-3 gap-1.5 sm:grid-cols-6 xl:flex xl:flex-col" role="listbox" aria-label="Asistentes">
+      {/* Lista simple: cada asistente es un botón (elegir) y, al lado, su interruptor (no anidados) */}
+      <ul className="grid grid-cols-3 gap-1.5 sm:grid-cols-6 xl:flex xl:flex-col" aria-label="Asistentes">
         {ASISTENTE_IDS.map((id) => {
           const a = estado.ajustes[id];
           const activo = id === sel;
           return (
-            <li key={id} className="min-w-0">
-              <div
-                role="option"
-                aria-selected={activo}
-                tabIndex={0}
+            <li
+              key={id}
+              className={cn(
+                "flex min-w-0 items-center rounded-[18px] transition-colors xl:pr-2",
+                activo ? "bg-bg" : "hover:bg-bg/60",
+                !a.activo && "opacity-60",
+              )}
+            >
+              <button
+                type="button"
+                aria-pressed={activo}
+                aria-label={`Editar a ${a.nombre}`}
                 onClick={() => onSel(id)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onSel(id);
-                  }
-                }}
-                className={cn(
-                  "focus-ring flex cursor-pointer flex-col items-center gap-1 rounded-[18px] p-2 transition-colors xl:flex-row xl:gap-3",
-                  activo ? "bg-bg" : "hover:bg-bg/60",
-                  !a.activo && "opacity-60",
-                )}
+                className="focus-ring flex min-w-0 flex-1 cursor-pointer flex-col items-center gap-1 rounded-[18px] p-2 text-left xl:flex-row xl:gap-3"
               >
                 <Asistente id={id} size={40} colores={a.colores} accesorio={a.accesorio} mostrarProp={a.mostrarProp} animado={false} decorativo />
                 <div className="hidden min-w-0 flex-1 xl:block">
@@ -160,15 +158,15 @@ function Lista({
                   <span className="block truncate text-[12.5px] text-muted">{FICHAS[id].modulo}</span>
                 </div>
                 <span className="max-w-full truncate text-[12.5px] font-medium xl:hidden">{a.nombre}</span>
-                <Switch
-                  className="hidden xl:inline-flex"
-                  checked={a.activo}
-                  onChange={(v) => onActivo(id, v)}
-                  label={`${a.activo ? "Desactivar" : "Activar"} a ${a.nombre}`}
-                  disabled={estado.principal === id}
-                  title={estado.principal === id ? "El principal no se puede desactivar" : undefined}
-                />
-              </div>
+              </button>
+              <Switch
+                className="hidden xl:inline-flex"
+                checked={a.activo}
+                onChange={(v) => onActivo(id, v)}
+                label={`${a.activo ? "Desactivar" : "Activar"} a ${a.nombre}`}
+                disabled={estado.principal === id}
+                title={estado.principal === id ? "El principal no se puede desactivar" : undefined}
+              />
             </li>
           );
         })}
@@ -273,7 +271,7 @@ function Escenario({
           value={pregunta}
           onChange={(e) => setPregunta(e.target.value)}
           placeholder={`Pregúntale algo a ${a.nombre}…`}
-          className="h-10 w-full bg-transparent px-2 text-[14.5px] text-fg outline-none placeholder:text-dim"
+          className="h-10 w-full rounded-[10px] bg-transparent px-2 text-[14.5px] text-fg outline-none placeholder:text-dim focus-visible:ring-2 focus-visible:ring-fg"
           autoComplete="off"
         />
         <div className="mt-1 flex items-center gap-1.5">

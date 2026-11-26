@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { PildorasProgreso } from "@/modules/asistentes/Protagonismo";
@@ -28,19 +28,41 @@ export function MobileTopbar() {
 /** Cajón lateral con la navegación completa. */
 export function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pathname = usePathname();
+  const panelRef = useRef<HTMLElement>(null);
   useEffect(() => {
     onClose();
     // Cerrar al cambiar de ruta
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
+  // Abierto: el foco entra al cajón, Escape lo cierra y al cerrar vuelve a donde estaba
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.activeElement as HTMLElement | null;
+    panelRef.current?.querySelector<HTMLElement>("button, a[href]")?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      prev?.focus?.();
+    };
+  }, [open, onClose]);
+
   return (
-    <div className={cn("fixed inset-0 z-[70] md:hidden", open ? "pointer-events-auto" : "pointer-events-none")} aria-hidden={!open}>
+    // Cerrado: `inert` saca sus enlaces del orden de tabulación y del lector de pantalla
+    <div className={cn("fixed inset-0 z-[70] md:hidden", open ? "pointer-events-auto" : "pointer-events-none")} inert={!open}>
       <div
+        aria-hidden="true"
         onClick={onClose}
         className={cn("absolute inset-0 bg-black/40 transition-opacity duration-250", open ? "opacity-100" : "opacity-0")}
       />
       <aside
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menú"
         className={cn(
           "absolute inset-y-0 left-0 flex w-[min(300px,86vw)] flex-col rounded-r-[28px] bg-bg px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-5 transition-transform duration-250 ease-(--ease-os)",
           open ? "translate-x-0" : "-translate-x-full",

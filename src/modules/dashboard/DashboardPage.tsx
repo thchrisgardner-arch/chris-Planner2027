@@ -46,7 +46,7 @@ export function DashboardPage() {
       >
         <div className="w-[210px]">
           <Select
-            aria-label="Periodo"
+            aria-label="Mes de los indicadores"
             value={refMonth}
             onChange={(e) => setRefMonth(e.target.value)}
             className="rounded-full bg-card"
@@ -67,6 +67,15 @@ export function DashboardPage() {
         <AvisoRepararRacha />
         <HeroAsistente />
         <TuDia />
+        {refMonth !== current ? (
+          // El selector solo cambia los indicadores: se dice para no confundir con el resto del inicio
+          <p className="px-1 text-[13px] text-muted" role="status">
+            Indicadores de {monthLabel(refMonth)}. El resto del inicio muestra el mes actual.{" "}
+            <button type="button" onClick={() => setRefMonth(current)} className="focus-ring cursor-pointer rounded-full font-medium text-fg underline underline-offset-4">
+              Volver al mes actual
+            </button>
+          </p>
+        ) : null}
         <KpiRow refMonth={refMonth} />
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-12">

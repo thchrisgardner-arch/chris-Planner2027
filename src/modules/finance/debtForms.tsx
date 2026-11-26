@@ -153,7 +153,8 @@ export function DebtPaymentForm({ open, onClose, record }: { open: boolean; onCl
   const [amount, setAmount] = useState(toInput(record.overdue_amount || record.installment_amount));
   const [date, setDate] = useState(todayISO());
   const [cuotaCompleta, setCuotaCompleta] = useState(true);
-  const [comoGasto, setComoGasto] = useState(false);
+  // Por defecto el pago sale de una cuenta (si hay cuentas): así el saldo refleja que pagaste
+  const [comoGasto, setComoGasto] = useState(db.accounts.length > 0);
   const [accountId, setAccountId] = useState(db.accounts[0]?.id ?? "");
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<Errors>({});
@@ -162,7 +163,9 @@ export function DebtPaymentForm({ open, onClose, record }: { open: boolean; onCl
     const e: Errors = {};
     const v = parseCOP(amount);
     if (!v || v <= 0) e.amount = "Ingresa un valor mayor a 0.";
-    else if (v > record.pending_amount + record.overdue_amount) e.amount = `No puede superar lo que debes (${formatCOP(record.pending_amount)}).`;
+    // La mora es parte del saldo pendiente (el pago baja las dos): el tope es lo que se debe en total
+    else if (v > Math.max(record.pending_amount, record.overdue_amount))
+      e.amount = `No puede superar lo que debes (${formatCOP(Math.max(record.pending_amount, record.overdue_amount))}).`;
     if (comoGasto && !accountId) e.account = "Elige la cuenta de donde salió el pago.";
     setErrors(e);
     if (Object.keys(e).length) return false;

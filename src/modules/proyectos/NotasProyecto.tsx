@@ -28,6 +28,22 @@ export function NotasProyecto({ proyectoId }: { proyectoId: string }) {
     t.style.height = `${Math.max(160, t.scrollHeight)}px`;
   }, [texto]);
 
+  // Lo último escrito se guarda también al salir del panel o cerrar la pestaña (antes se perdía si salías antes de 0,6 s)
+  const ultimo = useRef({ texto, pendiente });
+  useEffect(() => {
+    ultimo.current = { texto, pendiente };
+  });
+  useEffect(() => {
+    const guardarYa = () => {
+      if (ultimo.current.pendiente) espacio.guardarNota(proyectoId, ultimo.current.texto);
+    };
+    window.addEventListener("pagehide", guardarYa);
+    return () => {
+      window.removeEventListener("pagehide", guardarYa);
+      guardarYa();
+    };
+  }, [proyectoId]);
+
   // Guardado automático 0,6 s después de dejar de escribir
   useEffect(() => {
     if (!pendiente) return;

@@ -11,7 +11,7 @@
  */
 import type { Database } from "@/types/db";
 import { isScheduled } from "@/modules/habits/selectors";
-import { addDays, addMonths, monthKey, weekdayMon } from "@/utils/dates";
+import { addDays, addMonths, fechaLocal, monthKey, weekdayMon } from "@/utils/dates";
 import { sum } from "@/utils/money";
 import { ASISTENTE_IDS, type AsistenteId } from "./tipos";
 
@@ -319,7 +319,8 @@ export function rachaReparable(p: Progreso, today: string): { dias: string[]; an
 
 /* ═════════ Reconciliar datos → eventos ═════════ */
 type Candidato = { refId: string; tipo: TipoAccion; fecha: string; asistente?: AsistenteId };
-const fechaDe = (iso: string | undefined, today: string) => (iso ? iso.slice(0, 10) : today);
+// Día en hora de Bogotá (no UTC): lo registrado de noche cuenta para ese mismo día
+const fechaDe = (iso: string | undefined, today: string) => (iso ? fechaLocal(iso) : today);
 
 function candidatos(db: Database, prev: Progreso, today: string): { lista: Candidato[]; snap: Progreso["snap"]; vivos: Set<string> } {
   const lista: Candidato[] = [];

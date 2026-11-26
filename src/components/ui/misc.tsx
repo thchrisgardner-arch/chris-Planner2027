@@ -1,4 +1,5 @@
 import { cn } from "@/utils/cn";
+import { flechasGrupo } from "@/utils/teclado";
 
 /* ── Chip (antes Badge): píldora pequeña para metadatos ── */
 type Tone = "neutral" | "brand" | "violet" | "warn" | "info" | "danger" | "ink";
@@ -80,7 +81,13 @@ export function EmptyState({
     <div className={cn("flex flex-wrap items-center justify-between gap-3 rounded-[16px] bg-bg-2 px-4 py-3", className)}>
       <p className="min-w-0 text-[13.5px] text-muted">
         <span className="text-fg">{title}</span>
-        {description ? <span className="hidden sm:inline"> · {description}</span> : null}
+        {/* En el celular la descripción va en otra línea (antes se ocultaba y se perdía la explicación) */}
+        {description ? (
+          <>
+            <span className="hidden sm:inline"> · </span>
+            <span className="block sm:inline">{description}</span>
+          </>
+        ) : null}
       </p>
       {action}
     </div>
@@ -204,13 +211,14 @@ export function Segmented<T extends string>({
 }) {
   // Si no caben en una fila (celular), pasan a una segunda fila completas: nada queda cortado
   return (
-    <div className={cn("inline-flex max-w-full flex-wrap gap-y-1 rounded-[22px] bg-elev p-1", className)} role="tablist" aria-label={label}>
+    <div className={cn("inline-flex max-w-full flex-wrap gap-y-1 rounded-[22px] bg-elev p-1", className)} role="tablist" aria-label={label} onKeyDown={(e) => flechasGrupo(e, options.map((o) => o.value), value, onChange)}>
       {options.map((o) => (
         <button
           key={o.value}
           type="button"
           role="tab"
           aria-selected={o.value === value}
+          tabIndex={o.value === value ? 0 : -1}
           onClick={() => onChange(o.value)}
           className={cn(
             "focus-ring cursor-pointer whitespace-nowrap rounded-full font-medium transition-all duration-200",

@@ -15,6 +15,16 @@ export function todayISO(now: Date = new Date()): string {
   return isoFmt.format(now);
 }
 
+/**
+ * Día (YYYY-MM-DD, hora de Bogotá) de una marca de tiempo ISO como `created_at`.
+ * `iso.slice(0, 10)` da el día en UTC: lo hecho después de las 7 p. m. caería al día siguiente.
+ */
+export function fechaLocal(iso: string): string {
+  if (iso.length <= 10) return iso;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? iso.slice(0, 10) : todayISO(d);
+}
+
 export function bogotaHour(now: Date = new Date()): number {
   return Number(
     new Intl.DateTimeFormat("en-US", { timeZone: TIMEZONE, hour: "numeric", hourCycle: "h23" }).format(now),

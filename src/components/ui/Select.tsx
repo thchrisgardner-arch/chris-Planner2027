@@ -214,7 +214,7 @@ export function Select({ id, value, onChange, disabled, className, children, tit
         onClick={() => (open ? close() : openList())}
         onKeyDown={onKeyDown}
         className={cn(
-          "flex h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-[14px] border border-transparent bg-elev px-4 text-left text-[15px] text-fg outline-none transition-colors duration-200 hover:bg-line-strong focus-visible:border-fg disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-danger/70",
+          "flex h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-[14px] border border-line-strong bg-elev px-4 text-left text-[15px] text-fg outline-none transition-colors duration-200 hover:bg-line-strong focus-visible:border-fg disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-danger/70",
           open && "border-fg",
           className,
         )}

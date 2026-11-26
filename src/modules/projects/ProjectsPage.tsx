@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { rutaPanel } from "@/modules/proyectos/EspacioDesdeRuta";
+import { espacio } from "@/lib/proyectos/espacio";
 import { ArrowUpRight, CornerDownRight, Plus, Search } from "lucide-react";
 import { AsistenteModulo, useVacioAsistente } from "@/modules/asistentes/Presencia";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -169,10 +170,27 @@ function ProjectMeta({ p }: { p: Project }) {
 }
 
 function ListView({ projects, loose }: { projects: Project[]; loose: Task[] }) {
-  const { db, update } = useData();
+  const { db, update, remove } = useData();
   const open = useForms();
   const del = useDeleteRecord();
   const { toast } = useFeedback();
+
+  /** Borra el proyecto y todo su espacio (nota, audios, imágenes, reuniones y sus eventos del calendario). */
+  const borrarProyecto = async (p: Project, nTareas: number) => {
+    const r = espacio.resumenProyecto(p.id);
+    const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+    const partes = [
+      nTareas ? plural(nTareas, "tarea", "tareas") : "",
+      r.nota ? "su nota" : "",
+      r.voz ? plural(r.voz, "nota de voz", "notas de voz") : "",
+      r.imagenes ? plural(r.imagenes, "imagen", "imágenes") : "",
+      r.reuniones ? `${plural(r.reuniones, "reunión", "reuniones")} (y sus eventos del calendario)` : "",
+    ].filter(Boolean);
+    const ok = await del("projects", p.id, `¿Eliminar el proyecto ${p.name}?`, partes.length ? `También se eliminarán: ${partes.join(", ")}.` : undefined);
+    if (!ok) return;
+    const eventos = await espacio.borrarProyecto(p.id);
+    await Promise.all(eventos.map((id) => remove("calendar_events", id).catch(() => {})));
+  };
 
   return (
     <div className="flex flex-col gap-3">
@@ -222,7 +240,7 @@ function ListView({ projects, loose }: { projects: Project[]; loose: Task[] }) {
                 <RowActions
                   label={p.name}
                   onEdit={() => open({ kind: "project", record: p })}
-                  onDelete={() => del("projects", p.id, `¿Eliminar el proyecto ${p.name}?`, tasks.length ? "También se eliminarán sus tareas." : undefined)}
+                  onDelete={() => borrarProyecto(p, tasks.length)}
                 />
               </div>
             </div>

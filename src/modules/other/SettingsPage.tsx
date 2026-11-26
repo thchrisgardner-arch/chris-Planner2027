@@ -20,6 +20,8 @@ import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "@/modules/finance/constan
 import { borrarAsistentes, exportarAsistentes } from "@/lib/asistentes/estado";
 import { EditorAsistentes } from "@/modules/asistentes/EditorAsistentes";
 import { borrarProgreso, exportarProgreso } from "@/modules/asistentes/Gamificacion";
+import { borrarPerfil } from "@/lib/salud/perfil";
+import { borrarTodoEspacio } from "@/lib/proyectos/espacio";
 import { AjustesProgreso } from "@/modules/asistentes/AjustesProgreso";
 import { iniciarTutorial } from "@/modules/tutorial/Tutorial";
 
@@ -311,7 +313,7 @@ function StorageCard() {
   const wipe = async () => {
     const ok = await confirm({
       title: "¿Borrar todos tus datos de este navegador?",
-      description: `Se eliminarán ${total} registros y tu perfil. Exporta antes si quieres conservarlos.`,
+      description: `Se eliminarán ${total} registros, tu perfil, tu perfil físico y el espacio de tus proyectos (notas, audios e imágenes). Exporta antes si quieres conservarlos.`,
       confirmLabel: "Borrar todo",
       destructive: true,
     });
@@ -319,6 +321,8 @@ function StorageCard() {
     await clearAll();
     borrarAsistentes();
     borrarProgreso();
+    borrarPerfil();
+    await borrarTodoEspacio();
     toast("Datos borrados.");
   };
 
@@ -338,7 +342,11 @@ function StorageCard() {
           </p>
         </div>
       </div>
-      <div className="mt-5 flex flex-wrap gap-2">
+      <p className="mt-4 text-[12.5px] leading-relaxed text-muted">
+        El respaldo incluye tus registros, perfil, progreso y las notas y reuniones de tus proyectos. Los archivos de audio e imágenes no viajan
+        en el respaldo: al restaurarlo en otro equipo, esas notas de voz e imágenes aparecerán sin archivo.
+      </p>
+      <div className="mt-4 flex flex-wrap gap-2">
         <Button variant="secondary" className="bg-bg-2" onClick={() => exportJSON()}>
           <Download size={18} /> Exportar respaldo
         </Button>

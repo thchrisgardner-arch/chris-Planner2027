@@ -98,7 +98,7 @@ function Escalera({ className, principal }: { className?: string; principal: Asi
         ))}
       </div>
       <div className="mt-5 flex items-center gap-3">
-        <div className="flex gap-1.5" aria-label={`Nivel ${enEtapa} de 5 en esta etapa`}>
+        <div className="flex gap-1.5" role="img" aria-label={`Nivel ${enEtapa} de 5 en esta etapa`}>
           {[1, 2, 3, 4, 5].map((n) => (
             <span key={n} className={cn("h-3 w-3 rounded-full", n < enEtapa ? "bg-fg" : n === enEtapa ? "bg-brand" : "bg-elev")} />
           ))}
@@ -202,7 +202,7 @@ function Racha({ className, today }: { className?: string; today: string }) {
           <p className="text-[12.5px] text-muted">Mejor racha</p>
         </div>
         <div>
-          <p className="flex items-center gap-1" aria-label={`${r.protectores} protectores disponibles`}>
+          <p className="flex items-center gap-1" role="img" aria-label={`${r.protectores} protectores disponibles`}>
             {[0, 1].map((i) => (
               <Shield key={i} size={20} className={i < r.protectores ? "text-fg" : "text-line-strong"} fill={i < r.protectores ? "var(--char-lime)" : "none"} />
             ))}

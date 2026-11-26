@@ -52,9 +52,11 @@ export function TransactionForm({
   const [accountId, setAccountId] = useState(init.account_id ?? db.accounts[0]?.id ?? "");
   const [toAccountId, setToAccountId] = useState(init.to_account_id ?? "");
   const [date, setDate] = useState(init.date ?? todayISO());
-  // Método de pago y estado ya no se piden: se conservan los de movimientos viejos y los nuevos quedan "completado"
+  // Método de pago y estado ya no se piden: se conservan los de movimientos viejos y los nuevos quedan "completado".
+  // Si un movimiento quedó pendiente, el formulario deja completarlo (si no, quedaría fuera del saldo para siempre).
   const method = init.payment_method ?? "";
-  const status: TxStatus = init.status ?? "completado";
+  const [status, setStatus] = useState<TxStatus>(init.status ?? "completado");
+  const eraPendiente = init.status === "pendiente";
   const [beneficiary, setBeneficiary] = useState<Beneficiary>(init.beneficiary ?? "para_mi");
   const [notes, setNotes] = useState(init.notes ?? "");
   const [masDetalles, setMasDetalles] = useState(!!init.notes || (!!init.beneficiary && init.beneficiary !== "para_mi"));
@@ -100,28 +102,30 @@ export function TransactionForm({
     const a = db.accounts.find((x) => x.id === v);
     return a ? <AccountIcon account={a} /> : null;
   };
-  /** Crea la cuenta con saldo inicial $0 (la persona lo ajusta luego) y la selecciona. */
-  const pickAccount = async (v: string, set: (id: string) => void) => {
-    if (!v.startsWith("new:")) return set(v);
+  /** Elegir «Agregar Nequi» solo marca la cuenta; se crea al guardar (si cancelas, no queda una cuenta suelta). */
+  const pickAccount = (v: string, set: (id: string) => void) => set(v);
+  /** Al guardar: crea la cuenta nueva elegida (saldo inicial $0, se ajusta luego) y devuelve su id. */
+  const resolveAccount = async (v: string) => {
+    if (!v.startsWith("new:")) return v;
     const bank = findStore(v.slice(4));
-    if (!bank) return;
-    try {
-      const row = await insert("accounts", {
-        name: bank.name,
-        type: BANK_PRESETS.find((b) => b.id === bank.id)?.type ?? "banco",
-        initial_balance: 0,
-        currency: "COP",
-      });
-      set(row.id);
-      toast(`Cuenta ${bank.name} creada con saldo inicial $0. Ajústalo en Finanzas → Cuentas.`);
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "No se pudo crear la cuenta.", "error");
-    }
+    if (!bank) throw new Error("No se reconoció el banco elegido.");
+    const existente = db.accounts.find((a) => detectStoreInText(a.name, ["banco"])?.id === bank.id);
+    if (existente) return existente.id;
+    const row = await insert("accounts", {
+      name: bank.name,
+      type: BANK_PRESETS.find((b) => b.id === bank.id)?.type ?? "banco",
+      initial_balance: 0,
+      currency: "COP",
+    });
+    toast(`Cuenta ${bank.name} creada con saldo inicial $0. Ajústalo en Finanzas → Cuentas.`);
+    return row.id;
   };
+  const nuevaCuenta = [accountId, type === "transferencia" ? toAccountId : ""].find((v) => v.startsWith("new:"));
   const submit = async () => {
     const e: Errors = {};
     const value = parseCOP(amount);
-    if (!description.trim()) e.description = "Escribe una descripción.";
+    // La descripción es opcional: si no se escribe, se usa la categoría (o «Transferencia»)
+    const desc = description.trim() || (type === "transferencia" ? "Transferencia" : category);
     if (!value || value <= 0) e.amount = "Ingresa un valor mayor a 0.";
     if (!accountId) e.account = "Elige una cuenta.";
     if (type !== "transferencia" && !category) e.category = "Elige una categoría.";
@@ -133,13 +137,19 @@ export function TransactionForm({
     setErrors(e);
     if (Object.keys(e).length) return false;
 
+    const fromId = await resolveAccount(accountId);
+    const toId = type === "transferencia" ? await resolveAccount(toAccountId) : null;
+    if (toId && toId === fromId) {
+      setErrors({ to: "La cuenta destino debe ser distinta." });
+      return false;
+    }
     const data = {
       type,
-      description: description.trim(),
+      description: desc,
       amount: value!,
       category: type === "transferencia" ? null : category,
-      account_id: accountId,
-      to_account_id: type === "transferencia" ? toAccountId : null,
+      account_id: fromId,
+      to_account_id: toId,
       date,
       payment_method: type === "transferencia" ? "Transferencia" : method || null,
       status,
@@ -190,7 +200,7 @@ export function TransactionForm({
           {(id) => <DatePicker id={id} clearable={false} value={date} onChange={(e) => setDate(e.target.value)} />}
         </Field>
       </div>
-      <Field label="Descripción" error={errors.description}>
+      <Field label="Descripción (opcional)" error={errors.description}>
         {(id) => (
           <Input
             id={id}
@@ -256,6 +266,25 @@ export function TransactionForm({
           </Field>
         )}
       </div>
+      {eraPendiente ? (
+        <Field label="Estado" hint="Los pendientes no suman a los saldos ni a los totales del mes.">
+          {() => (
+            <ChoiceGroup
+              value={status}
+              onChange={setStatus}
+              options={[
+                { value: "pendiente", label: "Pendiente" },
+                { value: "completado", label: "Completado" },
+              ]}
+            />
+          )}
+        </Field>
+      ) : null}
+      {nuevaCuenta ? (
+        <p className="-mt-2 text-[12.5px] text-muted">
+          Al guardar se crea la cuenta {findStore(nuevaCuenta.slice(4))?.name} con saldo inicial $0 (lo ajustas en Finanzas → Cuentas).
+        </p>
+      ) : null}
       {/* Lo que casi nunca se usa queda plegado para no hacer scroll */}
       <button
         type="button"

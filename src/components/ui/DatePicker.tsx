@@ -154,7 +154,7 @@ export function DatePicker({ id, value, onChange, placeholder = "Elegir fecha", 
           }
         }}
         className={cn(
-          "flex h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-[14px] border border-transparent bg-elev px-4 text-left text-[15px] outline-none transition-colors duration-200 hover:bg-line-strong focus-visible:border-fg data-invalid:border-danger/70",
+          "flex h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-[14px] border border-line-strong bg-elev px-4 text-left text-[15px] outline-none transition-colors duration-200 hover:bg-line-strong focus-visible:border-fg data-invalid:border-danger/70",
           open && "border-fg",
           className,
         )}

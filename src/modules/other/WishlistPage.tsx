@@ -13,7 +13,8 @@ import { useForms } from "@/components/providers/FormsProvider";
 import { useData } from "@/lib/store/DataProvider";
 import { useToday } from "@/hooks/useToday";
 import type { WishStatus } from "@/types/db";
-import { formatShortDate, relativeDay } from "@/utils/dates";
+import { fechaLocal, formatShortDate, relativeDay } from "@/utils/dates";
+import { ahorroPorDeseo } from "./wishlistAhorro";
 import { formatCOP, formatKpiCOP, pct, sum } from "@/utils/money";
 import { priorityLabel } from "@/modules/projects/constants";
 import { cn } from "@/utils/cn";
@@ -23,6 +24,8 @@ import { WISH_CATEGORIES, WISH_CLASSIFICATIONS, WISH_STATUSES, wishStatusLabel, 
 
 export function WishlistPage() {
   const { db } = useData();
+  // Si varios deseos comparten meta, el ahorro se reparte (antes cada uno mostraba el total)
+  const ahorros = useMemo(() => ahorroPorDeseo(db.wishlist_items, db.savings_goals), [db.wishlist_items, db.savings_goals]);
   const open = useForms();
 
   const vacio = useVacioAsistente("antojo");
@@ -110,7 +113,7 @@ export function WishlistPage() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
               {items.map((w) => {
                 const goal = db.savings_goals.find((g) => g.id === w.savings_goal_id);
-                const saved = goal ? Math.min(goal.current_amount, w.price) : 0;
+                const saved = goal ? (ahorros.get(w.id) ?? 0) : 0;
                 const shop = findStore(w.store);
                 return (
                   <Card key={w.id} className="flex flex-col overflow-hidden p-0 sm:p-0">
@@ -149,7 +152,7 @@ export function WishlistPage() {
                       ) : null}
                       <div className="mt-auto flex items-center justify-between gap-2 pt-4 text-[11.5px] text-dim">
                         <span>
-                          Agregado {formatShortDate(w.created_at.slice(0, 10))}
+                          Agregado {formatShortDate(fechaLocal(w.created_at))}
                           {w.desired_date ? ` · Compra ${relativeDay(w.desired_date, today).toLowerCase()}` : ""}
                         </span>
                         {w.link ? (

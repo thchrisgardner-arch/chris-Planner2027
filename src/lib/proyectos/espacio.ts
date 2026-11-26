@@ -146,6 +146,39 @@ export const espacio = {
     guardar({ ...e, imagenes: e.imagenes.filter((i) => i.id !== id), portadas });
     await borrarArchivo(id);
   },
+  /** Cuánto se perdería al borrar el proyecto (para el aviso de confirmación). */
+  resumenProyecto(proyectoId: string) {
+    const e = leer();
+    return {
+      nota: !!e.notas[proyectoId]?.texto.trim(),
+      voz: e.voz.filter((v) => v.proyectoId === proyectoId).length,
+      reuniones: e.reuniones.filter((r) => r.proyectoId === proyectoId).length,
+      imagenes: e.imagenes.filter((i) => i.proyectoId === proyectoId).length,
+    };
+  },
+  /**
+   * Borra todo el espacio de un proyecto: nota, notas de voz, reuniones, imágenes, portada y archivos.
+   * Devuelve los ids de los eventos de calendario de sus reuniones, para borrarlos también.
+   */
+  async borrarProyecto(proyectoId: string): Promise<string[]> {
+    const e = leer();
+    const voz = e.voz.filter((v) => v.proyectoId === proyectoId);
+    const imagenes = e.imagenes.filter((i) => i.proyectoId === proyectoId);
+    const eventos = e.reuniones.filter((r) => r.proyectoId === proyectoId && r.eventoId).map((r) => r.eventoId!);
+    const notas = { ...e.notas };
+    delete notas[proyectoId];
+    const portadas = { ...e.portadas };
+    delete portadas[proyectoId];
+    guardar({
+      notas,
+      portadas,
+      voz: e.voz.filter((v) => v.proyectoId !== proyectoId),
+      reuniones: e.reuniones.filter((r) => r.proyectoId !== proyectoId),
+      imagenes: e.imagenes.filter((i) => i.proyectoId !== proyectoId),
+    });
+    await Promise.all([...voz, ...imagenes].map((x) => borrarArchivo(x.id)));
+    return eventos;
+  },
   ponerPortada(proyectoId: string, imagenId: string | null) {
     const e = leer();
     const portadas = { ...e.portadas };
@@ -199,6 +232,27 @@ async function borrarArchivo(id: string) {
   await new Promise<void>((res) => {
     const tx = db.transaction("blobs", "readwrite");
     tx.objectStore("blobs").delete(id);
+    tx.oncomplete = () => res();
+    tx.onerror = () => res();
+  });
+}
+
+/** «Borrar todo»: vacía el espacio de todos los proyectos y la base de archivos (audios e imágenes). */
+export async function borrarTodoEspacio() {
+  guardar({ ...VACIO });
+  memoria.clear();
+  if (typeof window !== "undefined" && !enDemo()) {
+    try {
+      window.localStorage.removeItem(CLAVE);
+    } catch {
+      /* sin acceso al almacenamiento */
+    }
+  }
+  if (enDemo() || typeof indexedDB === "undefined") return;
+  const db = await abrirDB();
+  await new Promise<void>((res) => {
+    const tx = db.transaction("blobs", "readwrite");
+    tx.objectStore("blobs").clear();
     tx.oncomplete = () => res();
     tx.onerror = () => res();
   });
