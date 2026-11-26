@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { rutaPanel } from "@/modules/proyectos/EspacioDesdeRuta";
 import { espacio } from "@/lib/proyectos/espacio";
-import { ArrowUpRight, CornerDownRight, Plus, Search } from "lucide-react";
+import { ArrowUpRight, CornerDownRight, Plus, Search, Timer } from "lucide-react";
+import { iniciarEnfoque, useHorasEnfoque } from "@/modules/enfoque/ModoEnfoque";
 import { AsistenteModulo, useVacioAsistente } from "@/modules/asistentes/Presencia";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -133,6 +134,11 @@ export function TaskRow({ task, depth = 0 }: { task: Task; depth?: number }) {
         <Badge tone={priorityTone(task.priority)} className="hidden sm:inline-flex">
           {priorityLabel(task.priority)}
         </Badge>
+        {!done ? (
+          <Button size="icon-sm" variant="ghost" aria-label={`Modo enfoque: ${task.name}`} title="Modo enfoque" onClick={() => iniciarEnfoque(task.id)}>
+            <Timer size={17} />
+          </Button>
+        ) : null}
         {!depth ? (
           <Button
             size="icon-sm"
@@ -159,12 +165,14 @@ export function TaskRow({ task, depth = 0 }: { task: Task; depth?: number }) {
 
 function ProjectMeta({ p }: { p: Project }) {
   const today = useToday();
+  const horas = useHorasEnfoque(p.id);
   return (
     <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-muted">
       {p.category ? <span>{p.category}</span> : null}
       <span>Prioridad {priorityLabel(p.priority).toLowerCase()}</span>
       {p.due_date ? <span className={cn(p.status !== "completado" && p.due_date < today && "text-warn")}>Entrega {relativeDay(p.due_date, today).toLowerCase()}</span> : null}
       {p.budget ? <span>Presupuesto {formatCOP(p.budget)}</span> : null}
+      {horas > 0 ? <span>Enfoque {horas.toLocaleString("es-CO", { maximumFractionDigits: 1 })} h</span> : null}
     </p>
   );
 }

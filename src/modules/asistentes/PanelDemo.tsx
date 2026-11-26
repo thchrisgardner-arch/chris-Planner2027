@@ -11,6 +11,9 @@ import { ASISTENTE_IDS, type AsistenteId } from "@/lib/asistentes/tipos";
 import { useGamificacion } from "./Gamificacion";
 import { iniciarTutorial } from "@/modules/tutorial/Tutorial";
 import { abrirCaptura } from "@/modules/captura/CapturaRapida";
+import { abrirChequeoAnimo } from "./ChequeoAnimo";
+import { mostrarConexionDemo } from "./ConexionDelDia";
+import { iniciarEnfoque } from "@/modules/enfoque/ModoEnfoque";
 
 const ANIMOS: { value: string; label: string; salud: number | null | undefined }[] = [
   { value: "auto", label: "Automático", salud: undefined },
@@ -187,6 +190,29 @@ export function PanelDemo() {
               }}
             >
               Captura rápida
+            </button>
+            <button
+              type="button"
+              className={btn}
+              onClick={() => {
+                setAbierto(false);
+                abrirChequeoAnimo();
+              }}
+            >
+              ¿Cómo amaneciste?
+            </button>
+            <button type="button" className={btn} onClick={mostrarConexionDemo}>
+              Conexión del día (siguiente)
+            </button>
+            <button
+              type="button"
+              className={btn}
+              onClick={() => {
+                setAbierto(false);
+                iniciarEnfoque(null);
+              }}
+            >
+              Modo enfoque
             </button>
           </div>
           <p className="mt-3 text-[11.5px] text-dim">Modo demo: nada de esto se guarda.</p>

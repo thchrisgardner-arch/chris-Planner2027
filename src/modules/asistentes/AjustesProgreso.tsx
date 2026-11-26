@@ -17,12 +17,14 @@ const PRUEBAS: { tipo: Retro; label: string }[] = [
 ];
 import { AvisosCelular } from "@/modules/avisos/AvisosCelular";
 import { useGamificacion } from "./Gamificacion";
+import { almacenAnimo } from "@/lib/animoUsuario";
 
 /** Ajustes de gamificación en Configuración (?seccion=progreso). */
 export function AjustesProgreso() {
   const g = useGamificacion();
   const { toast } = useFeedback();
   const a = g.progreso.ajustes;
+  const animo = almacenAnimo.useValor();
   const cambiar = (p: Partial<Progreso["ajustes"]>) => {
     g.cambiarAjustes(p);
     toast("Guardado");
@@ -102,6 +104,20 @@ export function AjustesProgreso() {
               <p className="mt-0.5 text-[13px] text-muted">La primera vez que abres la app cada día: tu racha, la semana y lo que te falta hoy.</p>
             </div>
             <Switch checked={a.saludo !== false} disabled={!a.gamificacion} onChange={(v) => cambiar({ saludo: v })} label="Pop-up diario de racha" />
+          </div>
+          <div className="flex items-start justify-between gap-4 rounded-[20px] bg-bg-2 p-4">
+            <div>
+              <p className="text-[14.5px] font-medium">¿Cómo amaneciste?</p>
+              <p className="mt-0.5 text-[13px] text-muted">Tu asistente te pregunta al abrir la app. Si el día es difícil, todos van con calma. Solo lo ves tú.</p>
+            </div>
+            <Switch
+              checked={animo.activo}
+              onChange={(v) => {
+                almacenAnimo.cambiar((d) => ({ ...d, activo: v }));
+                toast("Guardado");
+              }}
+              label="Chequeo de ánimo diario"
+            />
           </div>
         </div>
       </Card>

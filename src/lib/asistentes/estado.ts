@@ -5,7 +5,8 @@
  * - No toca ninguna otra clave.
  * - En modo demo (`?demo=…`) los cambios viven solo en memoria: no se escribe nada en el navegador.
  */
-import { useSyncExternalStore } from "react";
+import { useMemo, useSyncExternalStore } from "react";
+import { almacenAnimo, diaDificil } from "@/lib/animoUsuario";
 import { FICHAS, type Avisos, type Tono } from "./definiciones";
 import { ASISTENTE_IDS, COLORES_POR_DEFECTO, EXPRESIONES, EXPRESION_LEGADA, type Accesorio, type AsistenteId, type Colores, type Expresion } from "./tipos";
 
@@ -131,9 +132,22 @@ function suscribir(f: () => void) {
   };
 }
 
-/** Estado actual + acciones. Cambiar algo guarda al instante. */
-export function useAsistentes() {
-  const estado = useSyncExternalStore(suscribir, leer, () => SERVIDOR);
+/**
+ * Estado actual + acciones. Cambiar algo guarda al instante.
+ * En un día difícil (chequeo de ánimo) todos hablan en tono tranquilo; `crudo` devuelve lo guardado
+ * (lo usa el editor, para no mostrar ni guardar el tono del día como si fuera la preferencia).
+ */
+export function useAsistentes(opciones?: { crudo?: boolean }) {
+  const guardado = useSyncExternalStore(suscribir, leer, () => SERVIDOR);
+  const dificil = diaDificil(almacenAnimo.useValor());
+  const conTono = useMemo(
+    () =>
+      dificil
+        ? { ...guardado, ajustes: Object.fromEntries(Object.entries(guardado.ajustes).map(([id, a]) => [id, { ...a, tono: "tranquilo" as const }])) as EstadoAsistentes["ajustes"] }
+        : guardado,
+    [guardado, dificil],
+  );
+  const estado = opciones?.crudo ? guardado : conTono;
   return {
     estado,
     actualizar(id: AsistenteId, patch: Partial<AjustesAsistente>) {

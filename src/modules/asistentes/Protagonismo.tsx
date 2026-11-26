@@ -15,6 +15,7 @@ import { ASISTENTE_IDS, type AsistenteId } from "@/lib/asistentes/tipos";
 import { addDays, relativeDay } from "@/utils/dates";
 import { cn } from "@/utils/cn";
 import { useGamificacion, type Reaccion } from "./Gamificacion";
+import { almacenAnimo, diaDificil } from "@/lib/animoUsuario";
 
 /* ═════════ Ícono propio de racha (llama geométrica) ═════════ */
 export function IconoRacha({ size = 20, apagado, className }: { size?: number; apagado?: boolean; className?: string }) {
@@ -210,6 +211,8 @@ export function ReaccionNegativa() {
   useEffect(() => {
     const forzada = g.demo && g.negativaDemo > 0;
     if (!g.activo || !g.progreso.ajustes.negativas || (!forzada && g.negativaHoy()) || !g.progreso.ui.iniciado) return;
+    // Día difícil (chequeo de ánimo): ese día no hay reacciones negativas
+    if (!forzada && diaDificil(almacenAnimo.leer(), today)) return;
     const ayer = addDays(today, -1);
     const pago = db.calendar_events.find((e) => (e.type === "pago" || e.type === "vencimiento") && e.date < today && e.date >= addDays(today, -7));
     const r = g.progreso.racha;

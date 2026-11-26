@@ -18,6 +18,7 @@ import { cn } from "@/utils/cn";
 import { useGamificacion } from "./Gamificacion";
 import { BarraXP, IconoRacha } from "./Protagonismo";
 import { descargarResumen } from "./exportarImagen";
+import { almacenAnimo, OPCIONES_ANIMO } from "@/lib/animoUsuario";
 
 export function ProgresoPage() {
   const g = useGamificacion();
@@ -228,7 +229,52 @@ function Racha({ className, today }: { className?: string; today: string }) {
         </div>
       </div>
       <p className="mt-3 text-[12.5px] text-muted">Lima: día con actividad. Amarillo: día salvado por un protector.</p>
+      <CalendarioAnimo semanas={semanas} today={today} />
     </Card>
+  );
+}
+
+/** Calendario de ánimo (chequeo diario) junto al de racha. Solo aparece si has respondido alguna vez. */
+const COLOR_ANIMO: Record<number, string> = {
+  1: "var(--char-gray)",
+  2: "var(--char-gray-light)",
+  3: "var(--char-cream)",
+  4: "var(--char-lime-soft)",
+  5: "var(--char-lime)",
+};
+function CalendarioAnimo({ semanas, today }: { semanas: string[][]; today: string }) {
+  const d = almacenAnimo.useValor();
+  const dias = semanas.flat();
+  if (!dias.some((x) => d.registros[x])) return null;
+  return (
+    <div className="mt-6">
+      <p className="text-[14px] font-medium">Tu ánimo</p>
+      <p className="text-[12.5px] text-muted">Solo lo ves tú y vive en este dispositivo.</p>
+      <div className="mt-3 overflow-x-auto">
+        <div className="grid w-max grid-flow-col grid-rows-7 gap-1" role="img" aria-label="Ánimo de los últimos 3 meses">
+          {dias.map((x) => {
+            const n = d.registros[x];
+            const op = OPCIONES_ANIMO.find((o) => o.nivel === n);
+            return (
+              <span
+                key={x}
+                title={op ? `${x}: ${op.label}` : x}
+                className={cn("h-4 w-4 rounded-[5px] sm:h-5 sm:w-5", x > today ? "bg-transparent" : n ? "" : "bg-elev", x === today && "ring-[1.5px] ring-fg")}
+                style={n ? { background: COLOR_ANIMO[n] } : undefined}
+              />
+            );
+          })}
+        </div>
+      </div>
+      <p className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[12.5px] text-muted">
+        {OPCIONES_ANIMO.map((o) => (
+          <span key={o.nivel} className="inline-flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: COLOR_ANIMO[o.nivel] }} aria-hidden />
+            {o.label}
+          </span>
+        ))}
+      </p>
+    </div>
   );
 }
 

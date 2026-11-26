@@ -119,6 +119,10 @@ interface Valor {
   cerrarCelebraciones: () => void;
   revisionPendiente: boolean;
   completarRevision: () => void;
+  /** Bloque de enfoque terminado: +10 XP con tope diario. Devuelve la XP ganada. */
+  registrarEnfoque: (refId: string) => number;
+  /** Día difícil (chequeo de ánimo): hoy solo 2 misiones en vez de 3 */
+  suavizarDia: () => void;
   posponerRevision: () => void;
   negativaHoy: () => boolean;
   marcarNegativa: () => void;
@@ -328,6 +332,20 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
       const n2 = { ...next, ui: { ...next.ui, ultimaRevision: semana } };
       guardar(n2);
       emitir(prev, n2, ev ? [ev] : [], false);
+    },
+    registrarEnfoque: (refId) => {
+      const prev = leer();
+      const { next, ev } = agregarEvento(prev, "enfoque", refId, today, "tuerca");
+      if (!ev) return 0;
+      guardar(next);
+      emitir(prev, next, [ev], false);
+      return ev.xp;
+    },
+    suavizarDia: () => {
+      const p = leer();
+      const ids = p.ui.misiones?.fecha === today ? p.ui.misiones.ids : elegirMisiones(db, today);
+      if (ids.length <= 2) return;
+      guardar({ ...p, ui: { ...p.ui, misiones: { fecha: today, ids: ids.slice(0, 2) } } });
     },
     posponerRevision: () => setRevisionOculta(true),
     negativaHoy: () => leer().ui.ultimaNegativa === today,

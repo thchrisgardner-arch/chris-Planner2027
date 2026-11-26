@@ -42,7 +42,7 @@ const TAMANOS = [48, 96, 160, 320] as const;
  * Autoguardado en cada cambio (clave lifeos:asistentes).
  */
 export function EditorAsistentes() {
-  const { estado, actualizar, hacerPrincipal, restablecer } = useAsistentes();
+  const { estado, actualizar, hacerPrincipal, restablecer } = useAsistentes({ crudo: true });
   const { toast, confirm } = useFeedback();
   const params = useSearchParams();
   const asisParam = params.get("asis");

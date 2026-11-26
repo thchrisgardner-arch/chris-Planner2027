@@ -36,7 +36,8 @@ export type TipoAccion =
   | "misiones-dia"
   | "meta-diaria"
   | "hito-racha"
-  | "reparar-racha";
+  | "reparar-racha"
+  | "enfoque";
 
 export const TABLA_XP: Record<TipoAccion, { xp: number; label: string; asistente: AsistenteId | "principal"; grupo: string; tope?: number }> = {
   movimiento: { xp: 5, label: "Registrar un gasto o una transferencia", asistente: "centavo", grupo: "movimiento", tope: 30 },
@@ -59,6 +60,7 @@ export const TABLA_XP: Record<TipoAccion, { xp: number; label: string; asistente
   "meta-diaria": { xp: 10, label: "Cumplir tu meta diaria de XP", asistente: "principal", grupo: "meta-diaria" },
   "hito-racha": { xp: 0, label: "Llegar a un hito de racha (3, 7, 14, 30… días): de +10 a +500 XP", asistente: "brote", grupo: "racha" },
   "reparar-racha": { xp: -100, label: "Reparar la racha (por cada día perdido)", asistente: "principal", grupo: "racha" },
+  enfoque: { xp: 10, label: "Completar un bloque de enfoque (máx. 4 al día)", asistente: "tuerca", grupo: "enfoque", tope: 40 },
 };
 
 /** Tipos que salen de las misiones y la meta: no cuentan para la meta diaria (evita el círculo) */
@@ -397,7 +399,7 @@ export function reconciliar(prev: Progreso, db: Database, today: string, princip
   const conservados = prev.eventos.filter((e) => {
     // Las misiones y la meta del día se revisan en el paso 3
     // Los hitos y las reparaciones de racha ya ganados/pagados no se revierten
-    if (e.tipo === "revision-semanal" || e.refId.startsWith("demo:") || TIPOS_DEL_DIA.includes(e.tipo) || e.tipo === "hito-racha" || e.tipo === "reparar-racha")
+    if (e.tipo === "revision-semanal" || e.tipo === "enfoque" || e.refId.startsWith("demo:") || TIPOS_DEL_DIA.includes(e.tipo) || e.tipo === "hito-racha" || e.tipo === "reparar-racha")
       return true;
     if (e.tipo === "aporte-ahorro" || e.tipo === "avance-objetivo") {
       const ok = vivos.has(e.refId.split(":").slice(0, 2).join(":"));
@@ -589,7 +591,11 @@ export function evaluarDia(eventos: EventoXP[], ids: string[], today: string, me
 /** Agrega un evento manual (p. ej. la revisión semanal). */
 export function agregarEvento(prev: Progreso, tipo: TipoAccion, refId: string, today: string, asistente: AsistenteId): { next: Progreso; ev: EventoXP | null } {
   if (prev.eventos.some((e) => e.refId === refId)) return { next: prev, ev: null };
-  const ev: EventoXP = { id: nuevoId(), tipo, xp: TABLA_XP[tipo].xp, fecha: today, refId, asistente };
+  // Tope diario por grupo (p. ej. el enfoque da XP hasta 4 bloques al día)
+  const cfg = TABLA_XP[tipo];
+  const usado = cfg.tope ? sum(prev.eventos.filter((e) => e.fecha === today && TABLA_XP[e.tipo]?.grupo === cfg.grupo).map((e) => e.xp)) : 0;
+  const xp = cfg.tope ? Math.max(0, Math.min(cfg.xp, cfg.tope - usado)) : cfg.xp;
+  const ev: EventoXP = { id: nuevoId(), tipo, xp, fecha: today, refId, asistente };
   const eventos = [...prev.eventos, ev];
   return {
     next: { ...prev, eventos, racha: calcularRacha(eventos.map((e) => e.fecha).concat(prev.racha.diasActivos), today, prev.racha.mejor, prev.racha.reparados ?? []) },

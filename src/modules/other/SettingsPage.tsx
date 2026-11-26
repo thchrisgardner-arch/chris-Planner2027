@@ -26,6 +26,9 @@ import { borrarPerfil } from "@/lib/salud/perfil";
 import { borrarTodoEspacio } from "@/lib/proyectos/espacio";
 import { almacenCaptura } from "@/lib/captura/aprendizaje";
 import { TarjetaInstalar } from "@/modules/pwa/AppInstalable";
+import { almacenAnimo } from "@/lib/animoUsuario";
+import { almacenEnfoque } from "@/modules/enfoque/ModoEnfoque";
+import { almacenConexiones } from "@/modules/asistentes/ConexionDelDia";
 import { almacenPagosFijos } from "@/lib/finanzas/pagosFijos";
 import { AjustesProgreso } from "@/modules/asistentes/AjustesProgreso";
 import { iniciarTutorial } from "@/modules/tutorial/Tutorial";
@@ -370,7 +373,15 @@ function ProfileCard() {
 }
 
 /** Claves extra del navegador que viajan en el respaldo (perfil físico, espacio de proyectos, captura y pagos fijos) */
-const EXTRAS = { salud: "lifeos:salud", espacio: "lifeos:espacio", captura: almacenCaptura.clave, pagosFijos: almacenPagosFijos.clave } as const;
+const EXTRAS = {
+  salud: "lifeos:salud",
+  espacio: "lifeos:espacio",
+  captura: almacenCaptura.clave,
+  pagosFijos: almacenPagosFijos.clave,
+  animo: almacenAnimo.clave,
+  enfoque: almacenEnfoque.clave,
+  conexiones: almacenConexiones.clave,
+} as const;
 const leerExtra = (k: string) => {
   try {
     const raw = window.localStorage.getItem(k);
@@ -400,6 +411,9 @@ function StorageCard() {
       espacio: leerExtra(EXTRAS.espacio),
       captura: leerExtra(EXTRAS.captura),
       pagosFijos: leerExtra(EXTRAS.pagosFijos),
+      animo: leerExtra(EXTRAS.animo),
+      enfoque: leerExtra(EXTRAS.enfoque),
+      conexiones: leerExtra(EXTRAS.conexiones),
     };
     const blob = new Blob([JSON.stringify(respaldo, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -412,7 +426,7 @@ function StorageCard() {
   };
 
   const importar = async (file: File) => {
-    let r: { exported_at?: string; profile?: Profile | null; data?: Record<string, unknown>; asistentes?: unknown; progreso?: unknown; salud?: unknown; espacio?: unknown; captura?: unknown; pagosFijos?: unknown };
+    let r: { exported_at?: string; profile?: Profile | null; data?: Record<string, unknown>; asistentes?: unknown; progreso?: unknown; salud?: unknown; espacio?: unknown; captura?: unknown; pagosFijos?: unknown; animo?: unknown; enfoque?: unknown; conexiones?: unknown };
     try {
       r = JSON.parse(await file.text());
     } catch {
@@ -442,6 +456,9 @@ function StorageCard() {
       if (r.espacio) escribir(EXTRAS.espacio, r.espacio);
       if (r.captura) escribir(EXTRAS.captura, r.captura);
       if (r.pagosFijos) escribir(EXTRAS.pagosFijos, r.pagosFijos);
+      if (r.animo) escribir(EXTRAS.animo, r.animo);
+      if (r.enfoque) escribir(EXTRAS.enfoque, r.enfoque);
+      if (r.conexiones) escribir(EXTRAS.conexiones, r.conexiones);
       await importAll(r.data as unknown as Database, r.profile ?? null);
       toast(`Respaldo importado: ${nuevos} registros.`);
       // Recarga para que asistentes, progreso y demás partes lean lo importado
@@ -467,6 +484,9 @@ function StorageCard() {
     borrarPerfil();
     almacenCaptura.borrar();
     almacenPagosFijos.borrar();
+    almacenAnimo.borrar();
+    almacenEnfoque.borrar();
+    almacenConexiones.borrar();
     await borrarTodoEspacio();
     toast("Datos borrados.");
   };

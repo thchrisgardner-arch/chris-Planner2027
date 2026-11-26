@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { CalendarDays } from "lucide-react";
+import { ConexionDelDia } from "@/modules/asistentes/ConexionDelDia";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { QuickAdd } from "@/components/layout/HeaderActions";
 import { Select } from "@/components/ui/Field";
@@ -67,6 +68,7 @@ export function DashboardPage() {
         <AvisoRepararRacha />
         <HeroAsistente />
         <TuDia />
+        <ConexionDelDia />
         {refMonth !== current ? (
           // El selector solo cambia los indicadores: se dice para no confundir con el resto del inicio
           <p className="px-1 text-[13px] text-muted" role="status">

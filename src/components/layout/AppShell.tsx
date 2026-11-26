@@ -22,6 +22,8 @@ import { SincronizarAvisos } from "@/modules/avisos/AvisosCelular";
 import { CapturaRapida } from "@/modules/captura/CapturaRapida";
 import { GenerarPagosFijos } from "@/modules/finance/PagosFijosTab";
 import { PWA } from "@/modules/pwa/AppInstalable";
+import { ChequeoAnimo } from "@/modules/asistentes/ChequeoAnimo";
+import { ModoEnfoque } from "@/modules/enfoque/ModoEnfoque";
 
 const RAIL_KEY = "lifeos:ui:rail-expanded";
 
@@ -120,6 +122,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <GenerarPagosFijos />
           <CapturaRapida />
           <PWA />
+          {bienvenida ? null : <ChequeoAnimo />}
+          <ModoEnfoque />
           <PanelDemo />
         </>
       ) : null}

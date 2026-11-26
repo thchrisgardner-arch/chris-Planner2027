@@ -20,6 +20,7 @@ import { useReparar } from "./RepararRacha";
 import { cn } from "@/utils/cn";
 import { useGamificacion } from "./Gamificacion";
 import { IconoRacha } from "./Protagonismo";
+import { useChequeoEnCurso } from "./ChequeoAnimo";
 import { esSesionDeBienvenida, tutorialPendiente, useTutorialActivo } from "@/modules/tutorial/Tutorial";
 
 const DIAS = ["L", "M", "M", "J", "V", "S", "D"];
@@ -34,7 +35,9 @@ export function SaludoDiario() {
   const reparar = useReparar();
   // Espera a que termine el tutorial, no sale el día en que el tutorial está por empezar y no sale
   // en la misma sesión que la bienvenida o el tutorial (aparece en la siguiente apertura)
-  const visible = g.saludoVisible && !tutorial && !tutorialPendiente() && !esSesionDeBienvenida();
+  const chequeo = useChequeoEnCurso();
+  // …y espera a que se responda el chequeo de ánimo (nunca dos pop-ups juntos)
+  const visible = g.saludoVisible && !tutorial && !tutorialPendiente() && !esSesionDeBienvenida() && !chequeo;
 
   useEffect(() => {
     if (!visible) return;
