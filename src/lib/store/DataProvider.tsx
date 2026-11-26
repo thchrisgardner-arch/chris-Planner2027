@@ -26,6 +26,8 @@ interface DataContextValue {
   error: string | null;
   mode: DataMode;
   insert<T extends TableName>(table: T, data: NewRow<T>): Promise<Row<T>>;
+  /** Varios registros con una sola actualización de pantalla (p. ej. importar un extracto) */
+  insertMany<T extends TableName>(table: T, data: NewRow<T>[], onProgress?: (hechos: number) => void): Promise<Row<T>[]>;
   update<T extends TableName>(table: T, id: string, patch: Partial<NewRow<T>>): Promise<Row<T>>;
   remove(table: TableName, id: string): Promise<void>;
   saveProfile(patch: Partial<Profile>): Promise<void>;
@@ -115,6 +117,20 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return row;
   }, []);
 
+  const insertMany = useCallback(async <T extends TableName>(table: T, data: NewRow<T>[], onProgress?: (hechos: number) => void) => {
+    const rows: Row<T>[] = [];
+    try {
+      for (const d of data) {
+        rows.push(await getAdapter().insert(table, d));
+        onProgress?.(rows.length);
+      }
+    } finally {
+      // Aunque falle a mitad de camino, lo que sí se guardó aparece en pantalla
+      setDb((prev) => ({ ...prev, [table]: [...prev[table], ...rows] }));
+    }
+    return rows;
+  }, []);
+
   const update = useCallback(async <T extends TableName>(table: T, id: string, patch: Partial<NewRow<T>>) => {
     const row = await getAdapter().update(table, id, patch);
     setDb((prev) => ({
@@ -173,6 +189,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       error,
       mode,
       insert,
+      insertMany,
       update,
       remove,
       saveProfile,
@@ -181,7 +198,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       importAll,
       signOut,
     }),
-    [db, profile, status, error, mode, insert, update, remove, saveProfile, reload, clearAll, importAll, signOut],
+    [db, profile, status, error, mode, insert, insertMany, update, remove, saveProfile, reload, clearAll, importAll, signOut],
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

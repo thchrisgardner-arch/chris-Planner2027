@@ -34,7 +34,7 @@ export function proximoPago(dia: number | null, today: string): string | null {
   return `${yy}-${String(mm).padStart(2, "0")}-${String(dd).padStart(2, "0")}`;
 }
 
-function Kpi({ label, value, hint, alerta, inverse }: { label: string; value: string; hint?: string; alerta?: boolean; inverse?: boolean }) {
+export function Kpi({ label, value, hint, alerta, inverse }: { label: string; value: string; hint?: string; alerta?: boolean; inverse?: boolean }) {
   return (
     <Card variant={inverse ? "inverse" : "default"} className="flex min-h-[132px] flex-col">
       <h2 className={cn("text-[14px]", inverse ? "text-on-fg" : "text-fg")}>{label}</h2>

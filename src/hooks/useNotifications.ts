@@ -35,6 +35,18 @@ export function useNotifications(): AppNotification[] {
         out.push({ id: `e-${e.id}`, tone: "warn", title: e.title, detail: `${e.type === "pago" ? "Pago" : "Vencimiento"} en ${diffDays(e.date, today)} días`, href: "/calendario" });
       }
     }
+    // Pagos fijos (movimientos pendientes) que vencen en 3 días o ya vencieron: los recuerda Tic
+    for (const t of db.transactions) {
+      if (t.status !== "pendiente" || t.date > addDays(today, 3)) continue;
+      const d = diffDays(t.date, today);
+      out.push({
+        id: `pf-${t.id}`,
+        tone: d < 0 ? "warn" : "info",
+        title: t.description,
+        detail: d < 0 ? `Tic: era para hace ${-d} ${-d === 1 ? "día" : "días"}. Si ya lo pagaste, confírmalo.` : d === 0 ? "Tic: es hoy. Confírmalo cuando pagues." : `Tic: vence en ${d} ${d === 1 ? "día" : "días"}.`,
+        href: "/finanzas?tab=fijos",
+      });
+    }
     const pendingHabits = db.habits.filter((h) => isScheduled(h, today) && !logFor(db.habit_logs, h.id, today));
     if (pendingHabits.length) {
       out.push({

@@ -10,6 +10,7 @@ import { DESBLOQUEOS, LOGROS, etapaDe } from "@/lib/asistentes/progreso";
 import { ASISTENTE_IDS, type AsistenteId } from "@/lib/asistentes/tipos";
 import { useGamificacion } from "./Gamificacion";
 import { iniciarTutorial } from "@/modules/tutorial/Tutorial";
+import { abrirCaptura } from "@/modules/captura/CapturaRapida";
 
 const ANIMOS: { value: string; label: string; salud: number | null | undefined }[] = [
   { value: "auto", label: "Automático", salud: undefined },
@@ -176,6 +177,16 @@ export function PanelDemo() {
             </button>
             <button type="button" className={btn} onClick={() => g.celebrarDemo({ tipo: "hito", dias: 7, xp: 25 })}>
               Hito de 7 días
+            </button>
+            <button
+              type="button"
+              className={btn}
+              onClick={() => {
+                setAbierto(false);
+                abrirCaptura();
+              }}
+            >
+              Captura rápida
             </button>
           </div>
           <p className="mt-3 text-[11.5px] text-dim">Modo demo: nada de esto se guarda.</p>

@@ -325,7 +325,9 @@ const fechaDe = (iso: string | undefined, today: string) => (iso ? fechaLocal(is
 function candidatos(db: Database, prev: Progreso, today: string): { lista: Candidato[]; snap: Progreso["snap"]; vivos: Set<string> } {
   const lista: Candidato[] = [];
   const vivos = new Set<string>(); // prefijos de elementos que siguen existiendo
-  for (const t of db.transactions) lista.push({ refId: `tx:${t.id}`, tipo: t.type === "ingreso" ? "ingreso" : "movimiento", fecha: fechaDe(t.created_at, today) });
+  // Los pendientes (p. ej. pagos fijos que crea la app) no dan XP hasta que se confirman
+  for (const t of db.transactions)
+    if (t.status !== "pendiente") lista.push({ refId: `tx:${t.id}`, tipo: t.type === "ingreso" ? "ingreso" : "movimiento", fecha: fechaDe(t.created_at, today) });
   for (const l of db.habit_logs) lista.push({ refId: `hl:${l.id}`, tipo: "habito", fecha: fechaDe(l.created_at, today) });
   // Día perfecto: todos los hábitos programados de ese día marcados
   const porDia = new Map<string, Set<string>>();
@@ -340,7 +342,7 @@ function candidatos(db: Database, prev: Progreso, today: string): { lista: Candi
   if (prev.ui.iniciado) {
     const actual = monthKey(today);
     for (let k = monthKey(prev.ui.iniciado); k < actual; k = addMonths(k, 1)) {
-      const delMes = db.transactions.filter((t) => t.date.startsWith(k));
+      const delMes = db.transactions.filter((t) => t.date.startsWith(k) && t.status !== "pendiente");
       const ing = sum(delMes.filter((t) => t.type === "ingreso").map((t) => t.amount));
       const gas = sum(delMes.filter((t) => t.type === "gasto").map((t) => t.amount));
       if (gas > 0 && ing > gas) lista.push({ refId: `bmv:${k}`, tipo: "mes-verde", fecha: yaVisto(`bmv:${k}`) ?? today });

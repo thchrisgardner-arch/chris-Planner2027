@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeftRight, Download, PiggyBank, Plus, Search } from "lucide-react";
+import { ArrowLeftRight, Download, PiggyBank, Plus, Search, Upload } from "lucide-react";
 import { AsistenteModulo } from "@/modules/asistentes/Presencia";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -24,9 +24,11 @@ import { detectStoreInText } from "@/modules/other/stores";
 import { ActivityCard as ActivityWidget } from "@/modules/dashboard/DashboardWidgets";
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, accountTypeLabel } from "./constants";
 import { Deudas } from "./DeudasTab";
+import { PagosFijos } from "./PagosFijosTab";
+import { ImportarExtracto } from "./ImportarExtracto";
 import { accountBalance, avisoBorrarCuenta, expensesByBeneficiary, expensesByCategory, monthTotals, totalBalance } from "./selectors";
 
-type Tab = "resumen" | "movimientos" | "cuentas" | "ahorros" | "deudas";
+type Tab = "resumen" | "movimientos" | "cuentas" | "ahorros" | "deudas" | "fijos";
 
 const TABS: { value: Tab; label: string }[] = [
   { value: "resumen", label: "Resumen" },
@@ -34,6 +36,7 @@ const TABS: { value: Tab; label: string }[] = [
   { value: "cuentas", label: "Cuentas" },
   { value: "ahorros", label: "Ahorros" },
   { value: "deudas", label: "Deudas" },
+  { value: "fijos", label: "Pagos fijos" },
 ];
 
 export function FinancePage() {
@@ -59,6 +62,7 @@ export function FinancePage() {
       {tab === "cuentas" && <Accounts />}
       {tab === "ahorros" && <Savings />}
       {tab === "deudas" && <Deudas />}
+      {tab === "fijos" && <PagosFijos />}
       <p className="mt-8 text-center text-[13px] text-dim">Próximamente: presupuestos y análisis.</p>
     </>
   );
@@ -214,7 +218,9 @@ function Movements() {
   const [category, setCategory] = useState("");
   const [month, setMonth] = useState("");
   const [sort, setSort] = useState<SortKey>("recientes");
+  const [importar, setImportar] = useState(false);
   const months = useMemo(() => Array.from({ length: 12 }, (_, i) => addMonths(monthKey(today), -i)), [today]);
+  const importador = importar ? <ImportarExtracto onClose={() => setImportar(false)} /> : null;
   const accountName = (id: string | null) => (id ? db.accounts.find((a) => a.id === id)?.name ?? "—" : "");
 
   const rows = useMemo(
@@ -242,17 +248,24 @@ function Movements() {
 
   if (db.transactions.length === 0) {
     return (
-      <EmptyState
-        title="Aún no registras movimientos"
-        description={db.accounts.length ? "Registra ingresos, gastos o transferencias entre tus cuentas." : "Primero agrega una cuenta."}
-        action={
-          db.accounts.length ? undefined : (
-            <Button onClick={() => open({ kind: "account" })}>
-              <Plus size={18} /> Agregar cuenta
-            </Button>
-          )
-        }
-      />
+      <>
+        <EmptyState
+          title="Aún no registras movimientos"
+          description={db.accounts.length ? "Registra ingresos, gastos o transferencias entre tus cuentas, o importa el extracto de tu banco." : "Primero agrega una cuenta."}
+          action={
+            db.accounts.length ? (
+              <Button onClick={() => setImportar(true)}>
+                <Upload size={18} /> Importar extracto
+              </Button>
+            ) : (
+              <Button onClick={() => open({ kind: "account" })}>
+                <Plus size={18} /> Agregar cuenta
+              </Button>
+            )
+          }
+        />
+        {importador}
+      </>
     );
   }
 
@@ -290,10 +303,16 @@ function Movements() {
             </option>
           ))}
         </Select>
-        <Button onClick={exportCSV}>
-          <Download size={18} /> Exportar
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setImportar(true)} className="flex-1 lg:flex-none">
+            <Upload size={18} /> Importar
+          </Button>
+          <Button onClick={exportCSV} className="flex-1 lg:flex-none">
+            <Download size={18} /> Exportar
+          </Button>
+        </div>
       </div>
+      {importador}
       <p className="mb-2 text-[12px] text-dim">{rows.length} movimientos</p>
       {rows.length === 0 ? (
         <EmptyState compact icon={<Search size={20} />} title="Sin resultados" description="Prueba con otros filtros." />

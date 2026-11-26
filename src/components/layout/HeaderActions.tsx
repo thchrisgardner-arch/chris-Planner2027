@@ -1,28 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import {
-  ArrowLeftRight,
-  BadgeCheck,
-  Bell,
-  Database as DataIcon,
-  LogOut,
-  Settings,
-  CalendarPlus,
-  FolderPlus,
-  Gift,
-  ListTodo,
-  Plus,
-  Repeat,
-  Target,
-  Wallet,
-  PiggyBank,
-  UserRound,
-  ArrowUpRight,
-} from "lucide-react";
+import { BadgeCheck, Bell, Database as DataIcon, LogOut, Settings, Plus, UserRound, ArrowUpRight } from "lucide-react";
+import { abrirCaptura } from "@/modules/captura/CapturaRapida";
 import { Button } from "@/components/ui/Button";
 import { MenuItem, Popover } from "@/components/ui/Popover";
-import { useForms } from "@/components/providers/FormsProvider";
 import { useData } from "@/lib/store/DataProvider";
 import { useNotifications } from "@/hooks/useNotifications";
 import { cn } from "@/utils/cn";
@@ -216,78 +198,31 @@ export function NotificationsButton({ pill }: { pill?: boolean }) {
   );
 }
 
+/**
+ * Botón "Nuevo" / "+": abre la captura rápida (escribir una frase y Enter). Los formularios
+ * completos siguen a un toque desde ahí ("O abre un formulario").
+ */
 export function QuickAdd({ compact, fab }: { compact?: boolean; fab?: boolean }) {
-  const open = useForms();
-  return (
-    <Popover
-      side={fab ? "top" : "bottom"}
-      trigger={({ toggle, open: isOpen }) =>
-        fab ? (
-          <button
-            onClick={toggle}
-            aria-label="Crear nuevo"
-            aria-expanded={isOpen}
-            data-tour="agregar"
-            className={cn(
-              "focus-ring grid h-14 w-14 shrink-0 cursor-pointer place-items-center rounded-full bg-fg text-on-fg transition-transform duration-200 active:scale-95",
-              isOpen && "rotate-45",
-            )}
-          >
-            <Plus size={26} />
-          </button>
-        ) : compact ? (
-          <Button size="icon" variant="primary" onClick={toggle} aria-label="Crear nuevo" aria-expanded={isOpen}>
-            <Plus size={21} />
-          </Button>
-        ) : (
-          <Button variant="primary" onClick={toggle} aria-expanded={isOpen} data-tour="agregar" className="pr-2">
-            Nuevo
-            <span className="grid h-7 w-7 place-items-center rounded-full bg-on-fg text-fg">
-              <ArrowUpRight size={16} />
-            </span>
-          </Button>
-        )
-      }
+  return fab ? (
+    <button
+      onClick={abrirCaptura}
+      aria-label="Crear nuevo"
+      aria-haspopup="dialog"
+      data-tour="agregar"
+      className="focus-ring grid h-14 w-14 shrink-0 cursor-pointer place-items-center rounded-full bg-fg text-on-fg transition-transform duration-200 active:scale-95"
     >
-      {(close) => {
-        const go = (fn: () => void) => () => {
-          close();
-          fn();
-        };
-        return (
-          <div>
-            <p className="px-2.5 pb-1 pt-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-dim">Finanzas</p>
-            <MenuItem icon={<ArrowLeftRight size={18} />} onClick={go(() => open({ kind: "transaction" }))}>
-              Movimiento
-            </MenuItem>
-            <MenuItem icon={<Wallet size={18} />} onClick={go(() => open({ kind: "account" }))}>
-              Cuenta
-            </MenuItem>
-            <MenuItem icon={<PiggyBank size={18} />} onClick={go(() => open({ kind: "savings" }))}>
-              Objetivo de ahorro
-            </MenuItem>
-            <p className="px-2.5 pb-1 pt-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-dim">Organización</p>
-            <MenuItem icon={<ListTodo size={18} />} onClick={go(() => open({ kind: "task" }))}>
-              Tarea
-            </MenuItem>
-            <MenuItem icon={<FolderPlus size={18} />} onClick={go(() => open({ kind: "project" }))}>
-              Proyecto
-            </MenuItem>
-            <MenuItem icon={<Repeat size={18} />} onClick={go(() => open({ kind: "habit" }))}>
-              Hábito
-            </MenuItem>
-            <MenuItem icon={<CalendarPlus size={18} />} onClick={go(() => open({ kind: "event" }))}>
-              Evento
-            </MenuItem>
-            <MenuItem icon={<Gift size={18} />} onClick={go(() => open({ kind: "wish" }))}>
-              Deseo en wishlist
-            </MenuItem>
-            <MenuItem icon={<Target size={18} />} onClick={go(() => open({ kind: "goal" }))}>
-              Objetivo 2027
-            </MenuItem>
-          </div>
-        );
-      }}
-    </Popover>
+      <Plus size={26} />
+    </button>
+  ) : compact ? (
+    <Button size="icon" variant="primary" onClick={abrirCaptura} aria-label="Crear nuevo" aria-haspopup="dialog">
+      <Plus size={21} />
+    </Button>
+  ) : (
+    <Button variant="primary" onClick={abrirCaptura} aria-haspopup="dialog" data-tour="agregar" className="pr-2" title="Captura rápida (Ctrl K)">
+      Nuevo
+      <span className="grid h-7 w-7 place-items-center rounded-full bg-on-fg text-fg">
+        <ArrowUpRight size={16} />
+      </span>
+    </Button>
   );
 }
