@@ -2,13 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check, Cloud, Download, FlaskConical, GraduationCap, Upload, UserRound, HardDrive, Monitor, Moon, Plus, Sun, Trash2, X } from "lucide-react";
+import { Check, Cloud, Download, FlaskConical, GraduationCap, Upload, HardDrive, Monitor, Moon, Plus, Sun, Trash2, X } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ChoiceGroup, Field, Input, Select } from "@/components/ui/Field";
 import { Segmented } from "@/components/ui/misc";
-import { initials } from "@/components/layout/HeaderActions";
+import { FotoPerfil, PREFIJO_ASISTENTE, prepararFoto } from "@/components/layout/FotoPerfil";
+import { useAsistentes } from "@/lib/asistentes/estado";
+import { ASISTENTE_IDS } from "@/lib/asistentes/tipos";
 import { useFeedback } from "@/components/providers/FeedbackProvider";
 import { useData } from "@/lib/store/DataProvider";
 import { useToday } from "@/hooks/useToday";
@@ -175,57 +177,190 @@ function AppearanceCard() {
   );
 }
 
+const MONEDAS = [
+  { value: "COP", label: "COP · Peso colombiano" },
+  { value: "USD", label: "USD · Dólar estadounidense" },
+  { value: "EUR", label: "EUR · Euro" },
+  { value: "MXN", label: "MXN · Peso mexicano" },
+];
+const ZONAS = [
+  { value: "America/Bogota", label: "Bogotá (GMT−5)" },
+  { value: "America/Lima", label: "Lima (GMT−5)" },
+  { value: "America/Mexico_City", label: "Ciudad de México (GMT−6)" },
+  { value: "America/New_York", label: "Nueva York (GMT−5/−4)" },
+  { value: "America/Caracas", label: "Caracas (GMT−4)" },
+  { value: "America/Santiago", label: "Santiago (GMT−4/−3)" },
+  { value: "America/Argentina/Buenos_Aires", label: "Buenos Aires (GMT−3)" },
+  { value: "Europe/Madrid", label: "Madrid (GMT+1/+2)" },
+];
+const CORREO_OK = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function ProfileCard() {
   const { profile, saveProfile, mode } = useData();
+  const { estado } = useAsistentes();
   const { toast } = useFeedback();
   const [name, setName] = useState(profile?.full_name ?? "");
-  const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState(profile?.email ?? "");
+  const [currency, setCurrency] = useState(profile?.currency || "COP");
+  const [timezone, setTimezone] = useState(profile?.timezone || TIMEZONE);
+  const [avatar, setAvatar] = useState<string | null>(profile?.avatar_url ?? null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const archivo = useRef<HTMLInputElement>(null);
+  // El correo de una cuenta sincronizada lo maneja el inicio de sesión
+  const correoEditable = mode !== "supabase";
+
+  const cambios =
+    name.trim() !== (profile?.full_name ?? "") ||
+    (correoEditable && email.trim() !== (profile?.email ?? "")) ||
+    currency !== (profile?.currency || "COP") ||
+    timezone !== (profile?.timezone || TIMEZONE) ||
+    avatar !== (profile?.avatar_url ?? null);
+
+  const subir = async (file: File) => {
+    try {
+      setAvatar(await prepararFoto(file));
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "No se pudo usar esa imagen.", "error");
+    }
+  };
 
   const save = async () => {
-    if (!name.trim()) return setError("El nombre no puede quedar vacío.");
-    setError(null);
+    const e: Record<string, string> = {};
+    if (!name.trim()) e.name = "El nombre no puede quedar vacío.";
+    if (correoEditable && email.trim() && !CORREO_OK.test(email.trim())) e.email = "Revisa el correo (ej. nombre@correo.com).";
+    setErrors(e);
+    if (Object.keys(e).length) return;
     setSaving(true);
     try {
-      await saveProfile({ full_name: name.trim() });
+      await saveProfile({
+        full_name: name.trim(),
+        ...(correoEditable ? { email: email.trim() || null } : {}),
+        currency,
+        timezone,
+        avatar_url: avatar,
+      });
       toast("Perfil actualizado.");
-    } catch (e) {
-      toast(e instanceof Error ? e.message : "No se pudo guardar.", "error");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "No se pudo guardar.", "error");
     } finally {
       setSaving(false);
     }
   };
 
+  const opcion = (activo: boolean) =>
+    cn(
+      "focus-ring grid cursor-pointer place-items-center rounded-full p-[3px] transition-[box-shadow,transform] duration-200 hover:scale-[1.05]",
+      activo && "ring-2 ring-fg ring-offset-2 ring-offset-card",
+    );
+
   return (
     <Card id="perfil">
       <CardHeader title="Perfil" subtitle="Cómo te saluda LIFE for LIFE" />
-      <div className="mb-5 flex items-center gap-4">
-        <span className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-brand text-[20px] text-[#0a0a0a]" aria-hidden>
-          {initials(name || profile?.full_name) || <UserRound size={26} />}
-        </span>
-        <p className="text-[13px] leading-relaxed text-muted">Tu avatar usa tus iniciales. Pronto podrás subir tu foto.</p>
+
+      {/* Foto: subir una propia o elegir el rostro de un asistente */}
+      <div className="mb-6 flex flex-col gap-5 sm:flex-row sm:items-center">
+        <FotoPerfil avatar={avatar} nombre={name || profile?.full_name} size={88} />
+        <div className="min-w-0 flex-1">
+          <p className="text-[14px] font-medium">Foto de perfil</p>
+          <p className="mt-0.5 text-[13px] text-muted">Sube tu foto o elige a uno de tus asistentes.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button size="sm" variant="primary" onClick={() => archivo.current?.click()}>
+              <Upload size={15} /> {avatar?.startsWith("data:") ? "Cambiar foto" : "Subir foto"}
+            </Button>
+            {avatar ? (
+              <Button size="sm" variant="ghost" onClick={() => setAvatar(null)}>
+                <X size={15} /> Quitar
+              </Button>
+            ) : null}
+            <input
+              ref={archivo}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(ev) => {
+                const f = ev.target.files?.[0];
+                ev.target.value = "";
+                if (f) void subir(f);
+              }}
+            />
+          </div>
+        </div>
       </div>
+      <div className="mb-6">
+        <p className="mb-2.5 text-[13px] text-muted">O usa el rostro de un asistente</p>
+        <div className="flex flex-wrap gap-2.5" role="radiogroup" aria-label="Foto de perfil predeterminada">
+          <button type="button" role="radio" aria-checked={!avatar} aria-label="Mis iniciales" title="Mis iniciales" onClick={() => setAvatar(null)} className={opcion(!avatar)}>
+            <FotoPerfil avatar={null} nombre={name || profile?.full_name} size={52} />
+          </button>
+          {ASISTENTE_IDS.map((id) => {
+            const valor = `${PREFIJO_ASISTENTE}${id}`;
+            const nombre = estado.ajustes[id].nombre;
+            return (
+              <button
+                key={id}
+                type="button"
+                role="radio"
+                aria-checked={avatar === valor}
+                aria-label={nombre}
+                title={nombre}
+                onClick={() => setAvatar(valor)}
+                className={opcion(avatar === valor)}
+              >
+                <FotoPerfil avatar={valor} nombre={null} size={52} />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Nombre" error={error}>
-          {(id) => <Input id={id} value={name} onChange={(e) => setName(e.target.value)} />}
+        <Field label="Nombre" error={errors.name}>
+          {(id) => <Input id={id} value={name} autoComplete="name" onChange={(e) => setName(e.target.value)} aria-invalid={!!errors.name || undefined} />}
         </Field>
-        <Field label="Correo" hint={mode === "supabase" ? undefined : "Lo podrás agregar cuando llegue la sincronización."}>
-          {(id) => <Input id={id} value={profile?.email ?? ""} placeholder="Sin correo" disabled />}
-        </Field>
-        <Field label="Moneda principal" hint="LIFE for LIFE trabaja en pesos colombianos.">
+        <Field label="Correo (opcional)" error={errors.email} hint={correoEditable ? "Solo se guarda en este dispositivo." : "Es el correo con el que inicias sesión."}>
           {(id) => (
-            <Select id={id} value="COP" disabled>
-              <option value="COP">COP · Peso colombiano</option>
+            <Input
+              id={id}
+              type="email"
+              autoComplete="email"
+              value={email}
+              placeholder="nombre@correo.com"
+              disabled={!correoEditable}
+              onChange={(e) => setEmail(e.target.value)}
+              aria-invalid={!!errors.email || undefined}
+            />
+          )}
+        </Field>
+        <Field label="Moneda principal" hint={currency !== "COP" ? "Se guarda tu preferencia; por ahora los montos se muestran en pesos colombianos." : undefined}>
+          {(id) => (
+            <Select id={id} value={currency} onChange={(e) => setCurrency(e.target.value)}>
+              {MONEDAS.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
             </Select>
           )}
         </Field>
-        <Field label="Zona horaria">
-          {(id) => <Input id={id} value={TIMEZONE} disabled />}
+        <Field label="Zona horaria" hint={timezone !== TIMEZONE ? "Se guarda tu preferencia; por ahora las fechas se calculan con la hora de Bogotá." : undefined}>
+          {(id) => (
+            <Select id={id} value={timezone} onChange={(e) => setTimezone(e.target.value)}>
+              {(ZONAS.some((z) => z.value === timezone) ? ZONAS : [{ value: timezone, label: timezone }, ...ZONAS]).map((z) => (
+                <option key={z.value} value={z.value}>
+                  {z.label}
+                </option>
+              ))}
+            </Select>
+          )}
         </Field>
       </div>
-      <Button variant="primary" className="mt-5" onClick={save} loading={saving}>
-        Guardar perfil
-      </Button>
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        <Button variant="primary" onClick={save} loading={saving} disabled={!cambios}>
+          Guardar perfil
+        </Button>
+        {cambios ? <span className="text-[13px] text-muted">Tienes cambios sin guardar</span> : null}
+      </div>
     </Card>
   );
 }

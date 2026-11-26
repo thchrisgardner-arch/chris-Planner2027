@@ -185,6 +185,8 @@ export interface Profile {
   email: string | null;
   currency: string;
   timezone: string;
+  /** Foto de perfil: imagen subida (data URL, 256 px) o `asistente:<id>` para el rostro de una mascota */
+  avatar_url?: string | null;
 }
 
 export interface Tables {

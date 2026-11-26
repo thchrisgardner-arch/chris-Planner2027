@@ -55,6 +55,7 @@ export const supabaseAdapter: DataAdapter = {
       email: auth.user.email ?? null,
       currency: data?.currency ?? "COP",
       timezone: data?.timezone ?? TIMEZONE,
+      avatar_url: data?.avatar_url ?? null,
     } satisfies Profile;
   },
 

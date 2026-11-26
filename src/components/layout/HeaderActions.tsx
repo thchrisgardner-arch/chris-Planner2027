@@ -29,6 +29,7 @@ import { cn } from "@/utils/cn";
 import { useFeedback } from "@/components/providers/FeedbackProvider";
 import { LOCAL_LOGIN_ENABLED } from "@/services/localAuth";
 import { StorageChip } from "./Sidebar";
+import { FotoPerfil } from "./FotoPerfil";
 
 export function initials(name: string | null | undefined) {
   if (!name) return "";
@@ -54,12 +55,17 @@ export function RingAvatar({ size = 40 }: { size?: number }) {
       aria-hidden
     >
       <span className="grid h-full w-full place-items-center rounded-full bg-card p-[2px]">
-        <span
-          className="grid h-full w-full place-items-center rounded-full bg-gradient-to-br from-elev to-line font-medium text-fg"
-          style={{ fontSize: Math.max(11, size * 0.32) }}
-        >
-          {initials(profile?.full_name) || <UserRound size={Math.round(size * 0.45)} aria-hidden />}
-        </span>
+        {profile?.avatar_url ? (
+          // Foto subida o rostro de un asistente (Configuración → Perfil)
+          <FotoPerfil avatar={profile.avatar_url} nombre={profile.full_name} size={size - 8} />
+        ) : (
+          <span
+            className="grid h-full w-full place-items-center rounded-full bg-gradient-to-br from-elev to-line font-medium text-fg"
+            style={{ fontSize: Math.max(11, size * 0.32) }}
+          >
+            {initials(profile?.full_name) || <UserRound size={Math.round(size * 0.45)} aria-hidden />}
+          </span>
+        )}
       </span>
     </span>
   );
