@@ -154,7 +154,20 @@ export interface WishlistItem extends BaseRow {
 }
 
 /* ── Objetivos ── */
-export type GoalArea = "finanzas" | "profesional" | "salud" | "personal" | "aprendizaje" | "experiencias";
+export type GoalArea =
+  | "finanzas"
+  | "profesional"
+  | "salud"
+  | "personal"
+  | "aprendizaje"
+  | "experiencias"
+  | "vehiculo"
+  | "viajes"
+  | "hogar"
+  | "familia"
+  | "negocio"
+  | "mascotas"
+  | "espiritualidad";
 export type GoalStatus = "no_iniciado" | "en_progreso" | "logrado" | "pausado";
 
 export interface AnnualGoal extends BaseRow {

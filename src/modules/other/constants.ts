@@ -30,6 +30,13 @@ export const GOAL_AREAS: { value: GoalArea; label: string; color: string }[] = [
   { value: "personal", label: "Personal", color: "#f4a340" },
   { value: "aprendizaje", label: "Aprendizaje", color: "#66a9f7" },
   { value: "experiencias", label: "Experiencias", color: "#c4b5fd" },
+  { value: "vehiculo", label: "Vehículo", color: "#5b6b7f" },
+  { value: "viajes", label: "Viajes", color: "#38bdf8" },
+  { value: "hogar", label: "Hogar", color: "#d4a373" },
+  { value: "familia", label: "Familia", color: "#f472b6" },
+  { value: "negocio", label: "Negocio", color: "#0ea5a4" },
+  { value: "mascotas", label: "Mascotas", color: "#fbbf24" },
+  { value: "espiritualidad", label: "Espiritualidad", color: "#a78bfa" },
 ];
 
 export const GOAL_STATUSES: { value: GoalStatus; label: string }[] = [

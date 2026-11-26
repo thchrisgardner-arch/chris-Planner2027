@@ -74,7 +74,8 @@ export function GoalsPage() {
             <Card className="xl:col-span-8">
               <h2 className="text-[15px]">Por área de vida</h2>
               <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                {GOAL_AREAS.map((a) => {
+                {/* Con 13 áreas, solo se muestran las que tienen objetivos */}
+                {GOAL_AREAS.filter((a) => goals.some((g) => g.area === a.value)).map((a) => {
                   const list = goals.filter((g) => g.area === a.value);
                   const p = list.length ? list.reduce((s, g) => s + g.progress, 0) / list.length : 0;
                   return (
