@@ -1,4 +1,9 @@
 @import "tailwindcss";
+/* Tailwind no debe leer el instalador de Windows ni los archivos de Android (binarios grandes:
+   en Windows daban «Recursos insuficientes» al compilar) */
+@source not "../../escritorio";
+@source not "../../android";
+@source not "../../instaladores";
 
 /* ═════════════ LIFE for LIFE · Sistema de diseño ═════════════
    Planos de color en vez de bordes y sombras. Cifras protagonistas.
