@@ -28,55 +28,27 @@ interface Paso {
 
 const PASOS: Paso[] = [
   {
-    titulo: "Bienvenido a LIFE for LIFE",
-    texto: "Te muestro en un minuto cómo funciona. Puedes saltarlo cuando quieras.",
-  },
-  {
     sel: 'section[aria-label$="tu asistente"]',
     titulo: "Tu asistente",
-    extraArriba: 56,
-    texto: "Te acompaña y te habla según cómo vas. Si cumples se pone feliz; si te descuidas, se preocupa.",
+    extraArriba: 96,
+    texto: "Te acompaña y te habla según cómo vas: si cumples se pone feliz; si te descuidas, se preocupa.",
   },
   {
     sel: '[data-tour="agregar"]',
     selMovil: 'nav[aria-label="Navegación rápida"] [data-tour="agregar"]',
-    titulo: "Registra todo desde aquí",
-    texto: "Con este botón agregas un gasto, un ingreso, una tarea, un hábito o un evento en segundos.",
+    titulo: "Registra en segundos",
+    texto: "Con este botón agregas un gasto, un ingreso, una tarea, un hábito o un evento.",
   },
   {
     sel: 'a[aria-label^="Racha de"]',
     titulo: "Tu racha y tu nivel",
-    texto: "Cada cosa que registras suma XP y sube tu nivel. Registra algo cada día para no perder la racha.",
-  },
-  {
-    sel: '[data-tour="dia"]',
-    titulo: "Tu meta y tus misiones",
-    texto: "Cada día tienes una meta de XP y 3 misiones. Cada misión da +10 XP y las tres juntas, +20 extra. La meta la cambias en Configuración → Progreso.",
-  },
-  {
-    sel: '[data-tour="kpis"]',
-    titulo: "Tu plata del mes",
-    texto: "Balance, ingresos y gastos. Si cierras el mes ganando más de lo que gastas, te llevas +100 XP.",
-  },
-  {
-    sel: '[data-tour="habitos"]',
-    titulo: "Tus hábitos",
-    texto: "Toca el día para marcar un hábito cumplido. Si cumples todos los del día, es un día perfecto.",
+    texto: "Todo lo que registras suma XP. Registra algo cada día para no perder la racha.",
   },
   {
     sel: 'nav[aria-label="Principal"], nav[aria-label="Navegación rápida"]',
     titulo: "Todas las secciones",
-    texto: "Finanzas, Proyectos, Hábitos, Wishlist, Objetivos, Calendario y tu Progreso están en este menú.",
-    textoMovil: "Aquí cambias de sección. El botón de las tres rayas abre el resto: Objetivos, Calendario, Progreso y Configuración.",
-  },
-  {
-    sel: 'button[aria-label^="Notificaciones"]',
-    titulo: "Avisos",
-    texto: "Pagos por vencer, tareas de hoy y hábitos pendientes. En Configuración → Progreso puedes recibirlos en tu celular.",
-  },
-  {
-    titulo: "¡Listo!",
-    texto: "Ya sabes lo básico. Si quieres ver este tutorial otra vez, está en Configuración → Perfil.",
+    texto: "Finanzas, Proyectos, Hábitos, Wishlist, Objetivos, Calendario y tu Progreso. Este tutorial se repite desde Configuración.",
+    textoMovil: "Aquí cambias de sección; las tres rayas abren el resto. Este tutorial se repite desde Configuración.",
   },
 ];
 
@@ -93,12 +65,41 @@ const suscribir = (f: () => void) => {
 
 /** Abre el tutorial desde cualquier parte (Configuración, panel de pruebas) */
 export function iniciarTutorial() {
+  marcarSesionDeBienvenida();
   activo = true;
   sesion += 1;
   avisar();
 }
 export function useTutorialActivo() {
   return useSyncExternalStore(suscribir, () => activo, () => false);
+}
+/** Marca el tutorial como visto (p. ej. si cancelas la bienvenida) */
+export function marcarTutorialVisto() {
+  try {
+    window.localStorage.setItem(CLAVE, "visto");
+  } catch {
+    /* sin almacenamiento */
+  }
+}
+/**
+ * Sesión de bienvenida: en la pestaña donde se vio la bienvenida o el tutorial, el pop-up de racha
+ * no sale; espera a la siguiente apertura de la app.
+ */
+const CLAVE_SESION = "lifeos:sesion-bienvenida";
+export function marcarSesionDeBienvenida() {
+  try {
+    window.sessionStorage.setItem(CLAVE_SESION, "1");
+  } catch {
+    /* sin almacenamiento */
+  }
+}
+export function esSesionDeBienvenida() {
+  if (typeof window === "undefined") return false;
+  try {
+    return !window.sessionStorage.getItem("lifeos-demo") && window.sessionStorage.getItem(CLAVE_SESION) === "1";
+  } catch {
+    return false;
+  }
 }
 /** Primera vez en este dispositivo (fuera del modo demo): el tutorial todavía no se ha visto */
 export function tutorialPendiente() {
@@ -128,7 +129,8 @@ export function Tutorial() {
   const { mode } = useData();
   const s = useSyncExternalStore(suscribir, () => sesion, () => 0);
 
-  // Primera vez: arranca solo (nunca en modo demo)
+  // Primera vez: arranca solo (nunca en modo demo). Se monta cuando termina la bienvenida; si la
+  // bienvenida se canceló, el tutorial ya quedó marcado como visto y no arranca.
   useEffect(() => {
     if (mode === "demo" || !tutorialPendiente()) return;
     const t = setTimeout(iniciarTutorial, 700);
@@ -199,18 +201,29 @@ function Recorrido() {
       if (!fijo && lejos) window.scrollBy({ top: r.top - 88 - extra, behavior: suave ? "smooth" : "auto" });
     };
     encuadrar(true);
+    // Medir al terminar el scroll (scrollend) y, como respaldo, unos instantes después
+    let raf = 0;
+    const medirLuego = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => requestAnimationFrame(medir));
+    };
     const t0 = setTimeout(() => encuadrar(false), 600);
-    const t1 = setTimeout(medir, 60);
-    const t2 = setTimeout(medir, 450);
-    const t3 = setTimeout(medir, 700);
-    window.addEventListener("resize", medir);
+    const t1 = setTimeout(medirLuego, 80);
+    const t2 = setTimeout(medirLuego, 700);
+    window.addEventListener("scrollend", medirLuego);
+    window.addEventListener("resize", medirLuego);
     window.addEventListener("scroll", medir, true);
+    const el = buscar(paso);
+    const ro = el && "ResizeObserver" in window ? new ResizeObserver(medirLuego) : null;
+    if (el && ro) ro.observe(el);
     return () => {
       clearTimeout(t0);
       clearTimeout(t1);
       clearTimeout(t2);
-      clearTimeout(t3);
-      window.removeEventListener("resize", medir);
+      cancelAnimationFrame(raf);
+      ro?.disconnect();
+      window.removeEventListener("scrollend", medirLuego);
+      window.removeEventListener("resize", medirLuego);
       window.removeEventListener("scroll", medir, true);
     };
   }, [abierto, i, pathname, medir]);
@@ -337,7 +350,7 @@ function Recorrido() {
             </Button>
           ) : null}
           <Button variant="primary" className="h-9 px-4 text-[13px]" data-autofocus onClick={() => avanzar(1)}>
-            {ultimo ? "Empezar" : i === 0 ? "Comenzar" : "Siguiente"}
+            {ultimo ? "Listo" : "Siguiente"}
           </Button>
         </div>
       </div>

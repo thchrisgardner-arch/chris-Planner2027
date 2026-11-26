@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { marcarSesionDeBienvenida, marcarTutorialVisto } from "@/modules/tutorial/Tutorial";
 import { FormModal } from "@/components/ui/FormModal";
 import { Field, Input } from "@/components/ui/Field";
 import { useData } from "@/lib/store/DataProvider";
@@ -38,8 +39,14 @@ export function WelcomeModal({ onDone }: { onDone: () => void }) {
   const { estado, hacerPrincipal } = useAsistentes();
   const [principal, setPrincipal] = useState<AsistenteId | null>(null);
 
+  const completada = useRef(false);
+
+  // Cancelar la bienvenida = no hay tutorial (se puede relanzar desde Configuración).
+  // FormModal también llama a onClose después de guardar: en ese caso el tutorial sí sigue.
   const close = () => {
     markOnboardingDone();
+    marcarSesionDeBienvenida();
+    if (!completada.current) marcarTutorialVisto();
     setOpen(false);
     onDone();
   };
@@ -59,7 +66,10 @@ export function WelcomeModal({ onDone }: { onDone: () => void }) {
         }
         await saveProfile({ full_name: name.trim() });
         if (principal) hacerPrincipal(principal);
+        completada.current = true;
         markOnboardingDone();
+        marcarSesionDeBienvenida();
+        // Al terminar la bienvenida se monta el tutorial y arranca solo
         onDone();
         return `¡Listo, ${name.trim().split(" ")[0]}!`;
       }}

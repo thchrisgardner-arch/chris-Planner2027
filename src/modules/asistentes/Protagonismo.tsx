@@ -91,7 +91,7 @@ export function HeroAsistente({ nombreUsuario }: { nombreUsuario?: string }) {
                 key={x}
                 type="button"
                 aria-pressed={sel}
-                aria-label={`${estado.ajustes[x].nombre}, ${ANIMO_LABEL[s.animo].toLowerCase()}`}
+                aria-label={`Ver a ${estado.ajustes[x].nombre}, ${ANIMO_LABEL[s.animo].toLowerCase()}`}
                 title={`${estado.ajustes[x].nombre} · ${ANIMO_LABEL[s.animo]}${s.puntaje !== null ? ` · ${s.puntaje}` : ""}`}
                 onClick={() => setElegido(x)}
                 className={cn("focus-ring grid h-11 w-11 cursor-pointer place-items-center rounded-full transition-colors", sel ? "bg-bg ring-2 ring-fg" : "bg-bg/70 hover:bg-bg")}

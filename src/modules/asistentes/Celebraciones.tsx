@@ -14,7 +14,7 @@ import { useAsistentes } from "@/lib/asistentes/estado";
 import { FICHAS, type Tono } from "@/lib/asistentes/definiciones";
 import type { Accesorio, AsistenteId, Colores } from "@/lib/asistentes/tipos";
 import { useGamificacion, type Celebracion } from "./Gamificacion";
-import { useTutorialActivo } from "@/modules/tutorial/Tutorial";
+import { esSesionDeBienvenida, useTutorialActivo } from "@/modules/tutorial/Tutorial";
 import { IconoRacha } from "./Protagonismo";
 import { retro, type Retro } from "@/lib/asistentes/sonido";
 
@@ -115,7 +115,9 @@ export function CapaCelebraciones() {
   const cola = g.celebraciones;
   // Espera a que se cierre el pop-up diario de racha
   const tutorial = useTutorialActivo();
-  const abierta = cola.length > 0 && i < cola.length && !g.saludoVisible && !tutorial;
+  // (en la sesión de bienvenida ese pop-up no sale, así que no hay que esperarlo)
+  const saludoEnPantalla = g.saludoVisible && !esSesionDeBienvenida();
+  const abierta = cola.length > 0 && i < cola.length && !saludoEnPantalla && !tutorial;
   const c: Celebracion | undefined = cola[i];
 
   const cerrar = () => {
