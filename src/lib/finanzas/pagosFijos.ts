@@ -3,6 +3,8 @@
  * Cada mes la app crea un movimiento *pendiente* por pago; al confirmarlo ("Pagado") se vuelve
  * un gasto normal. `generados` recuerda qué movimiento se creó cada mes, así un pendiente que la
  * persona borra no vuelve a aparecer ese mes.
+ * Ingresos fijos (sueldo, arriendo que recibes, un cliente mensual): el mismo mecanismo con
+ * `mov: "ingreso"`; al confirmarlo ("Recibido") se vuelve un ingreso normal. Sin `mov`, es un pago.
  */
 import { crearAlmacen } from "@/lib/almacenLocal";
 import { daysInMonth, monthKey, todayISO } from "@/utils/dates";
@@ -18,15 +20,28 @@ export const TIPOS_PAGO_FIJO: { value: TipoPagoFijo; label: string; categoria: s
   { value: "otro", label: "Otro", categoria: "Otros" },
 ];
 
+export type MovFijo = "gasto" | "ingreso";
+
+export type TipoIngresoFijo = "salario" | "arriendo" | "cliente" | "otro";
+
+export const TIPOS_INGRESO_FIJO: { value: TipoIngresoFijo; label: string; categoria: string }[] = [
+  { value: "salario", label: "Salario", categoria: "Salario" },
+  { value: "arriendo", label: "Arriendo", categoria: "Otros ingresos" },
+  { value: "cliente", label: "Cliente", categoria: "Freelance" },
+  { value: "otro", label: "Otro", categoria: "Otros ingresos" },
+];
+
 export interface PagoFijo {
   id: string;
+  /** Pago (gasto, por defecto) o ingreso fijo */
+  mov?: MovFijo;
   nombre: string;
   monto: number;
   categoria: string;
   cuentaId: string | null;
   /** Día del mes (1 a 31; en meses cortos se paga el último día) */
   dia: number;
-  tipo: TipoPagoFijo;
+  tipo: TipoPagoFijo | TipoIngresoFijo;
   activo: boolean;
   creado: string;
 }
@@ -63,10 +78,12 @@ export interface PagoDelMes {
   monto: number;
 }
 
-/** Cómo va cada pago fijo en un mes */
-export function pagosDelMes(datos: DatosPagosFijos, db: Database, mes: string): PagoDelMes[] {
+export const movDe = (p: Pick<PagoFijo, "mov">): MovFijo => p.mov ?? "gasto";
+
+/** Cómo va cada pago fijo (o ingreso fijo, con `mov`) en un mes */
+export function pagosDelMes(datos: DatosPagosFijos, db: Database, mes: string, mov: MovFijo = "gasto"): PagoDelMes[] {
   return datos.pagos
-    .filter((p) => p.activo)
+    .filter((p) => p.activo && movDe(p) === mov)
     .map((pago) => {
       const txId = datos.generados[pago.id]?.[mes];
       const tx = txId ? (db.transactions.find((t) => t.id === txId) ?? null) : null;

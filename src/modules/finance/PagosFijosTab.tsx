@@ -3,6 +3,7 @@
 /**
  * Finanzas → Pagos fijos: arriendo, servicios, suscripciones y cuotas. Cada mes se crean como
  * movimientos pendientes; se confirman con un toque ("Pagado", con el monto editable).
+ * Finanzas → Ingresos fijos: lo mismo para lo que recibes cada mes ("Recibido").
  */
 import { useMemo, useState } from "react";
 import { Check, Plus, Repeat } from "lucide-react";
@@ -22,17 +23,49 @@ import {
   nuevoIdPago,
   pagosDelMes,
   resumenMes,
+  TIPOS_INGRESO_FIJO,
   TIPOS_PAGO_FIJO,
+  type MovFijo,
   type PagoDelMes,
   type PagoFijo,
-  type TipoPagoFijo,
 } from "@/lib/finanzas/pagosFijos";
-import { EXPENSE_CATEGORIES } from "./constants";
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "./constants";
 import { Kpi } from "./DeudasTab";
 import { monthKey, monthLabel, relativeDay } from "@/utils/dates";
 import { formatAmountInput, formatCOP, formatKpiCOP, parseCOP } from "@/utils/money";
 
-export function PagosFijos() {
+/** Textos de la pestaña según sea de pagos o de ingresos */
+const TXT = {
+  gasto: {
+    vacioTitulo: "Sin pagos fijos",
+    vacio: "Arriendo, servicios, suscripciones y cuotas. Cada mes quedan pendientes y los confirmas con un toque.",
+    agregar: "Agregar pago fijo",
+    hecho: "Pagado",
+    kpiHecho: "Pagado este mes",
+    kpiFalta: "Falta por pagar",
+    kpiProximo: "Próximo pago",
+    nada: "Todo pagado",
+    plural: ["pago", "pagos"],
+    vencido: ["pago vencido", "pagos vencidos"],
+    progreso: "Pagado de los pagos fijos del mes",
+  },
+  ingreso: {
+    vacioTitulo: "Sin ingresos fijos",
+    vacio: "Sueldo, arriendo que recibes o un cliente mensual. Cada mes quedan pendientes y los confirmas cuando llegan.",
+    agregar: "Agregar ingreso fijo",
+    hecho: "Recibido",
+    kpiHecho: "Recibido este mes",
+    kpiFalta: "Falta por recibir",
+    kpiProximo: "Próximo ingreso",
+    nada: "Todo recibido",
+    plural: ["ingreso", "ingresos"],
+    vencido: ["ingreso atrasado", "ingresos atrasados"],
+    progreso: "Recibido de los ingresos fijos del mes",
+  },
+} as const;
+
+export function PagosFijos({ mov = "gasto" }: { mov?: MovFijo }) {
+  const t = TXT[mov];
   const { db } = useData();
   const today = useToday();
   const datos = almacenPagosFijos.useValor();
@@ -41,7 +74,7 @@ export function PagosFijos() {
   const [form, setForm] = useState<{ pago?: PagoFijo } | null>(null);
   const [confirmar, setConfirmar] = useState<PagoDelMes | null>(null);
   const mes = today ? monthKey(today) : "";
-  const lista = useMemo(() => (mes ? pagosDelMes(datos, db, mes) : []), [datos, db, mes]);
+  const lista = useMemo(() => (mes ? pagosDelMes(datos, db, mes, mov) : []), [datos, db, mes, mov]);
   const r = resumenMes(lista);
   const pendientes = lista.filter((x) => x.estado === "pendiente");
   const proximo = pendientes[0];
@@ -49,21 +82,21 @@ export function PagosFijos() {
 
   const modales = (
     <>
-      {form ? <PagoFijoForm pago={form.pago} onClose={() => setForm(null)} /> : null}
-      {confirmar ? <ConfirmarPago item={confirmar} onClose={() => setConfirmar(null)} /> : null}
+      {form ? <PagoFijoForm pago={form.pago} mov={mov} onClose={() => setForm(null)} /> : null}
+      {confirmar ? <ConfirmarPago item={confirmar} mov={mov} onClose={() => setConfirmar(null)} /> : null}
     </>
   );
 
-  if (!datos.pagos.length) {
+  if (!datos.pagos.some((p) => (p.mov ?? "gasto") === mov)) {
     return (
       <>
         <EmptyCard
           ghost="list"
-          title="Sin pagos fijos"
-          description="Arriendo, servicios, suscripciones y cuotas. Cada mes quedan pendientes y los confirmas con un toque."
+          title={t.vacioTitulo}
+          description={t.vacio}
           action={
             <Button variant="secondary" className="bg-bg" onClick={() => setForm({})}>
-              <Plus size={18} /> Agregar pago fijo
+              <Plus size={18} /> {t.agregar}
             </Button>
           }
         />
@@ -75,10 +108,10 @@ export function PagosFijos() {
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4 [&>*]:min-w-0">
-        <Kpi inverse label="Pagado este mes" value={formatKpiCOP(r.pagado)} hint={`${r.cuantosPagados} de ${r.cuantos} pagos`} />
-        <Kpi label="Falta por pagar" value={formatKpiCOP(r.falta)} alerta={vencidos.length > 0} hint={vencidos.length ? `${vencidos.length} ${vencidos.length === 1 ? "pago vencido" : "pagos vencidos"}` : "En fijos este mes"} />
+        <Kpi inverse label={t.kpiHecho} value={formatKpiCOP(r.pagado)} hint={`${r.cuantosPagados} de ${r.cuantos} ${t.plural[1]}`} />
+        <Kpi label={t.kpiFalta} value={formatKpiCOP(r.falta)} alerta={vencidos.length > 0} hint={vencidos.length ? `${vencidos.length} ${vencidos.length === 1 ? t.vencido[0] : t.vencido[1]}` : "En fijos este mes"} />
         <Kpi label="Total en fijos" value={formatKpiCOP(r.total)} hint={monthLabel(mes)} />
-        <Kpi label="Próximo pago" value={proximo ? formatKpiCOP(proximo.monto) : "—"} hint={proximo ? `${proximo.pago.nombre} · ${relativeDay(proximo.fecha, today)}` : "Todo pagado"} />
+        <Kpi label={t.kpiProximo} value={proximo ? formatKpiCOP(proximo.monto) : "—"} hint={proximo ? `${proximo.pago.nombre} · ${relativeDay(proximo.fecha, today)}` : t.nada} />
       </div>
 
       {proximo ? (
@@ -87,7 +120,9 @@ export function PagosFijos() {
           <p className="min-w-0 flex-1 text-[14px]" aria-live="polite">
             <span className="font-medium">{tic.nombre}:</span>{" "}
             {vencidos.length
-              ? `${vencidos[0].pago.nombre} era para ${relativeDay(vencidos[0].fecha, today).toLowerCase()}. Si ya lo pagaste, confírmalo y quedamos al día.`
+              ? mov === "ingreso"
+                ? `${vencidos[0].pago.nombre} era para ${relativeDay(vencidos[0].fecha, today).toLowerCase()}. Si ya te llegó, confírmalo y quedamos al día.`
+                : `${vencidos[0].pago.nombre} era para ${relativeDay(vencidos[0].fecha, today).toLowerCase()}. Si ya lo pagaste, confírmalo y quedamos al día.`
               : `${proximo.pago.nombre} es ${relativeDay(proximo.fecha, today).toLowerCase()}. Yo te aviso, tú confirmas.`}
           </p>
         </Card>
@@ -105,7 +140,7 @@ export function PagosFijos() {
             <Plus size={18} /> Agregar
           </Button>
         </div>
-        <Progress className="mt-3" value={r.total ? (r.pagado / r.total) * 100 : 0} label="Pagado de los pagos fijos del mes" />
+        <Progress className="mt-3" value={r.total ? (r.pagado / r.total) * 100 : 0} label={t.progreso} />
         <ul className="mt-4 flex flex-col gap-1.5">
           {lista.map((x) => (
             <li key={x.pago.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[16px] bg-bg-2 px-3 py-2.5">
@@ -122,10 +157,10 @@ export function PagosFijos() {
               {/* En celular, las acciones bajan a su propia línea */}
               <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
                 {x.estado === "pagado" ? (
-                  <Badge tone="brand">Pagado</Badge>
+                  <Badge tone="brand">{t.hecho}</Badge>
                 ) : x.estado === "pendiente" ? (
-                  <Button variant="primary" size="sm" onClick={() => setConfirmar(x)} aria-label={`Marcar ${x.pago.nombre} como pagado`}>
-                    <Check size={16} /> Pagado
+                  <Button variant="primary" size="sm" onClick={() => setConfirmar(x)} aria-label={`Marcar ${x.pago.nombre} como ${t.hecho.toLowerCase()}`}>
+                    <Check size={16} /> {t.hecho}
                   </Button>
                 ) : x.estado === "omitido" ? (
                   <Badge>Omitido</Badge>
@@ -148,7 +183,7 @@ function borrarPago(p: PagoFijo) {
   almacenPagosFijos.cambiar((d) => ({ ...d, pagos: d.pagos.filter((x) => x.id !== p.id) }));
 }
 
-function ConfirmarPago({ item, onClose }: { item: PagoDelMes; onClose: () => void }) {
+function ConfirmarPago({ item, mov, onClose }: { item: PagoDelMes; mov: MovFijo; onClose: () => void }) {
   const { insert, remove } = useData();
   const today = useToday();
   const [monto, setMonto] = useState(formatAmountInput(String(item.monto)));
@@ -157,9 +192,9 @@ function ConfirmarPago({ item, onClose }: { item: PagoDelMes; onClose: () => voi
     <FormModal
       open
       onClose={onClose}
-      title={`Pagar ${item.pago.nombre}`}
-      description="Confirma el valor que pagaste este mes."
-      submitLabel="Pagado"
+      title={mov === "ingreso" ? `Recibir ${item.pago.nombre}` : `Pagar ${item.pago.nombre}`}
+      description={mov === "ingreso" ? "Confirma el valor que recibiste este mes." : "Confirma el valor que pagaste este mes."}
+      submitLabel={TXT[mov].hecho}
       size="sm"
       onSubmit={async () => {
         const v = parseCOP(monto);
@@ -169,7 +204,7 @@ function ConfirmarPago({ item, onClose }: { item: PagoDelMes; onClose: () => voi
         }
         // Se reemplaza el pendiente por un gasto con fecha de hoy (así la XP cuenta el día en que pagas)
         await completarPendiente(item.tx!, { insert, remove }, { amount: v, date: today });
-        return `${item.pago.nombre}: pagado.`;
+        return `${item.pago.nombre}: ${TXT[mov].hecho.toLowerCase()}.`;
       }}
     >
       <Field label="Monto" error={error}>
@@ -179,23 +214,26 @@ function ConfirmarPago({ item, onClose }: { item: PagoDelMes; onClose: () => voi
   );
 }
 
-function PagoFijoForm({ pago, onClose }: { pago?: PagoFijo; onClose: () => void }) {
+function PagoFijoForm({ pago, mov, onClose }: { pago?: PagoFijo; mov: MovFijo; onClose: () => void }) {
+  const ingreso = mov === "ingreso";
+  const tipos = ingreso ? TIPOS_INGRESO_FIJO : TIPOS_PAGO_FIJO;
   const { db } = useData();
   const today = useToday();
   const [nombre, setNombre] = useState(pago?.nombre ?? "");
-  const [tipo, setTipo] = useState<TipoPagoFijo>(pago?.tipo ?? "servicio");
+  const [tipo, setTipo] = useState<string>(pago?.tipo ?? (ingreso ? "salario" : "servicio"));
   const [monto, setMonto] = useState(pago ? formatAmountInput(String(pago.monto)) : "");
-  const [categoria, setCategoria] = useState(pago?.categoria ?? "Servicios");
+  const [categoria, setCategoria] = useState(pago?.categoria ?? (ingreso ? "Salario" : "Servicios"));
   const [cuenta, setCuenta] = useState(pago?.cuentaId ?? db.accounts.find((a) => a.type !== "tarjeta_credito")?.id ?? db.accounts[0]?.id ?? "");
   const [dia, setDia] = useState(String(pago?.dia ?? (today ? Number(today.slice(8)) : 1)));
   const [errores, setErrores] = useState<Record<string, string>>({});
-  const categorias = [...EXPENSE_CATEGORIES, ...db.transaction_categories.filter((c) => c.kind === "gasto").map((c) => c.name).filter((c) => !EXPENSE_CATEGORIES.includes(c))];
+  const base = ingreso ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  const categorias = [...base, ...db.transaction_categories.filter((c) => c.kind === mov).map((c) => c.name).filter((c) => !base.includes(c))];
 
   return (
     <FormModal
       open
       onClose={onClose}
-      title={pago ? "Editar pago fijo" : "Nuevo pago fijo"}
+      title={ingreso ? (pago ? "Editar ingreso fijo" : "Nuevo ingreso fijo") : pago ? "Editar pago fijo" : "Nuevo pago fijo"}
       description="Cada mes queda pendiente para que lo confirmes."
       onSubmit={async () => {
         const e: Record<string, string> = {};
@@ -205,16 +243,16 @@ function PagoFijoForm({ pago, onClose }: { pago?: PagoFijo; onClose: () => void 
         if (!db.accounts.length) e.cuenta = "Primero agrega una cuenta en Finanzas → Cuentas.";
         setErrores(e);
         if (Object.keys(e).length) return false;
-        const datos = { nombre: nombre.trim(), tipo, monto: v!, categoria, cuentaId: cuenta || null, dia: Number(dia) };
+        const datos = { nombre: nombre.trim(), tipo: tipo as PagoFijo["tipo"], monto: v!, categoria, cuentaId: cuenta || null, dia: Number(dia), ...(ingreso ? { mov: "ingreso" as const } : {}) };
         almacenPagosFijos.cambiar((d) => ({
           ...d,
           pagos: pago ? d.pagos.map((x) => (x.id === pago.id ? { ...x, ...datos } : x)) : [...d.pagos, { id: nuevoIdPago(), activo: true, creado: today, ...datos }],
         }));
-        return pago ? "Pago fijo actualizado. El pendiente de este mes no cambia." : "Pago fijo agregado.";
+        return ingreso ? (pago ? "Ingreso fijo actualizado. El pendiente de este mes no cambia." : "Ingreso fijo agregado.") : pago ? "Pago fijo actualizado. El pendiente de este mes no cambia." : "Pago fijo agregado.";
       }}
     >
       <Field label="Nombre" error={errores.nombre}>
-        {(id) => <Input id={id} value={nombre} placeholder="Ej. Arriendo, Internet, Netflix" onChange={(e) => setNombre(e.target.value)} />}
+        {(id) => <Input id={id} value={nombre} placeholder={ingreso ? "Ej. Sueldo, Arriendo del apartamento" : "Ej. Arriendo, Internet, Netflix"} onChange={(e) => setNombre(e.target.value)} />}
       </Field>
       <Field label="Tipo">
         {() => (
@@ -222,10 +260,10 @@ function PagoFijoForm({ pago, onClose }: { pago?: PagoFijo; onClose: () => void 
             value={tipo}
             onChange={(t) => {
               setTipo(t);
-              const cat = TIPOS_PAGO_FIJO.find((x) => x.value === t)?.categoria;
+              const cat = tipos.find((x) => x.value === t)?.categoria;
               if (cat && categorias.includes(cat)) setCategoria(cat);
             }}
-            options={TIPOS_PAGO_FIJO.map(({ value, label }) => ({ value, label }))}
+            options={tipos.map(({ value, label }) => ({ value, label }))}
           />
         )}
       </Field>
@@ -233,7 +271,7 @@ function PagoFijoForm({ pago, onClose }: { pago?: PagoFijo; onClose: () => void 
         <Field label="Monto" error={errores.monto}>
           {(id) => <AmountInput id={id} value={monto} onChange={setMonto} invalid={!!errores.monto} />}
         </Field>
-        <Field label="Día de pago">
+        <Field label={ingreso ? "Día en que llega" : "Día de pago"}>
           {(id) => (
             <Select id={id} value={dia} onChange={(e) => setDia(e.target.value)}>
               {Array.from({ length: 31 }, (_, i) => (

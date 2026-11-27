@@ -3,10 +3,10 @@
 import { useEffect, useRef } from "react";
 import { useData } from "@/lib/store/DataProvider";
 import { useToday } from "@/hooks/useToday";
-import { almacenPagosFijos, fechaDelMes } from "@/lib/finanzas/pagosFijos";
+import { almacenPagosFijos, fechaDelMes, movDe } from "@/lib/finanzas/pagosFijos";
 import { monthKey } from "@/utils/dates";
 
-/** Crea el movimiento pendiente del mes de cada pago fijo activo (una sola vez por mes). */
+/** Crea el movimiento pendiente del mes de cada pago o ingreso fijo activo (una sola vez por mes). */
 export function GenerarPagosFijos() {
   const { db, insert, status } = useData();
   const today = useToday();
@@ -23,7 +23,7 @@ export function GenerarPagosFijos() {
       if (!cuenta) continue;
       enCurso.current.add(clave);
       void insert("transactions", {
-        type: "gasto",
+        type: movDe(p),
         description: p.nombre,
         amount: p.monto,
         category: p.categoria,
@@ -32,7 +32,7 @@ export function GenerarPagosFijos() {
         date: fechaDelMes(p, mes),
         payment_method: null,
         status: "pendiente",
-        beneficiary: "para_mi",
+        beneficiary: movDe(p) === "gasto" ? "para_mi" : null,
         notes: null,
       })
         .then((tx) =>

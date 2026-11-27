@@ -31,7 +31,7 @@ import { ImportarExtracto } from "./ImportarExtracto";
 import { AsignarProyecto } from "./AsignarProyecto";
 import { accountBalance, avisoBorrarCuenta, expensesByBeneficiary, expensesByCategory, monthTotals, totalBalance } from "./selectors";
 
-type Tab = "resumen" | "movimientos" | "cuentas" | "ahorros" | "deudas" | "fijos";
+type Tab = "resumen" | "movimientos" | "cuentas" | "ahorros" | "deudas" | "fijos" | "ingresos-fijos";
 
 const TABS: { value: Tab; label: string }[] = [
   { value: "resumen", label: "Resumen" },
@@ -40,6 +40,7 @@ const TABS: { value: Tab; label: string }[] = [
   { value: "ahorros", label: "Ahorros" },
   { value: "deudas", label: "Deudas" },
   { value: "fijos", label: "Pagos fijos" },
+  { value: "ingresos-fijos", label: "Ingresos fijos" },
 ];
 
 export function FinancePage() {
@@ -66,6 +67,7 @@ export function FinancePage() {
       {tab === "ahorros" && <Savings />}
       {tab === "deudas" && <Deudas />}
       {tab === "fijos" && <PagosFijos />}
+      {tab === "ingresos-fijos" && <PagosFijos mov="ingreso" />}
       <p className="mt-8 text-center text-[13px] text-dim">Próximamente: presupuestos y análisis.</p>
     </>
   );
