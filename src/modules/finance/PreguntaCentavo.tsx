@@ -6,6 +6,7 @@
  * y responde (aprobando), con tono tranquilo si el chequeo de ánimo del día fue bajo.
  */
 import { useMemo, useState } from "react";
+import { almacenCentavoIA, resumenParaIA } from "@/lib/finanzas/centavoIA";
 import Link from "@/components/Enlace";
 import { ArrowUpRight, Send } from "lucide-react";
 import { Card } from "@/components/ui/Card";
@@ -30,7 +31,9 @@ export function PreguntaCentavo({ className }: { className?: string }) {
   const { uniones } = almacenConceptos.useValor();
   const [texto, setTexto] = useState("");
   const [pensando, setPensando] = useState(false);
-  const [respuesta, setRespuesta] = useState<{ pregunta: string; r: Respuesta } | null>(null);
+  const [respuesta, setRespuesta] = useState<{ pregunta: string; r: Respuesta; origen: "ia" | "reglas"; aviso?: string } | null>(null);
+  // Prototipo de la etapa 2: responder con IA (Claude). Apagado por defecto
+  const ia = almacenCentavoIA.useValor().activa;
 
   const resumen = useMemo(() => {
     if (!today) return null;
@@ -43,11 +46,30 @@ export function PreguntaCentavo({ className }: { className?: string }) {
   const preguntar = (q: string) => {
     if (!q.trim() || !resumen || !today) return;
     setPensando(true);
-    // Un instante para que se vea a Centavo pensando (la cuenta es inmediata)
-    setTimeout(() => {
-      setRespuesta({ pregunta: q.trim(), r: responderPregunta(q, resumen, diaDificil(animo, today)) });
-      setPensando(false);
-    }, 450);
+    const tranquilo = diaDificil(animo, today);
+    const reglas = responderPregunta(q, resumen, tranquilo);
+    if (!ia) {
+      // Un instante para que se vea a Centavo pensando (la cuenta es inmediata)
+      setTimeout(() => {
+        setRespuesta({ pregunta: q.trim(), r: reglas, origen: "reglas" });
+        setPensando(false);
+      }, 450);
+      return;
+    }
+    // Con IA: la cifra y el enlace salen de la app; la frase, de Claude. Si falla, queda la etapa 1
+    void fetch("/api/centavo", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ pregunta: q.trim(), resumen: resumenParaIA(resumen), tono: tranquilo ? "tranquilo" : "normal" }),
+    })
+      .then(async (res) => {
+        const j = (await res.json().catch(() => ({}))) as { frase?: string; error?: string };
+        if (!res.ok || !j.frase) throw new Error(j.error ?? "La IA no respondió.");
+        const entendida = reglas.intencion !== "no-entendida";
+        setRespuesta({ pregunta: q.trim(), r: { ...reglas, cifra: entendida ? reglas.cifra : null, enlace: entendida ? reglas.enlace : null, frase: j.frase }, origen: "ia" });
+      })
+      .catch((e: unknown) => setRespuesta({ pregunta: q.trim(), r: reglas, origen: "reglas", aviso: `${e instanceof Error ? e.message : "La IA no respondió."} Respondí sin IA.` }))
+      .finally(() => setPensando(false));
   };
 
   return (
@@ -58,8 +80,17 @@ export function PreguntaCentavo({ className }: { className?: string }) {
         ) : null}
         <div className="min-w-0 flex-1">
           <h2 className="text-[16px]">Pregúntale a {centavo.nombre}</h2>
-          <p className="text-[12.5px] text-muted">Responde con tus datos, en este dispositivo.</p>
+          <p className="text-[12.5px] text-muted">{ia ? "Responde con IA a partir de tus totales (prueba)." : "Responde con tus datos, en este dispositivo."}</p>
         </div>
+        <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-[12px] text-muted" title="Prototipo: envía solo totales (no cada movimiento) a Claude, de Anthropic, para redactar la respuesta.">
+          <input
+            type="checkbox"
+            checked={ia}
+            onChange={(e) => almacenCentavoIA.cambiar((d) => ({ ...d, activa: e.target.checked }))}
+            className="h-4 w-4 accent-fg"
+          />
+          IA (prueba)
+        </label>
       </div>
       <form
         className="mt-3 flex items-center gap-2 rounded-[16px] bg-bg-2 p-1.5 pl-3"
@@ -99,7 +130,11 @@ export function PreguntaCentavo({ className }: { className?: string }) {
           <p className="text-[13px] text-muted">{centavo.nombre} está sacando la cuenta…</p>
         ) : respuesta ? (
           <div className="rounded-[18px] bg-bg-2 p-4">
-            <p className="text-[12.5px] text-dim">{respuesta.pregunta}</p>
+            <p className="text-[12.5px] text-dim">
+              {respuesta.pregunta}
+              {respuesta.origen === "ia" ? <span className="ml-1.5 rounded-full bg-bg px-1.5 py-0.5 text-[10.5px] font-medium text-muted">IA</span> : null}
+            </p>
+            {respuesta.aviso ? <p className="mt-1 text-[12px] text-warn">{respuesta.aviso}</p> : null}
             {respuesta.r.cifra ? <p className="figure mt-1 text-[30px] leading-tight">{respuesta.r.cifra}</p> : null}
             <p className="mt-1 text-[14px]">
               <span className="font-medium">{centavo.nombre}:</span> {respuesta.r.frase}

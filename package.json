@@ -11,6 +11,7 @@
     "test:db": "node supabase/pruebas/migraciones.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.14.0",
     "@supabase/supabase-js": "^2.119.2",
     "@tiptap/extension-list": "3.33.1",
     "@tiptap/extensions": "3.33.1",
