@@ -174,7 +174,7 @@ export function HabitsWeekCard({ className }: { className?: string }) {
   };
 
   const habits = db.habits.slice(0, 5);
-  const todays = db.habits.filter((h) => isScheduled(h, today));
+  const todays = db.habits.filter((h) => isScheduled(h, today, db.habit_logs));
   const doneToday = todays.filter((h) => logFor(db.habit_logs, h.id, today)).length;
 
   const rows: HeatRow[] = habits.length
@@ -182,7 +182,7 @@ export function HabitsWeekCard({ className }: { className?: string }) {
         key: h.id,
         label: h.name,
         cells: week.map((d) => {
-          const scheduled = isScheduled(h, d);
+          const scheduled = isScheduled(h, d, db.habit_logs);
           const done = !!logFor(db.habit_logs, h.id, d);
           const state = !scheduled ? "off" : done ? "done" : d > today ? "future" : d === today ? "today" : "missed";
           const date = parseISO(d).toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });

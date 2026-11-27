@@ -133,8 +133,10 @@ export interface Task extends BaseRow {
 export interface Habit extends BaseRow {
   name: string;
   color: string;
-  /** Días programados, 0 = lunes … 6 = domingo */
+  /** Días programados, 0 = lunes … 6 = domingo (en «X veces por semana», los días sugeridos) */
   days: number[];
+  /** «X veces por semana» (1 a 7). Sin valor: días fijos (así quedan los hábitos que ya existían) */
+  weekly_target?: number | null;
 }
 
 export interface HabitLog extends BaseRow {

@@ -47,7 +47,7 @@ export function useNotifications(): AppNotification[] {
         href: "/finanzas?tab=fijos",
       });
     }
-    const pendingHabits = db.habits.filter((h) => isScheduled(h, today) && !logFor(db.habit_logs, h.id, today));
+    const pendingHabits = db.habits.filter((h) => isScheduled(h, today, db.habit_logs) && !logFor(db.habit_logs, h.id, today));
     if (pendingHabits.length) {
       out.push({
         id: "habits",

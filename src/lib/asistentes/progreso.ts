@@ -335,7 +335,7 @@ function candidatos(db: Database, prev: Progreso, today: string): { lista: Candi
   const porDia = new Map<string, Set<string>>();
   for (const l of db.habit_logs) porDia.set(l.date, (porDia.get(l.date) ?? new Set()).add(l.habit_id));
   for (const [d, hechos] of porDia) {
-    const prog = db.habits.filter((h) => isScheduled(h, d));
+    const prog = db.habits.filter((h) => isScheduled(h, d, db.habit_logs));
     if (prog.length && prog.every((h) => hechos.has(h.id))) lista.push({ refId: `dp:${d}`, tipo: "dia-perfecto", fecha: d > today ? today : d });
   }
   const yaVisto = (ref: string) => prev.eventos.find((e) => e.refId === ref)?.fecha;
@@ -499,7 +499,7 @@ export interface MisionDef {
   href: string;
 }
 
-const habitosHoy = (db: Database, today: string) => db.habits.filter((h) => isScheduled(h, today)).length;
+const habitosHoy = (db: Database, today: string) => db.habits.filter((h) => isScheduled(h, today, db.habit_logs)).length;
 const tareasPendientes = (db: Database) => db.tasks.filter((t) => t.status !== "completada");
 
 export const MISIONES: MisionDef[] = [

@@ -99,7 +99,7 @@ function centavo({ db, today, tono }: ContextoAsistente): Mensaje {
 function brote({ db, today, tono }: ContextoAsistente): Mensaje {
   const accion = { label: "Marcar hábito", href: "/salud" };
   if (!db.habits.length) return m(t("brote", "sinDatos", tono), "dormido", 0, { label: "Nuevo hábito", href: "/salud" });
-  const deHoy = db.habits.filter((h) => isScheduled(h, today));
+  const deHoy = db.habits.filter((h) => isScheduled(h, today, db.habit_logs));
   const faltan = deHoy.filter((h) => !logFor(db.habit_logs, h.id, today));
   const rachas = db.habits.map((h) => ({ h, r: streak(h, db.habit_logs, today) })).sort((a, b) => b.r - a.r);
 

@@ -186,7 +186,7 @@ function ToastReaccion({ r, tono, onClose }: { r: Reaccion; tono: "seco" | "moti
   }, [r.id, onClose]);
   return (
     <div role="status" className="pointer-events-auto flex w-full max-w-[360px] items-center gap-3 rounded-[22px] bg-bg py-2 pl-2 pr-3 shadow-[0_0_0_1px_var(--color-line)] animate-in">
-      <Asistente id={r.asistente} size={56} pose={r.xp >= 30 ? "celebrando" : cfg.pose} colores={a.colores} accesorio={a.accesorio} mostrarProp={a.mostrarProp} decorativo celebrar={r.id} />
+      <Asistente id={r.asistente} size={56} pose={r.xp >= 30 ? "celebrando" : cfg.pose} momento={r.tipo === "habito" && r.xp < 30 ? "aprobando" : undefined} colores={a.colores} accesorio={a.accesorio} mostrarProp={a.mostrarProp} decorativo celebrar={r.id} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-[14px] font-medium text-fg">{cfg.frase[tono]}</p>
         <p className="num text-[12.5px] text-brand-soft">

@@ -4,7 +4,7 @@
  * Recargar la página reinicia los ejemplos. Se sale con ?demo=0.
  */
 import { CASCADES, type BaseRow, type Database, type NewRow, type Profile, type Row, type TableName } from "@/types/db";
-import { TIMEZONE, addDays, addMonths, monthKey, todayISO } from "@/utils/dates";
+import { TIMEZONE, addDays, addMonths, monthKey, startOfWeek, todayISO } from "@/utils/dates";
 import type { DataAdapter } from "./types";
 
 const USER = "demo-user";
@@ -254,6 +254,11 @@ function seed(): { db: Database; profile: Profile } {
     tareaMonni("Pruebas de compra", "pendiente", 12),
     tareaMonni("Lanzamiento", "pendiente", 25),
   );
+  // Entrenamiento: además de los días planeados (lunes a viernes) y sus faltas, algunos sábados extra
+  for (const k of [1, 2, 4]) {
+    const sabado = addDays(startOfWeek(today), -7 * k + 5);
+    if (!db.habit_logs.some((l) => l.habit_id === habits[0].id && l.date === sabado)) db.habit_logs.push({ ...base(), habit_id: habits[0].id, date: sabado });
+  }
   return { db, profile: { id: USER, full_name: "Alex Demo", email: "demo@lifeos.app", currency: "COP", timezone: TIMEZONE } };
 }
 

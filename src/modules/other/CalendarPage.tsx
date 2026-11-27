@@ -292,7 +292,7 @@ function TimeGrid({ db, days, today, filter, extra }: { db: Database; days: stri
 
   const cols = `56px repeat(${days.length}, minmax(${multi ? 96 : 0}px, 1fr))`;
   const allDay = days.map((d) => itemsFor(db, d, filter).filter((i) => i.start === null));
-  const habitsByDay = days.map((d) => db.habits.filter((h) => isScheduled(h, d)).length);
+  const habitsByDay = days.map((d) => db.habits.filter((h) => isScheduled(h, d, db.habit_logs)).length);
   const hasAllDay = allDay.some((a) => a.length) || habitsByDay.some(Boolean);
 
   const createAt = (day: string, e: React.MouseEvent<HTMLDivElement>) => {

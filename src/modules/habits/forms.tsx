@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { FormModal } from "@/components/ui/FormModal";
-import { Field, Input } from "@/components/ui/Field";
+import { ChoiceGroup, Field, Input } from "@/components/ui/Field";
 import { useData } from "@/lib/store/DataProvider";
 import type { Habit } from "@/types/db";
 import { WEEKDAYS_MED } from "@/utils/dates";
@@ -17,6 +17,9 @@ export function HabitForm({ open, onClose, record }: { open: boolean; onClose: (
   const [name, setName] = useState(record?.name ?? "");
   const [days, setDays] = useState<number[]>(record?.days ?? [0, 1, 2, 3, 4, 5, 6]);
   const [color, setColor] = useState(record?.color ?? HABIT_COLORS[0]);
+  // Frecuencia: días fijos (lo de siempre) o «X veces por semana»
+  const [modo, setModo] = useState<"dias" | "semana">(record?.weekly_target ? "semana" : "dias");
+  const [veces, setVeces] = useState(record?.weekly_target ?? 3);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const toggleDay = (d: number) => setDays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort()));
@@ -24,10 +27,11 @@ export function HabitForm({ open, onClose, record }: { open: boolean; onClose: (
   const submit = async () => {
     const e: Record<string, string> = {};
     if (!name.trim()) e.name = "Escribe el nombre del hábito.";
-    if (days.length === 0) e.days = "Elige al menos un día.";
+    if (modo === "dias" && days.length === 0) e.days = "Elige al menos un día.";
     setErrors(e);
     if (Object.keys(e).length) return false;
-    const data = { name: name.trim(), days, color };
+    // En «veces por semana» los días quedan como sugeridos (la rutina de entrenamiento los usa)
+    const data = { name: name.trim(), days: modo === "semana" && !days.length ? [0, 1, 2, 3, 4, 5, 6] : days, color, weekly_target: modo === "semana" ? veces : null };
     if (record) {
       await update("habits", record.id, data);
       return "Hábito actualizado.";
@@ -55,7 +59,42 @@ export function HabitForm({ open, onClose, record }: { open: boolean; onClose: (
           ))}
         </div>
       ) : null}
-      <Field label="Días programados" error={errors.days}>
+      <Field label="Frecuencia">
+        {() => (
+          <ChoiceGroup
+            value={modo}
+            onChange={setModo}
+            options={[
+              { value: "dias", label: "Días fijos" },
+              { value: "semana", label: "Veces por semana" },
+            ]}
+          />
+        )}
+      </Field>
+      {modo === "semana" ? (
+        <Field label="¿Cuántas veces por semana?" hint="Cualquier día cuenta; la semana se cumple al llegar a la cantidad.">
+          {() => (
+            <div className="grid grid-cols-7 gap-1.5" role="radiogroup" aria-label="Veces por semana">
+              {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  role="radio"
+                  aria-checked={veces === n}
+                  onClick={() => setVeces(n)}
+                  className={cn(
+                    "focus-ring h-10 cursor-pointer rounded-[10px] border text-[12.5px] font-medium transition-all",
+                    veces === n ? "border-brand/50 bg-brand/15 text-brand-soft" : "border-line bg-bg-2 text-dim hover:text-muted",
+                  )}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          )}
+        </Field>
+      ) : null}
+      <Field label={modo === "semana" ? "Días sugeridos (opcional)" : "Días programados"} error={errors.days}>
         {() => (
           <div className="grid grid-cols-7 gap-1.5">
             {WEEKDAYS_MED.map((d, i) => (

@@ -22,7 +22,7 @@ function useNavCounts(): Record<string, number> {
     if (!today) return {};
     return {
       "/proyectos": db.tasks.filter((t) => t.status !== "completada" && t.due_date && t.due_date <= today).length,
-      "/salud": db.habits.filter((h) => isScheduled(h, today) && !logFor(db.habit_logs, h.id, today)).length,
+      "/salud": db.habits.filter((h) => isScheduled(h, today, db.habit_logs) && !logFor(db.habit_logs, h.id, today)).length,
       "/calendario": db.calendar_events.filter((e) => e.date === today).length,
     };
   }, [db, today]);

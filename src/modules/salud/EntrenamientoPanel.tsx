@@ -2,7 +2,8 @@
 
 /**
  * Entrenamiento: rutina recomendada de lunes a domingo según los días de tu hábito de entrenar.
- * Hoy queda abierto y se puede marcar como hecho (marca el hábito y suma XP).
+ * Arriba, la semana para marcar los días entrenados (el mismo hábito «Entrenar»); la rutina se edita
+ * abajo, plegada. Hoy queda abierto y se puede marcar como hecho (marca el hábito y suma XP).
  */
 import { useState } from "react";
 import { Check, ChevronDown, Clock, Dumbbell, Plus } from "lucide-react";
@@ -19,6 +20,7 @@ import { logFor } from "@/modules/habits/selectors";
 import { WEEKDAYS_MED, addDays, startOfWeek, weekdayMon } from "@/utils/dates";
 import { cn } from "@/utils/cn";
 import { OBJETIVOS } from "./PerfilFisicoCard";
+import { SemanaEntreno } from "./SemanaEntreno";
 
 const LUGARES: { value: Lugar; label: string }[] = [
   { value: "gym", label: "Gimnasio" },
@@ -42,6 +44,8 @@ export function EntrenamientoPanel() {
   const [abierto, setAbierto] = useState<number | null>(null);
   const [nuevosDias, setNuevosDias] = useState<number[]>([0, 2, 4]);
   const [ocupado, setOcupado] = useState(false);
+  // «Arma tu rutina» (lugar, nivel y objetivo) queda plegado cuando ya hay rutina
+  const [editarRutina, setEditarRutina] = useState(false);
 
   const preferencias = (
     <div className="grid gap-4 md:grid-cols-3">
@@ -119,6 +123,7 @@ export function EntrenamientoPanel() {
 
   return (
     <div className="grid grid-cols-1 gap-3">
+      <SemanaEntreno habito={habito} />
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -131,7 +136,16 @@ export function EntrenamientoPanel() {
             Cambiar días
           </Button>
         </div>
-        <div className="mt-4">{preferencias}</div>
+        <button
+          type="button"
+          onClick={() => setEditarRutina((v) => !v)}
+          aria-expanded={editarRutina}
+          className="focus-ring mt-3 flex cursor-pointer items-center gap-1.5 rounded-full px-1 py-1 text-[13.5px] font-medium text-muted hover:text-fg"
+        >
+          <ChevronDown size={16} className={cn("transition-transform", editarRutina && "rotate-180")} />
+          {editarRutina ? "Cerrar" : "Editar rutina (lugar, nivel y objetivo)"}
+        </button>
+        {editarRutina ? <div className="mt-3">{preferencias}</div> : null}
       </Card>
 
       <ol className="grid grid-cols-1 gap-2">

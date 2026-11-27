@@ -19,7 +19,7 @@ export function AlimentacionPanel() {
   const today = useToday();
   const p = usePerfilFisico();
   const habito = habitoDeEntreno(db.habits);
-  const entrenaHoy = !!(habito && today && isScheduled(habito, today));
+  const entrenaHoy = !!(habito && today && isScheduled(habito, today, db.habit_logs));
   const plan = planAlimentacion(p, entrenaHoy);
 
   return (

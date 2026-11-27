@@ -10,7 +10,7 @@ export interface ResumenHoy {
 }
 
 export function resumenHoy(db: Database, today: string): ResumenHoy {
-  const programados = db.habits.filter((h) => isScheduled(h, today));
+  const programados = db.habits.filter((h) => isScheduled(h, today, db.habit_logs));
   const habitosPendientes = programados.filter((h) => !logFor(db.habit_logs, h.id, today)).length;
   const tareasPendientes = db.tasks.filter((t) => t.status !== "completada" && t.due_date && t.due_date <= today).length;
   return { habitosHoy: programados.length, habitosPendientes, tareasPendientes };

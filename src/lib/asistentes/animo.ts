@@ -106,7 +106,7 @@ function brote(db: Database, today: string): Senal[] | null {
   if (!db.habits.length) return null;
   const ultimo = db.habit_logs.map((l) => l.date).sort().at(-1);
   if (!ultimo || dias(ultimo, today) >= 3) return null; // 3 días sin marcar nada: duerme
-  const deHoy = db.habits.filter((h) => isScheduled(h, today));
+  const deHoy = db.habits.filter((h) => isScheduled(h, today, db.habit_logs));
   const hechosHoy = deHoy.filter((h) => logFor(db.habit_logs, h.id, today)).length;
   const pctHoy = deHoy.length ? hechosHoy / deHoy.length : 1;
   let prog = 0;
@@ -114,7 +114,7 @@ function brote(db: Database, today: string): Senal[] | null {
   for (let i = 1; i <= 7; i++) {
     const d = addDays(today, -i);
     for (const h of db.habits) {
-      if (!isScheduled(h, d)) continue;
+      if (!isScheduled(h, d, db.habit_logs)) continue;
       prog += 1;
       if (logFor(db.habit_logs, h.id, d)) hechos += 1;
     }

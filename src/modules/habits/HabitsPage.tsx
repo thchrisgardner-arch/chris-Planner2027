@@ -111,7 +111,7 @@ function HabitCard({ habit, today }: { habit: Habit; today: string }) {
   };
 
   // En el celular, deslizar la tarjeta a la derecha marca el hábito de hoy
-  const pendienteHoy = isScheduled(habit, today) && !logFor(db.habit_logs, habit.id, today);
+  const pendienteHoy = isScheduled(habit, today, db.habit_logs) && !logFor(db.habit_logs, habit.id, today);
   return (
     <Deslizable
       redondeo={24}
@@ -160,7 +160,7 @@ function HabitCard({ habit, today }: { habit: Habit; today: string }) {
       <p className="mb-2 mt-6 text-[12.5px] text-muted">Semana actual · toca un día para marcarlo</p>
       <div className="grid grid-cols-7 gap-1.5">
         {week.map((d, i) => {
-          const scheduled = isScheduled(habit, d);
+          const scheduled = isScheduled(habit, d, db.habit_logs);
           const done = !!logFor(db.habit_logs, habit.id, d);
           const future = d > today;
           return (
@@ -196,7 +196,7 @@ function HabitCard({ habit, today }: { habit: Habit; today: string }) {
         ))}
         {monthDays.map((d) => {
           const done = !!logFor(db.habit_logs, habit.id, d);
-          const scheduled = isScheduled(habit, d);
+          const scheduled = isScheduled(habit, d, db.habit_logs);
           const n = parseISO(d).getUTCDate();
           const state = done ? "cumplido" : d > today ? "pendiente" : scheduled ? "no cumplido" : "no programado";
           return (

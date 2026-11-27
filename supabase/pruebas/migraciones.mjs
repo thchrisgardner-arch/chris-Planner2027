@@ -79,6 +79,13 @@ check("0007 se ejecuta dos veces sin errores", true);
 const mig = await db.query(`select money from public.projects where name = 'Mudanza'`);
 check("0007: el presupuesto estimado pasa a money (total, alertas 80 y 100)", mig.rows[0].money.presupuesto.monto === 2000000 && mig.rows[0].money.presupuesto.periodo === "total" && mig.rows[0].money.alertas.join() === "80,100");
 await db.exec(`delete from public.projects where id = '22222222-0000-0000-0000-000000000001'`); // no cuenta en las pruebas de sincronización
+await db.exec(`insert into public.habits (id, user_id, name, days) values ('33333333-0000-0000-0000-000000000001', '${A}', 'Leer', '{0,2,4}')`);
+await correr("0008_habitos_flexibles.sql");
+await correr("0008_habitos_flexibles.sql");
+check("0008 se ejecuta dos veces sin errores", true);
+const viejo = await db.query(`select weekly_target, days from public.habits where name = 'Leer'`);
+check("0008: los hábitos existentes quedan con días fijos", viejo.rows[0].weekly_target === null && viejo.rows[0].days.length === 3);
+await db.exec(`delete from public.habits where name = 'Leer'`);
 await correr("0005_archivos.sql");
 await correr("0005_archivos.sql");
 check("0005 se ejecuta dos veces sin errores", true);
@@ -228,6 +235,12 @@ await como("authenticated", A);
 await db.query(`delete from public.projects where id = $1`, [mid]);
 const suelto = await db.query(`select project_id, amount from public.transactions where description = 'Hosting'`);
 check("al borrar el proyecto, el movimiento sigue en Finanzas sin proyecto", suelto.rows.length === 1 && suelto.rows[0].project_id === null && Number(suelto.rows[0].amount) === 80000);
+
+// ── 0008: hábitos «X veces por semana» ──
+await como("authenticated", A);
+const flex = await db.query(`insert into public.habits (name, days, weekly_target) values ('Entrenar', '{0,1,2,3,4,5,6}', 3) returning weekly_target`);
+check("hábito de 3 veces por semana", flex.rows[0].weekly_target === 3);
+await falla("weekly_target entre 1 y 7", `insert into public.habits (name, days, weekly_target) values ('x', '{0}', 8)`);
 
 console.log(`\n${ok} correctas, ${fallos} fallidas`);
 process.exit(fallos ? 1 : 0);

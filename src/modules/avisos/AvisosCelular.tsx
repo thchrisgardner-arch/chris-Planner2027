@@ -83,7 +83,7 @@ function diaAvisos(db: Database, fecha: string): DiaAvisos {
     primerEvento: horas[0] ?? null,
     pagosVencen: pendientes.filter((t) => t.date >= fecha && t.date <= addDays(fecha, 2)).length,
     pagosVencidos: pendientes.filter((t) => t.date < fecha).length,
-    habitos: db.habits.filter((h) => isScheduled(h, fecha)).length,
+    habitos: db.habits.filter((h) => isScheduled(h, fecha, db.habit_logs)).length,
   };
 }
 
