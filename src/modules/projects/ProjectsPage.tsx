@@ -5,7 +5,8 @@ import Link from "@/components/Enlace";
 import { rutaPanel } from "@/modules/proyectos/EspacioDesdeRuta";
 import { espacio } from "@/lib/proyectos/espacio";
 import { almacenDocumentos, documentos } from "@/lib/proyectos/documentos";
-import { ArrowUpRight, CornerDownRight, Plus, Search, Timer } from "lucide-react";
+import { ArrowUpRight, CornerDownRight, Plus, Search, SlidersHorizontal, Timer } from "lucide-react";
+import { Popover } from "@/components/ui/Popover";
 import { iniciarEnfoque, useHorasEnfoque } from "@/modules/enfoque/ModoEnfoque";
 import { AsistenteModulo, useVacioAsistente } from "@/modules/asistentes/Presencia";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -57,6 +58,17 @@ export function ProjectsPage() {
     [db.projects, db.tasks, q, status],
   );
   const loose = db.tasks.filter((t) => !t.project_id && !t.parent_task_id && (!q || t.name.toLowerCase().includes(q.toLowerCase())));
+  const conOrden = view === "lista" && db.tasks.length > 1;
+  const filtroEstado = (ancho: string) => (
+    <Select value={status} onChange={(e) => setStatus(e.target.value as ProjectStatus | "")} className={ancho} aria-label="Estado">
+      <option value="">Todos los estados</option>
+      {PROJECT_STATUSES.map((s) => (
+        <option key={s.value} value={s.value}>
+          {s.label}
+        </option>
+      ))}
+    </Select>
+  );
 
   return (
     <>
@@ -80,20 +92,50 @@ export function ProjectsPage() {
         />
       ) : (
         <>
-          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
-            <div className="relative flex-1">
+          {/* Una sola fila. En pantallas anchas va todo a la vista; en celular, estado y orden van en «Filtros» */}
+          <div className="mb-4 flex items-center gap-2">
+            <div className="relative min-w-0 flex-1">
               <Search size={18} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-dim" />
-              <Input placeholder="Buscar proyectos o tareas" className="pl-10" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar" />
+              <Input placeholder="Buscar proyectos o tareas" className="text-ellipsis pl-10" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar" />
             </div>
-            <Select value={status} onChange={(e) => setStatus(e.target.value as ProjectStatus | "")} className="sm:w-[190px]" aria-label="Estado">
-              <option value="">Todos los estados</option>
-              {PROJECT_STATUSES.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </Select>
+            <div className="hidden shrink-0 items-center gap-2 lg:flex">
+              {filtroEstado("w-[200px]")}
+              {conOrden ? <SelectorOrden clave="global" /> : null}
+            </div>
+            {/* Al final de la fila: el panel se abre hacia la izquierda y cabe en la pantalla */}
+            <div className="order-last shrink-0 lg:hidden">
+              <Popover
+                trigger={({ open, toggle }) => (
+                  <button
+                    type="button"
+                    onClick={toggle}
+                    aria-expanded={open}
+                    aria-label={`Filtros${status ? " (estado filtrado)" : ""}`}
+                    className="focus-ring relative grid h-11 w-11 cursor-pointer place-items-center rounded-[14px] bg-elev text-fg transition-colors hover:bg-line-strong/50"
+                  >
+                    <SlidersHorizontal size={18} />
+                    {status ? <span aria-hidden className="absolute right-2 top-2 h-2 w-2 rounded-full bg-fg" /> : null}
+                  </button>
+                )}
+              >
+                {() => (
+                  <div className="grid w-[288px] gap-3 p-3">
+                    <div className="grid gap-1.5">
+                      <p className="text-[12px] font-medium text-muted">Estado</p>
+                      {filtroEstado("w-full")}
+                    </div>
+                    {conOrden ? (
+                      <div className="grid gap-1.5">
+                        <p className="text-[12px] font-medium text-muted">Orden de las tareas</p>
+                        <SelectorOrden clave="global" />
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+              </Popover>
+            </div>
             <Segmented
+              className="shrink-0"
               size="md"
               label="Vista"
               value={view}
@@ -104,11 +146,6 @@ export function ProjectsPage() {
               ]}
             />
           </div>
-          {view === "lista" && (db.tasks.length > 1) ? (
-            <div className="-mt-1 mb-3 flex justify-end">
-              <SelectorOrden clave="global" />
-            </div>
-          ) : null}
           {view === "lista" ? <ListView projects={projects} loose={loose} /> : <KanbanView projects={projects} />}
         </>
       )}
