@@ -71,7 +71,9 @@ export function HabitsPage() {
           }
         />
       ) : (
-        <div className="grid gap-3 xl:grid-cols-2">
+        // Dos columnas en pantallas grandes; la tarjeta que queda sola (un hábito, o el último si son impares)
+        // ocupa todo el ancho y llega al borde del botón «Nuevo hábito»
+        <div className="grid gap-3 xl:grid-cols-2 xl:[&>*:last-child:nth-child(odd)]:col-span-2">
           {db.habits.map((h) => (
             <HabitCard key={h.id} habit={h} today={today} />
           ))}
