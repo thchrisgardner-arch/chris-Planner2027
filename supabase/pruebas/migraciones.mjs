@@ -37,6 +37,19 @@ await db.exec(`
   alter default privileges in schema public grant all on functions to anon, authenticated;
 `);
 
+// ── Storage mínimo (como el de Supabase: buckets, objects con RLS y foldername) ──
+await db.exec(`
+  create schema storage;
+  create table storage.buckets (id text primary key, name text not null, public boolean default false, file_size_limit bigint);
+  create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text references storage.buckets (id), name text not null, owner uuid);
+  create function storage.foldername(name text) returns text[] language sql immutable as
+    $$ select (string_to_array(name, '/'))[1:array_length(string_to_array(name, '/'), 1) - 1] $$;
+  alter table storage.objects enable row level security;
+  grant usage on schema storage to anon, authenticated;
+  grant all on storage.objects to anon, authenticated;
+  grant select on storage.buckets to anon, authenticated;
+`);
+
 const A = "aaaaaaaa-0000-0000-0000-000000000001";
 const B = "bbbbbbbb-0000-0000-0000-000000000002";
 const correr = async (f) => db.exec(readFileSync(join(dir, f), "utf8").replace("create extension if not exists pgcrypto;", ""));
@@ -55,6 +68,9 @@ await db.exec(`
 await correr("0004_sincronizacion.sql");
 await correr("0004_sincronizacion.sql");
 check("0004 se ejecuta dos veces sin errores", true);
+await correr("0005_archivos.sql");
+await correr("0005_archivos.sql");
+check("0005 se ejecuta dos veces sin errores", true);
 
 const r = await db.query(`select updated_at = created_at as igual, deleted_at, client_id from public.accounts where name = 'Banco viejo'`);
 check("filas viejas: updated_at = created_at", r.rows[0].igual === true);
@@ -143,6 +159,24 @@ await falla(
   `insert into public.transactions (type, description, amount, account_id, date) values ('gasto', 'x', 10, $1, '2026-11-26')`,
   [cuentaB.rows[0].id],
 );
+
+// ── 0005: archivos del espacio de proyectos ──
+await db.exec("reset role");
+const bucket = await db.query("select public, file_size_limit from storage.buckets where id = 'archivos'");
+check("bucket «archivos» privado y con tope de 10 MB", bucket.rows[0]?.public === false && Number(bucket.rows[0]?.file_size_limit) === 10485760);
+await como("authenticated", A);
+await db.query(`insert into storage.objects (bucket_id, name) values ('archivos', '${A}/voz1')`);
+check("A sube a su carpeta", true);
+await falla("A no puede subir a la carpeta de B", `insert into storage.objects (bucket_id, name) values ('archivos', '${B}/intruso')`);
+await falla("A no puede subir fuera de una carpeta", `insert into storage.objects (bucket_id, name) values ('archivos', 'suelto')`);
+await como("authenticated", B);
+const verB = await db.query("select count(*)::int n from storage.objects");
+check("B no ve los archivos de A", verB.rows[0].n === 0);
+const borB = await db.query(`delete from storage.objects where name = '${A}/voz1'`);
+check("B no puede borrar archivos de A", borB.affectedRows === 0);
+await como("anon", null);
+const verAnon = await db.query("select count(*)::int n from storage.objects");
+check("sin sesión no se ve ningún archivo", verAnon.rows[0].n === 0);
 
 console.log(`\n${ok} correctas, ${fallos} fallidas`);
 process.exit(fallos ? 1 : 0);
