@@ -145,7 +145,7 @@ function AppearanceCard() {
   const { toast } = useFeedback();
   return (
     <Card id="apariencia">
-      <CardHeader title="Apariencia" subtitle="Elige cómo se ve LIFE for LIFE en este dispositivo" />
+      <CardHeader title="Apariencia" subtitle="Elige cómo se ve Poku Poku en este dispositivo" />
       <div className="grid grid-cols-3 gap-3" role="radiogroup" aria-label="Tema">
         {THEME_OPTIONS.map((o) => {
           const active = pref === o.value;
@@ -275,7 +275,7 @@ function ProfileCard() {
 
   return (
     <Card id="perfil">
-      <CardHeader title="Perfil" subtitle="Cómo te saluda LIFE for LIFE" />
+      <CardHeader title="Perfil" subtitle="Cómo te saluda Poku Poku" />
 
       {/* Foto: subir una propia o elegir el rostro de un asistente */}
       <div className="mb-6 flex flex-col gap-5 sm:flex-row sm:items-center">
@@ -424,7 +424,7 @@ function useRespaldo() {
       if (blob) notasVoz.push({ id: v.id, tipo: blob.type || v.tipo, audio: await aDataUrl(blob) });
     }
     const respaldo = {
-      app: "LIFE for LIFE",
+      app: "Poku Poku",
       exported_at: new Date().toISOString(),
       profile,
       data: db,
@@ -488,7 +488,7 @@ function StorageCard() {
       return;
     }
     if (!r?.data || !TABLES.some((t) => Array.isArray(r.data![t]))) {
-      toast("Ese archivo no parece un respaldo de LIFE for LIFE.", "error");
+      toast("Ese archivo no parece un respaldo de Poku Poku.", "error");
       return;
     }
     const nuevos = TABLES.reduce((n, t) => n + (Array.isArray(r.data![t]) ? (r.data![t] as unknown[]).length : 0), 0);

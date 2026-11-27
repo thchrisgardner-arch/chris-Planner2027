@@ -191,7 +191,7 @@ export function Grabadora({ proyectoId, reunionId, onGuardada }: { proyectoId: s
       setParcial("");
       setEstado("grabando");
     } catch {
-      setError("No se pudo usar el micrófono. Revisa que LIFE for LIFE tenga permiso para usarlo.");
+      setError("No se pudo usar el micrófono. Revisa que Poku Poku tenga permiso para usarlo.");
     }
   }
 

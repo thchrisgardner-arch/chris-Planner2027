@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   const id = idDe(body.endpoint);
   const s = await leer(id);
   if (!s) return Response.json({ error: "Este dispositivo no tiene avisos activos." }, { status: 404 });
-  const r = await enviar(s, { title: "LIFE for LIFE · Aviso de prueba", body: "Así te van a llegar los recordatorios de tu día.", url: "/", tag: "lifeos-prueba" });
+  const r = await enviar(s, { title: "Poku Poku · Aviso de prueba", body: "Así te van a llegar los recordatorios de tu día.", url: "/", tag: "lifeos-prueba" });
   if (r === "vencida") await borrar(id);
   if (r !== "ok") return Response.json({ error: r === "vencida" ? "El dispositivo ya no acepta avisos. Actívalos de nuevo." : "No se pudo enviar el aviso." }, { status: 502 });
   return Response.json({ ok: true });

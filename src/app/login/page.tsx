@@ -277,7 +277,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <p className="text-[12px] text-dim">© 2027 LIFE for LIFE · Personal Life Management System</p>
+        <p className="text-[12px] text-dim">© 2027 Poku Poku · Personal Life Management System</p>
       </section>
 
       {/* ── Panel visual (solo escritorio) ── */}

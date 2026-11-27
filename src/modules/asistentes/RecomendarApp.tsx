@@ -22,7 +22,7 @@ import { useGamificacion } from "./Gamificacion";
 export function useCompartir() {
   const { toast } = useFeedback();
   return async () => {
-    const datos = { title: "LIFE for LIFE", text: TEXTO_COMPARTIR, url: ENLACE_APP };
+    const datos = { title: "Poku Poku", text: TEXTO_COMPARTIR, url: ENLACE_APP };
     try {
       if (typeof navigator !== "undefined" && navigator.share && (!navigator.canShare || navigator.canShare(datos))) {
         await navigator.share(datos);
@@ -137,7 +137,7 @@ export function TarjetaRecomendar() {
     <Card>
       <CardHeader title="Recomendar la app" subtitle="Compártela con alguien que también quiera ordenar su vida. No se registra con quién." />
       <Button variant="primary" onClick={() => void compartir()}>
-        <Share2 size={18} /> Compartir LIFE for LIFE
+        <Share2 size={18} /> Compartir Poku Poku
       </Button>
     </Card>
   );

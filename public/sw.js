@@ -1,4 +1,4 @@
-/* LIFE for LIFE · service worker: funciona sin conexión (los datos ya viven en el dispositivo) y avisos. */
+/* Poku Poku · service worker: funciona sin conexión (los datos ya viven en el dispositivo) y avisos. */
 /* Se registra como /sw.js?cache=1 en producción. En desarrollo (sin ?cache=1) no guarda nada en
    caché, para no interferir con la recarga en vivo; solo atiende los avisos. */
 const CACHEAR = new URL(self.location.href).searchParams.get("cache") === "1";
@@ -108,9 +108,9 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch {
-    data = { title: "LIFE for LIFE", body: event.data ? event.data.text() : "" };
+    data = { title: "Poku Poku", body: event.data ? event.data.text() : "" };
   }
-  const title = data.title || "LIFE for LIFE";
+  const title = data.title || "Poku Poku";
   event.waitUntil(
     self.registration.showNotification(title, {
       body: data.body || "",

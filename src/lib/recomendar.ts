@@ -7,7 +7,7 @@ import { crearAlmacen } from "@/lib/almacenLocal";
 import { diffDays } from "@/utils/dates";
 
 export const ENLACE_APP = "https://chris-planner2027.vercel.app";
-export const TEXTO_COMPARTIR = "Estoy ordenando mi plata, mis hábitos y mis proyectos con LIFE for LIFE. Si quieres probarla:";
+export const TEXTO_COMPARTIR = "Estoy ordenando mi plata, mis hábitos y mis proyectos con Poku Poku. Si quieres probarla:";
 
 export interface DatosRecomendar {
   version: 1;

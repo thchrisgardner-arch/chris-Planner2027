@@ -48,7 +48,7 @@ export function armarAvisos(e: EstadoAvisos | undefined, fecha: string, hora: nu
   const esHoy = e.fecha === fecha;
   const voz = (id: IdVoz) => e.voces?.[id];
   const activa = (id: IdVoz) => !!voz(id) && voz(id)!.modo !== "nunca";
-  const nombre = (id: IdVoz) => voz(id)?.nombre || "LIFE for LIFE";
+  const nombre = (id: IdVoz) => voz(id)?.nombre || "Poku Poku";
   const out: Aviso[] = [];
 
   // Brote · hábitos

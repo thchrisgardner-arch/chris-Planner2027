@@ -1,5 +1,5 @@
 /**
- * Isotipo de LIFE for LIFE: el rostro de Centavo (la mascota amarilla), sonriendo.
+ * Isotipo de Poku Poku: el rostro de Centavo (la mascota amarilla), sonriendo.
  * Un solo dibujo en SVG (texto fijo, colores fijos) que usan la app y las rutas que generan los
  * íconos PNG (next/og, que lo recibe como imagen).
  */

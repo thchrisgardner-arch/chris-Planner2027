@@ -1,11 +1,11 @@
 import type { MetadataRoute } from "next";
 
-/** Manifiesto: permite instalar LIFE for LIFE en la pantalla de inicio (necesario para avisos en iPhone). */
+/** Manifiesto: permite instalar Poku Poku en la pantalla de inicio (necesario para avisos en iPhone). */
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "LIFE for LIFE",
-    short_name: "LIFE for LIFE",
+    name: "Poku Poku",
+    short_name: "Poku Poku",
     description: "Sistema personal para administrar finanzas, proyectos, hábitos, objetivos y calendario.",
     lang: "es-CO",
     start_url: "/",

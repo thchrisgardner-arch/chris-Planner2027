@@ -1,19 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Sacramento } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers/Providers";
 import { THEME_INIT_SCRIPT } from "@/lib/themeScript";
 
 // Inter en todo el proyecto: 300 cifras, 400 texto, 500 controles, 700 títulos
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"], weight: ["300", "400", "500", "700"], display: "swap" });
-// Caligrafía de trazo continuo (estilo "hello") solo para el logotipo "Life for Life"
-const caligrafia = Sacramento({ variable: "--font-caligrafia", subsets: ["latin"], weight: "400", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "LIFE for LIFE",
+  title: "Poku Poku",
   description: "Sistema personal para administrar finanzas, proyectos, hábitos, objetivos y calendario.",
   // Instalable en iPhone (Compartir → Agregar a inicio): se abre a pantalla completa
-  appleWebApp: { capable: true, title: "LIFE for LIFE", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "Poku Poku", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
@@ -26,7 +24,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     // data-theme lo corrige el script antes de pintar; por eso se suprime el aviso de hidratación
-    <html lang="es-CO" data-theme="light" suppressHydrationWarning className={`${inter.variable} ${caligrafia.variable} h-full antialiased`}>
+    <html lang="es-CO" data-theme="light" suppressHydrationWarning className={`${inter.variable} h-full antialiased`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>

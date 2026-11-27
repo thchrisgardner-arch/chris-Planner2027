@@ -1,4 +1,4 @@
-# LIFE OS 2027
+# Poku Poku 2027
 
 Sistema personal para administrar finanzas, proyectos, hábitos, wishlist, objetivos y calendario.
 Español · COP · America/Bogota.

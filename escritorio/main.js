@@ -1,5 +1,5 @@
 /**
- * LIFE for LIFE para Windows (Electron).
+ * Poku Poku para Windows (Electron).
  * Abre la app publicada en Vercel en su propia ventana: ícono propio, menú Inicio, acceso directo
  * en el escritorio y una sola instancia. Recuerda el tamaño y la posición de la ventana.
  * Los enlaces externos (Meet, Zoom, sitios) se abren en el navegador predeterminado.
@@ -12,6 +12,9 @@ const URL_APP = "https://chris-planner2027.vercel.app";
 const ORIGEN = new URL(URL_APP).origin;
 
 app.setAppUserModelId("co.lifeforlife.app");
+// La app se llamaba «LIFE for LIFE»: la carpeta de datos (sesión, datos locales, ventana) se conserva
+// con ese nombre para que el cambio a «Poku Poku» no deje a nadie sin sus datos.
+app.setPath("userData", path.join(app.getPath("appData"), "LIFE for LIFE"));
 
 // Una sola ventana: si se abre otra vez, se enfoca la existente
 if (!app.requestSingleInstanceLock()) {
@@ -46,7 +49,7 @@ function crearVentana() {
     height: t.height,
     minWidth: 380,
     minHeight: 560,
-    title: "LIFE for LIFE",
+    title: "Poku Poku",
     icon: path.join(__dirname, "build", "icon.png"),
     backgroundColor: "#f4f4f2",
     autoHideMenuBar: true,

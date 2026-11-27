@@ -180,7 +180,7 @@ export function Sidebar({ expanded, onToggle }: { expanded: boolean; onToggle: (
       )}
     >
       <div className={cn("mb-8 flex items-center", expanded ? "justify-between gap-2 px-0.5" : "flex-col gap-4")}>
-        <Link href="/" aria-label="LIFE for LIFE, ir al inicio" className="focus-ring min-w-0 rounded-[12px]">
+        <Link href="/" aria-label="Poku Poku, ir al inicio" className="focus-ring min-w-0 rounded-[12px]">
           {expanded ? <Logo /> : <LogoMark size={40} />}
         </Link>
         <button

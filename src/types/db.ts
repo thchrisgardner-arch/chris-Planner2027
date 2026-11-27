@@ -2,7 +2,7 @@ import type { DatosReunion } from "@/lib/proyectos/reuniones";
 import type { DineroProyecto } from "@/lib/proyectos/dinero";
 import type { PlanAporte } from "@/lib/finanzas/planAporte";
 
-/** Tipos de las entidades de LIFE for LIFE. Coinciden con supabase/migrations/0001_life_os.sql */
+/** Tipos de las entidades de Poku Poku. Coinciden con supabase/migrations/0001_life_os.sql */
 
 export type ID = string;
 

@@ -41,7 +41,7 @@ export interface DatePickerProps {
   "aria-invalid"?: boolean;
 }
 
-/** Selector de fecha con el diseño de LIFE for LIFE (reemplaza el calendario nativo del navegador). */
+/** Selector de fecha con el diseño de Poku Poku (reemplaza el calendario nativo del navegador). */
 export function DatePicker({ id, value, onChange, placeholder = "Elegir fecha", clearable = true, className, ...aria }: DatePickerProps) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);

@@ -48,7 +48,7 @@ function readOptions(children: React.ReactNode): Option[] {
 const LIST_MAX = 296;
 
 /**
- * Selector con el estilo de LIFE for LIFE (reemplaza el desplegable nativo del navegador).
+ * Selector con el estilo de Poku Poku (reemplaza el desplegable nativo del navegador).
  * Accesible: rol listbox, flechas, Inicio/Fin, Enter, Escape y búsqueda por letra.
  */
 export function Select({ id, value, onChange, disabled, className, children, title, renderIcon, ...aria }: SelectProps) {

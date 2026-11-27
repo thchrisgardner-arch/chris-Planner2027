@@ -3,7 +3,7 @@ import { cn } from "@/utils/cn";
 
 /** Paleta compartida de proyectos y hábitos: colores de marca + pasteles. */
 export const COLOR_SWATCHES: { value: string; name: string }[] = [
-  // Vivos (identidad LIFE for LIFE)
+  // Vivos (identidad Poku Poku)
   { value: "#9b82f6", name: "Violeta" },
   { value: "#2ee56b", name: "Verde" },
   { value: "#66a9f7", name: "Azul" },

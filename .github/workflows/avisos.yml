@@ -1,7 +1,7 @@
-# Cada hora le pide a LIFE OS (en Vercel) que envíe los avisos de esa hora.
+# Cada hora le pide a Poku Poku (en Vercel) que envíe los avisos de esa hora.
 # Necesita dos secretos del repositorio: APP_URL (p. ej. https://tu-app.vercel.app) y CRON_SECRET
 # (el mismo valor configurado en Vercel). Sin ellos, el flujo no hace nada.
-name: Avisos LIFE OS
+name: Avisos Poku Poku
 
 on:
   schedule:

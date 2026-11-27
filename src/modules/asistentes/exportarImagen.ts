@@ -119,7 +119,7 @@ export async function descargarResumen({ titulo, filas, svg, svg2, archivo }: { 
   // Marca
   ctx.fillStyle = "#3fc43f";
   ctx.font = `700 52px ${fuente}`;
-  const marca = "LIFE for LIFE";
+  const marca = "Poku Poku";
   ctx.fillText(marca, (W - ctx.measureText(marca).width) / 2, H - 90);
 
   const a = document.createElement("a");

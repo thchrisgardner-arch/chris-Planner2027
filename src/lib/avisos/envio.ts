@@ -40,7 +40,7 @@ const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno
  */
 export function armarAviso(estado: EstadoAvisos | undefined, fecha: string, hora: number): Aviso | null {
   const deHoy = estado && estado.fecha === fecha;
-  const nombre = estado?.asistente || "LIFE for LIFE";
+  const nombre = estado?.asistente || "Poku Poku";
   const racha = estado?.racha ?? 0;
   const pendientes: string[] = [];
   if (deHoy && estado.habitosPendientes) pendientes.push(plural(estado.habitosPendientes, "hábito", "hábitos"));

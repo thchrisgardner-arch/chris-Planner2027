@@ -49,7 +49,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttrib
   },
 );
 
-/** Selector con el diseño de LIFE for LIFE (no el desplegable nativo). */
+/** Selector con el diseño de Poku Poku (no el desplegable nativo). */
 export { Select } from "./Select";
 
 /** Grupo de opciones tipo "pastillas" para elegir una sola opción. */

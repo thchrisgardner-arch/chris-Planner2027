@@ -273,7 +273,7 @@ export function AvisosCelular() {
       <CardHeader title="Avisos en el celular" subtitle="Cada asistente te recuerda lo suyo, aunque la app esté cerrada" />
       {fase === "instalar" ? (
         <div className="rounded-[20px] bg-bg-2 p-4 text-[14px]">
-          <p className="font-medium">Primero instala LIFE for LIFE en tu iPhone</p>
+          <p className="font-medium">Primero instala Poku Poku en tu iPhone</p>
           <ol className="mt-2 grid gap-2 text-muted">
             <li className="flex items-center gap-2">
               1. Toca <Share size={16} className="text-fg" aria-label="Compartir" /> Compartir en Safari.
@@ -281,7 +281,7 @@ export function AvisosCelular() {
             <li className="flex items-center gap-2">
               2. Elige <SquarePlus size={16} className="text-fg" aria-hidden /> «Agregar a inicio».
             </li>
-            <li>3. Abre LIFE for LIFE desde el ícono nuevo y vuelve a esta sección.</li>
+            <li>3. Abre Poku Poku desde el ícono nuevo y vuelve a esta sección.</li>
           </ol>
           <p className="mt-2 text-[12.5px] text-dim">Apple solo permite avisos a apps instaladas (iOS 16.4 o más).</p>
         </div>
@@ -291,7 +291,7 @@ export function AvisosCelular() {
         <p className="rounded-[20px] bg-bg-2 p-4 text-[14px] text-muted">Los avisos aún no están configurados en el servidor (faltan las llaves VAPID).</p>
       ) : fase === "denegado" ? (
         <p className="rounded-[20px] bg-bg-2 p-4 text-[14px] text-muted">
-          Bloqueaste los avisos para LIFE for LIFE. Actívalos en Ajustes del iPhone → Notificaciones → LIFE for LIFE y vuelve aquí.
+          Bloqueaste los avisos para Poku Poku. Actívalos en Ajustes del iPhone → Notificaciones → Poku Poku y vuelve aquí.
         </p>
       ) : (
         <div className="grid gap-3">
