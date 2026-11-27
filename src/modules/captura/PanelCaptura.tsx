@@ -7,7 +7,7 @@
  */
 import { MOMENTO_DE_LUGAR } from "@/lib/asistentes/momentos";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { cerrarCaptura, quitarPuente } from "./CapturaRapida";
+import { cerrarCaptura, quitarPuente, opcionesCaptura, type OpcionesCaptura } from "./CapturaRapida";
 import { ArrowLeftRight, CalendarPlus, FolderPlus, Gift, ListTodo, PiggyBank, Repeat, Target, Wallet } from "lucide-react";
 import { useForms, type FormRequest } from "@/components/providers/FormsProvider";
 import { Modal } from "@/components/ui/Modal";
@@ -73,6 +73,22 @@ function listaDias(dias: number[]) {
 
 const esMovimiento = (t: TipoCaptura) => t === "gasto" || t === "ingreso" || t === "pago-fijo";
 
+/** El que abrió la captura pidió un tipo (y un proyecto): la propuesta se ajusta sin perder lo leído */
+function forzar(p: Propuesta, o: OpcionesCaptura, hoy: string): Propuesta {
+  let r = p;
+  if (o.tipo && p.tipo !== o.tipo) {
+    const t = o.tipo;
+    r = {
+      ...p,
+      tipo: t,
+      categoria: t === "evento" ? "personal" : t === "gasto" || t === "ingreso" ? (p.tipo === t ? p.categoria : "Otros") : p.categoria,
+      fecha: p.fecha ?? (t === "gasto" || t === "ingreso" || t === "evento" ? hoy : null),
+    };
+  }
+  if (o.proyectoId !== undefined && r.tipo === "tarea") r = { ...r, proyectoId: o.proyectoId };
+  return r;
+}
+
 type Edicion = Partial<Omit<Propuesta, "monto">> & { montoTxt?: string; cuentaSel?: string };
 
 export function Panel() {
@@ -83,7 +99,9 @@ export function Panel() {
   const today = useToday();
   const aprendidas = almacenCaptura.useValor().categorias;
   const input = useRef<HTMLInputElement>(null);
-  const [texto, setTexto] = useState("");
+  // Abierta desde otra parte (comando de una nota): texto, tipo y proyecto ya vienen
+  const [origen] = useState(opcionesCaptura);
+  const [texto, setTexto] = useState(origen.texto ?? "");
   const [base, setBase] = useState<Propuesta | null>(null);
   const [ed, setEd] = useState<Edicion>({});
   const [error, setError] = useState<string | null>(null);
@@ -129,8 +147,9 @@ export function Panel() {
       categoriasIngreso,
       aprendidas,
       cuentaPorDefecto,
-    }).then((p) => {
+    }).then((leida) => {
       if (!vigente) return;
+      const p = forzar(leida, origen, today);
       setBase(p);
       setEd({});
       setError(null);
@@ -138,7 +157,7 @@ export function Panel() {
     return () => {
       vigente = false;
     };
-  }, [texto, today, db.accounts, db.projects, categoriasGasto, categoriasIngreso, aprendidas, cuentaPorDefecto]);
+  }, [texto, today, db.accounts, db.projects, categoriasGasto, categoriasIngreso, aprendidas, cuentaPorDefecto, origen]);
 
   const p: Propuesta | null = base ? { ...base, ...ed, monto: ed.montoTxt !== undefined ? parseCOP(ed.montoTxt) : base.monto } : null;
   const tipo = p?.tipo ?? "gasto";
@@ -262,6 +281,7 @@ export function Panel() {
         });
       }
       toast(`${ajustes.nombre}: ${frase}`);
+      origen.alGuardar?.({ tipo: p.tipo, descripcion: desc, monto: p.monto, fecha: p.fecha, hora: p.hora });
       cerrarCaptura();
     } catch (e) {
       setError(e instanceof Error ? `No se pudo guardar: ${e.message}` : "No se pudo guardar.");

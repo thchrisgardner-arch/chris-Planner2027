@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "@/components/Enlace";
 import { rutaPanel } from "@/modules/proyectos/EspacioDesdeRuta";
 import { espacio } from "@/lib/proyectos/espacio";
+import { almacenDocumentos, documentos } from "@/lib/proyectos/documentos";
 import { ArrowUpRight, CornerDownRight, Plus, Search, Timer } from "lucide-react";
 import { iniciarEnfoque, useHorasEnfoque } from "@/modules/enfoque/ModoEnfoque";
 import { AsistenteModulo, useVacioAsistente } from "@/modules/asistentes/Presencia";
@@ -187,10 +188,11 @@ function ListView({ projects, loose }: { projects: Project[]; loose: Task[] }) {
   const borrarProyecto = async (p: Project, nTareas: number) => {
     const r = espacio.resumenProyecto(p.id);
     const reuniones = db.calendar_events.filter((e) => e.project_id === p.id && e.meeting);
+    const notas = almacenDocumentos.leer().docs.filter((d) => d.proyectoId === p.id).length;
     const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
     const partes = [
       nTareas ? plural(nTareas, "tarea", "tareas") : "",
-      r.nota ? "su nota" : "",
+      r.nota || notas ? (notas > 1 ? `${notas} notas` : "sus notas") : "",
       r.voz ? plural(r.voz, "nota de voz", "notas de voz") : "",
       r.imagenes ? plural(r.imagenes, "imagen", "imágenes") : "",
       reuniones.length ? `${plural(reuniones.length, "reunión", "reuniones")} (también del calendario)` : "",
@@ -198,6 +200,7 @@ function ListView({ projects, loose }: { projects: Project[]; loose: Task[] }) {
     const ok = await del("projects", p.id, `¿Eliminar el proyecto ${p.name}?`, partes.length ? `También se eliminarán: ${partes.join(", ")}.` : undefined);
     if (!ok) return;
     await espacio.borrarProyecto(p.id);
+    documentos.borrarProyecto(p.id);
     await Promise.all(reuniones.map((e) => remove("calendar_events", e.id).catch(() => {})));
   };
 

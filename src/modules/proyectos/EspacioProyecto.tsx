@@ -6,7 +6,7 @@
  * Tareas, Notas de voz, Reuniones, Notas, Imágenes y Calendario. Cada panel es una vista filtrada
  * por proyecto de los datos de toda la app (tareas, eventos, notas de voz…), no una copia.
  */
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "@/components/Enlace";
 import { ArrowLeft, CalendarDays, CalendarClock, CheckSquare, FolderDown, Image as ImageIcon, ImagePlus, Mic, NotebookPen, Pencil, type LucideIcon } from "lucide-react";
@@ -28,11 +28,13 @@ import { cn } from "@/utils/cn";
 import { PROJECT_STATUSES, priorityLabel, projectProgress, projectStatusLabel } from "@/modules/projects/constants";
 import { CalendarioProyecto } from "./CalendarioProyecto";
 import { Imagenes, useArchivoUrl, useSubirImagenes } from "./Imagenes";
-import { NotasProyecto } from "./NotasProyecto";
-import { Grabadora, TarjetaVoz } from "./NotasVoz";
+import { Grabadora, TarjetaVoz, crearNotaEjemplo } from "./NotasVoz";
 import { PanelReuniones } from "./Reuniones";
 import { PanelTareas } from "./PanelTareas";
 import { Seccion } from "./Seccion";
+
+// El editor de notas (Tiptap) solo se descarga al abrir el panel Notas
+const PanelNotas = lazy(() => import("./PanelNotas").then((m) => ({ default: m.PanelNotas })));
 
 const PESTANAS: Record<Panel, { label: string; icon: LucideIcon }> = {
   tareas: { label: "Tareas", icon: CheckSquare },
@@ -116,8 +118,11 @@ function Pestanas({ proyectoId, activo }: { proyectoId: string; activo: Panel })
   );
 }
 
+/** Demo: el proyecto de ejemplo trae una nota de voz (una vez por sesión) */
+const sembrados = new Set<string>();
+
 function Espacio({ proyecto: p, panel }: { proyecto: Project; panel: Panel }) {
-  const { db, update } = useData();
+  const { db, update, mode } = useData();
   const open = useForms();
   const { toast } = useFeedback();
   const today = useToday();
@@ -127,6 +132,11 @@ function Espacio({ proyecto: p, panel }: { proyecto: Project; panel: Panel }) {
   const inputPortada = useRef<HTMLInputElement>(null);
 
   useEffect(() => recordarPanel(p.id, panel), [p.id, panel]);
+  useEffect(() => {
+    if (mode !== "demo" || p.name !== "Portafolio 2027" || sembrados.has(p.id)) return;
+    sembrados.add(p.id);
+    if (!leerEspacio().voz.some((v) => v.proyectoId === p.id)) void crearNotaEjemplo(p.id);
+  }, [mode, p.id, p.name]);
 
   const prog = projectProgress(p, db.tasks);
   const voces = e.voz.filter((v) => v.proyectoId === p.id);
@@ -299,9 +309,9 @@ function Espacio({ proyecto: p, panel }: { proyecto: Project; panel: Panel }) {
             </div>
           </Seccion>
         ) : panel === "notas" ? (
-          <Seccion id="notas" titulo="Notas" icon={NotebookPen}>
-            <NotasProyecto proyectoId={p.id} />
-          </Seccion>
+          <Suspense fallback={null}>
+            <PanelNotas proyecto={p} />
+          </Suspense>
         ) : panel === "imagenes" ? (
           <Seccion id="imagenes" titulo="Imágenes" icon={ImageIcon} cuenta={imagenes.length}>
             <Imagenes proyectoId={p.id} />

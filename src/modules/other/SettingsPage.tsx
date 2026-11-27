@@ -1,5 +1,7 @@
 "use client";
 
+import { almacenDocumentos, documentos } from "@/lib/proyectos/documentos";
+import { almacenVistas } from "@/lib/proyectos/vistas";
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check, Cloud, Download, FlaskConical, GraduationCap, Upload, HardDrive, Monitor, Moon, Plus, Sun, Trash2, X } from "lucide-react";
@@ -384,6 +386,8 @@ const EXTRAS = {
   animo: almacenAnimo.clave,
   enfoque: almacenEnfoque.clave,
   conexiones: almacenConexiones.clave,
+  documentos: almacenDocumentos.clave,
+  vistas: almacenVistas.clave,
 } as const;
 const leerExtra = (k: string) => {
   try {
@@ -421,6 +425,8 @@ function useRespaldo() {
       animo: leerExtra(EXTRAS.animo),
       enfoque: leerExtra(EXTRAS.enfoque),
       conexiones: leerExtra(EXTRAS.conexiones),
+      documentos: leerExtra(EXTRAS.documentos),
+      vistas: leerExtra(EXTRAS.vistas),
       notasVoz,
     };
     const blob = new Blob([JSON.stringify(respaldo, null, 2)], { type: "application/json" });
@@ -457,7 +463,7 @@ function StorageCard() {
   const sincronizado = almacenSync.useValor().activo && mode === "local";
 
   const importar = async (file: File) => {
-    let r: { exported_at?: string; profile?: Profile | null; data?: Record<string, unknown>; asistentes?: unknown; progreso?: unknown; salud?: unknown; espacio?: unknown; captura?: unknown; pagosFijos?: unknown; animo?: unknown; enfoque?: unknown; conexiones?: unknown; notasVoz?: { id: string; tipo?: string; audio: string }[] };
+    let r: { exported_at?: string; profile?: Profile | null; data?: Record<string, unknown>; asistentes?: unknown; progreso?: unknown; salud?: unknown; espacio?: unknown; captura?: unknown; pagosFijos?: unknown; animo?: unknown; enfoque?: unknown; conexiones?: unknown; documentos?: unknown; vistas?: unknown; notasVoz?: { id: string; tipo?: string; audio: string }[] };
     try {
       r = JSON.parse(await file.text());
     } catch {
@@ -490,6 +496,8 @@ function StorageCard() {
       if (r.animo) escribir(EXTRAS.animo, r.animo);
       if (r.enfoque) escribir(EXTRAS.enfoque, r.enfoque);
       if (r.conexiones) escribir(EXTRAS.conexiones, r.conexiones);
+      if (r.documentos) escribir(EXTRAS.documentos, r.documentos);
+      if (r.vistas) escribir(EXTRAS.vistas, r.vistas);
       // Audios de las notas de voz
       for (const n of Array.isArray(r.notasVoz) ? r.notasVoz : []) {
         if (typeof n?.id !== "string" || typeof n.audio !== "string" || !n.audio.startsWith("data:")) continue;
@@ -509,7 +517,7 @@ function StorageCard() {
   const wipe = async () => {
     const ok = await confirm({
       title: "¿Borrar todos tus datos de este navegador?",
-      description: `Se eliminarán ${total} registros, tu perfil, tu perfil físico y el espacio de tus proyectos (notas, audios e imágenes). Exporta antes si quieres conservarlos.`,
+      description: `Se eliminarán ${total} registros, tu perfil, tu perfil físico y el espacio de tus proyectos (notas, reuniones, audios e imágenes). Exporta antes si quieres conservarlos.`,
       confirmLabel: "Borrar todo",
       destructive: true,
     });
@@ -523,6 +531,8 @@ function StorageCard() {
     almacenAnimo.borrar();
     almacenEnfoque.borrar();
     almacenConexiones.borrar();
+    documentos.borrarTodo();
+    almacenVistas.borrar();
     await borrarTodoEspacio();
     toast("Datos borrados.");
   };

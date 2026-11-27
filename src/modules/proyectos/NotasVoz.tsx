@@ -6,18 +6,45 @@
  * (fechas, montos, acciones) que se pueden convertir en tareas.
  */
 import { useEffect, useRef, useState } from "react";
-import { CalendarClock, Check, ChevronDown, Download, FileText, Mic, MoreHorizontal, Pause, Play, Sparkles, Square, Trash2, X } from "lucide-react";
+import { CalendarClock, Check, ChevronDown, Download, FileText, ListPlus, Mic, MoreHorizontal, Pause, Play, Sparkles, Square, Trash2, X } from "lucide-react";
 import { Popover } from "@/components/ui/Popover";
 import { Button } from "@/components/ui/Button";
 import { useFeedback } from "@/components/providers/FeedbackProvider";
 import { useData } from "@/lib/store/DataProvider";
 import { ETIQUETA_DESTACADO, destacados, espacio, guardarArchivo, leerArchivo, nuevoId, tituloVoz, type NotaVoz, type SegmentoVoz } from "@/lib/proyectos/espacio";
 import { compartirODescargar, extensionAudio, nombreBase, transcripcionTxt } from "@/lib/proyectos/exportarVoz";
+import { interpretarAcuerdo } from "@/lib/proyectos/acuerdos";
+import { useToday } from "@/hooks/useToday";
+import { relativeDay } from "@/utils/dates";
 import { cn } from "@/utils/cn";
 import { analizarAudio, audioEjemplo, crearReconocedor, formatoGrabacion, tiempo } from "./audio";
 
 const fechaHora = (iso: string) =>
   new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(new Date(iso));
+
+/** Nota de voz de ejemplo (modo demo): audio sintético y una transcripción con fecha, monto y acciones */
+export async function crearNotaEjemplo(proyectoId: string, reunionId?: string) {
+  const blob = await audioEjemplo();
+  const id = nuevoId("voz");
+  const a = await analizarAudio(blob);
+  await guardarArchivo(id, blob);
+  espacio.agregarVoz({
+    id,
+    proyectoId,
+    reunionId,
+    titulo: "Llamada con el cliente (ejemplo)",
+    creada: new Date().toISOString(),
+    duracion: a.duracion,
+    picos: a.picos,
+    tipo: "audio/wav",
+    transcripcion: [
+      { t: 0.5, texto: "Repasamos el avance del diseño de la página de inicio." },
+      { t: 6, texto: "El cliente aprobó la paleta y pidió enviar la propuesta final el viernes." },
+      { t: 13, texto: "El presupuesto adicional para fotografía es de 800 mil pesos." },
+      { t: 19, texto: "Hay que agendar la revisión con su equipo la próxima semana." },
+    ],
+  });
+}
 
 /* ═════════ Grabadora ═════════ */
 export function Grabadora({ proyectoId, reunionId, onGuardada }: { proyectoId: string; reunionId?: string; onGuardada?: () => void }) {
@@ -216,26 +243,7 @@ export function Grabadora({ proyectoId, reunionId, onGuardada }: { proyectoId: s
   }
 
   async function ejemplo() {
-    const blob = await audioEjemplo();
-    const id = nuevoId("voz");
-    const a = await analizarAudio(blob);
-    await guardarArchivo(id, blob);
-    espacio.agregarVoz({
-      id,
-      proyectoId,
-      reunionId,
-      titulo: "Llamada con el cliente (ejemplo)",
-      creada: new Date().toISOString(),
-      duracion: a.duracion,
-      picos: a.picos,
-      tipo: "audio/wav",
-      transcripcion: [
-        { t: 0.5, texto: "Repasamos el avance del diseño de la página de inicio." },
-        { t: 6, texto: "El cliente aprobó la paleta y pidió enviar la propuesta final el viernes." },
-        { t: 13, texto: "El presupuesto adicional para fotografía es de 800 mil pesos." },
-        { t: 19, texto: "Hay que agendar la revisión con su equipo la próxima semana." },
-      ],
-    });
+    await crearNotaEjemplo(proyectoId, reunionId);
     toast("Nota de ejemplo creada");
   }
 
@@ -318,6 +326,15 @@ export function TarjetaVoz({ nota, reunionTitulo }: { nota: NotaVoz; reunionTitu
   const titulo = tituloVoz(nota);
   const [borrador, setBorrador] = useState("");
   const [creadas, setCreadas] = useState<Set<number>>(new Set());
+  const today = useToday();
+  // Frase seleccionada en la transcripción (para «Convertir en tarea»)
+  const [seleccion, setSeleccion] = useState("");
+  const lista = useRef<HTMLOListElement>(null);
+  const leerSeleccion = () => {
+    const s = window.getSelection();
+    const t = s?.toString().replace(/\s+/g, " ").trim() ?? "";
+    setSeleccion(t && s?.anchorNode && lista.current?.contains(s.anchorNode) ? t.slice(0, 200) : "");
+  };
 
   useEffect(
     () => () => {
@@ -373,11 +390,31 @@ export function TarjetaVoz({ nota, reunionTitulo }: { nota: NotaVoz; reunionTitu
   };
   const pct = nota.duracion ? actual / nota.duracion : 0;
 
-  async function crearTarea(k: number, texto: string) {
-    const nombre = texto.length > 90 ? `${texto.slice(0, 87)}…` : texto;
-    await insert("tasks", { project_id: nota.proyectoId, parent_task_id: null, name: nombre, description: `Desde la nota de voz «${titulo}»`, due_date: null, priority: "media", status: "pendiente" });
-    setCreadas((s) => new Set(s).add(k));
-    toast("Tarea creada en el proyecto");
+  /** Convertir en tarea del proyecto: el parser saca la fecha y el responsable si la frase los trae */
+  async function crearTarea(k: number | null, texto: string) {
+    const a = interpretarAcuerdo(texto, today);
+    const base = a.nombre || texto;
+    const nombre = base.length > 90 ? `${base.slice(0, 87)}…` : base;
+    await insert("tasks", {
+      project_id: nota.proyectoId,
+      parent_task_id: null,
+      name: nombre,
+      description: `Desde la nota de voz «${titulo}»`,
+      due_date: a.fecha,
+      priority: "media",
+      status: "pendiente",
+      assignee: a.responsable,
+    });
+    if (k !== null) setCreadas((s) => new Set(s).add(k));
+    const extra = [a.fecha ? relativeDay(a.fecha, today).toLowerCase() : "", a.responsable ? `para ${a.responsable}` : ""].filter(Boolean).join(", ");
+    toast(extra ? `Tarea creada: ${extra}` : "Tarea creada en el proyecto");
+  }
+  async function convertirSeleccion() {
+    const t = seleccion;
+    if (!t) return;
+    await crearTarea(null, t);
+    window.getSelection()?.removeAllRanges();
+    setSeleccion("");
   }
   async function borrar() {
     if (await confirm({ title: "¿Eliminar esta nota de voz?", description: "Se borra el audio y su transcripción.", confirmLabel: "Eliminar", destructive: true })) {
@@ -554,11 +591,13 @@ export function TarjetaVoz({ nota, reunionTitulo }: { nota: NotaVoz; reunionTitu
       ) : null}
 
       {abierta ? (
-        <ol className="mt-3 grid grid-cols-1 gap-2">
+        <>
+        <p className="mt-3 px-1 text-[12px] text-muted">Selecciona una frase para volverla tarea.</p>
+        <ol ref={lista} onMouseUp={leerSeleccion} onKeyUp={leerSeleccion} onTouchEnd={() => setTimeout(leerSeleccion, 50)} className="mt-2 grid grid-cols-1 gap-2">
           {nota.transcripcion.map((s, k) => {
             const tipos = destacados(s.texto);
             return (
-              <li key={k} className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2.5 rounded-[16px] bg-bg p-3">
+              <li key={k} className="group grid grid-cols-[auto_minmax(0,1fr)_auto] gap-x-2.5 rounded-[16px] bg-bg p-3">
                 <button type="button" onClick={() => ir(s.t)} className="focus-ring num h-6 cursor-pointer self-start rounded-full bg-bg-2 px-2 text-[11.5px] font-medium hover:bg-elev" title="Escuchar desde aquí">
                   {tiempo(s.t)}
                 </button>
@@ -585,11 +624,35 @@ export function TarjetaVoz({ nota, reunionTitulo }: { nota: NotaVoz; reunionTitu
                     </div>
                   ) : null}
                 </div>
+                {tipos.includes("accion") ? (
+                  <span />
+                ) : creadas.has(k) ? (
+                  <Check size={15} className="mt-1 text-[var(--color-brand-soft)]" aria-label="Tarea creada" />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void crearTarea(k, s.texto)}
+                    aria-label={`Convertir en tarea: ${s.texto}`}
+                    title="Convertir en tarea"
+                    className="focus-ring grid h-7 w-7 cursor-pointer place-items-center self-start rounded-full text-muted hover:bg-bg-2 hover:text-fg [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:focus-visible:opacity-100"
+                  >
+                    <ListPlus size={15} />
+                  </button>
+                )}
               </li>
             );
           })}
           <li className="px-1 text-[11.5px] text-dim">Los destacados se detectan con reglas simples en el texto (fechas, montos y verbos de acción).</li>
         </ol>
+        {seleccion ? (
+          <div className="sticky bottom-24 mt-2 flex items-center gap-2 rounded-[16px] bg-fg p-2 pl-3 text-on-fg md:bottom-4" role="region" aria-label="Frase seleccionada">
+            <p className="min-w-0 flex-1 truncate text-[13px]">«{seleccion}»</p>
+            <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => void convertirSeleccion()} className="focus-ring shrink-0 cursor-pointer rounded-full bg-on-fg px-3 py-1.5 text-[12.5px] font-medium text-fg">
+              Convertir en tarea
+            </button>
+          </div>
+        ) : null}
+        </>
       ) : null}
     </article>
   );

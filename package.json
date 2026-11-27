@@ -12,6 +12,11 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.2",
+    "@tiptap/extension-list": "3.33.1",
+    "@tiptap/extensions": "3.33.1",
+    "@tiptap/pm": "3.33.1",
+    "@tiptap/react": "3.33.1",
+    "@tiptap/starter-kit": "3.33.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.79.0",
     "next": "16.4.6",

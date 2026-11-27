@@ -6,6 +6,7 @@
  * Este archivo es liviano y siempre está cargado (apertura, atajos y puente del teclado); el panel
  * con el parser se descarga la primera vez que se abre (PanelCaptura.tsx).
  */
+import type { TipoCaptura } from "@/lib/captura/interpretar";
 import { nuevoDelPanel } from "@/lib/atajoNuevo";
 import { lazy, Suspense, useEffect, useSyncExternalStore } from "react";
 import { cuandoLibre } from "@/utils/cuandoLibre";
@@ -25,7 +26,21 @@ export function quitarPuente() {
   puente?.remove();
   puente = null;
 }
-export function abrirCaptura() {
+/**
+ * Opciones al abrir desde otra parte de la app (p. ej. el comando /gasto de las notas):
+ * texto inicial, tipo forzado, proyecto y qué hacer cuando se guarde.
+ */
+export interface OpcionesCaptura {
+  texto?: string;
+  tipo?: TipoCaptura;
+  proyectoId?: string | null;
+  alGuardar?: (r: { tipo: TipoCaptura; descripcion: string; monto: number | null; fecha: string | null; hora: string | null }) => void;
+}
+let opciones: OpcionesCaptura = {};
+export const opcionesCaptura = () => opciones;
+
+export function abrirCaptura(o: OpcionesCaptura = {}) {
+  opciones = o;
   if (typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches && !puente) {
     puente = document.createElement("input");
     puente.setAttribute("aria-hidden", "true");
@@ -39,6 +54,7 @@ export function abrirCaptura() {
 }
 export function cerrarCaptura() {
   quitarPuente();
+  opciones = {};
   abierta = false;
   avisar();
 }

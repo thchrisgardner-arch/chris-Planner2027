@@ -24,6 +24,7 @@ export const CLAVES_DOC = [
   "tutorial",
   "onboarding",
   "vistas",
+  "documentos",
 ] as const;
 export type ClaveDoc = (typeof CLAVES_DOC)[number];
 
@@ -43,6 +44,7 @@ export const CLAVE_LOCAL: Record<ClaveDoc, string> = {
   tutorial: "lifeos:tutorial",
   onboarding: "lifeos:onboarding-done",
   vistas: "lifeos:vistas",
+  documentos: "lifeos:documentos",
 };
 
 export type DocRemoto = { clave: ClaveDoc; data: unknown; updated_at: string; deleted_at: string | null; client_id: string | null };

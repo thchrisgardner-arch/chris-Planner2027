@@ -205,7 +205,7 @@ export function NotificationsButton({ pill }: { pill?: boolean }) {
 export function QuickAdd({ compact, fab }: { compact?: boolean; fab?: boolean }) {
   return fab ? (
     <button
-      onClick={abrirCaptura}
+      onClick={() => abrirCaptura()}
       aria-label="Crear nuevo"
       aria-haspopup="dialog"
       data-tour="agregar"
@@ -214,11 +214,11 @@ export function QuickAdd({ compact, fab }: { compact?: boolean; fab?: boolean })
       <Plus size={26} />
     </button>
   ) : compact ? (
-    <Button size="icon" variant="primary" onClick={abrirCaptura} aria-label="Crear nuevo" aria-haspopup="dialog">
+    <Button size="icon" variant="primary" onClick={() => abrirCaptura()} aria-label="Crear nuevo" aria-haspopup="dialog">
       <Plus size={21} />
     </Button>
   ) : (
-    <Button variant="primary" onClick={abrirCaptura} aria-haspopup="dialog" data-tour="agregar" className="pr-2" title="Captura rápida (Ctrl K)">
+    <Button variant="primary" onClick={() => abrirCaptura()} aria-haspopup="dialog" data-tour="agregar" className="pr-2" title="Captura rápida (Ctrl K)">
       Nuevo
       <span className="grid h-7 w-7 place-items-center rounded-full bg-on-fg text-fg">
         <ArrowUpRight size={16} />

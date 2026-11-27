@@ -81,6 +81,16 @@ export function unirPorId(local: Obj, remoto: Obj): Obj {
   return out;
 }
 
+/** Notas de proyectos: unión por id; si la misma nota cambió en los dos, gana la editada más tarde */
+function fusionarDocumentos(local: Obj, remoto: Obj): Obj {
+  const m = new Map<string, Obj>();
+  for (const d of [...((remoto.docs as Obj[]) ?? []), ...((local.docs as Obj[]) ?? [])]) {
+    const previo = m.get(d.id as string);
+    if (!previo || String(d.actualizado ?? "") >= String(previo.actualizado ?? "")) m.set(d.id as string, d);
+  }
+  return { ...remoto, ...local, docs: [...m.values()], migrado: !!local.migrado || !!remoto.migrado };
+}
+
 export function fusionarDoc(clave: ClaveDoc, local: unknown, remoto: unknown, hoy: string): unknown {
   if (local == null) return remoto;
   if (remoto == null) return local;
@@ -96,6 +106,8 @@ export function fusionarDoc(clave: ClaveDoc, local: unknown, remoto: unknown, ho
     case "animo-usuario":
     case "conexiones":
       return unirPorId(local, remoto);
+    case "documentos":
+      return fusionarDocumentos(local, remoto);
     default:
       return local;
   }
