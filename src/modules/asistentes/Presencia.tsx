@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/Enlace";
 import { ArrowUpRight, X } from "lucide-react";
 import { Asistente } from "@/components/asistentes/Asistente";
 import { useData } from "@/lib/store/DataProvider";

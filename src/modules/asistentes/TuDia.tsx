@@ -4,7 +4,7 @@
  * "Tu día" (estilo Duolingo): anillo con el XP de hoy frente a tu meta diaria y las 3 misiones
  * del día. Cada misión da +10 XP; las tres juntas, +20 XP; llegar a la meta, +10 XP.
  */
-import Link from "next/link";
+import Link from "@/components/Enlace";
 import { Check, ChevronRight, Target } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { BarraXP } from "./Protagonismo";

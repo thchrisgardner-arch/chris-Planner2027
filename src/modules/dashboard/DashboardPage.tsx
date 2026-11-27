@@ -1,24 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { CalendarDays } from "lucide-react";
 import { ConexionDelDia } from "@/modules/asistentes/ConexionDelDia";
+import { DespuesDelPrimerPintado } from "@/components/Diferido";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { QuickAdd } from "@/components/layout/HeaderActions";
 import { Select } from "@/components/ui/Field";
 import { useData } from "@/lib/store/DataProvider";
 import { useToday } from "@/hooks/useToday";
 import { addMonths, bogotaHour, formatLongDate, monthKey, monthLabel } from "@/utils/dates";
-import {
-  ActivityCard,
-  CalendarCard,
-  HabitsWeekCard,
-  KpiRow,
-  ProjectsCard,
-  SavingsCard,
-  TasksCard,
-  WishlistCard,
-} from "./DashboardWidgets";
+import { KpiRow } from "./KpiRow";
+
+// La parte baja del inicio (gráficos, hábitos, tareas, calendario, proyectos, wishlist) se descarga
+// después de la primera vista
+const DashboardAbajo = lazy(() => import("./DashboardAbajo"));
 import { HeroAsistente } from "@/modules/asistentes/Protagonismo";
 import { InvitacionRevision } from "@/modules/asistentes/Revision";
 import { TuDia } from "@/modules/asistentes/TuDia";
@@ -80,21 +76,12 @@ export function DashboardPage() {
         ) : null}
         <KpiRow refMonth={refMonth} />
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-12">
-          <ActivityCard className="md:col-span-2 xl:col-span-7" />
-          <HabitsWeekCard className="md:col-span-2 xl:col-span-5" />
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-12">
-          <SavingsCard className="xl:col-span-4" />
-          <TasksCard className="xl:col-span-4" />
-          <CalendarCard className="md:col-span-2 xl:col-span-4" />
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 xl:grid-cols-12">
-          <ProjectsCard className="xl:col-span-7" />
-          <WishlistCard className="xl:col-span-5" />
-        </div>
+        {/* Lo de abajo se dibuja justo después del primer pintado: el asistente y tu día se ven antes */}
+        <DespuesDelPrimerPintado>
+          <Suspense fallback={null}>
+            <DashboardAbajo />
+          </Suspense>
+        </DespuesDelPrimerPintado>
       </div>
     </>
   );

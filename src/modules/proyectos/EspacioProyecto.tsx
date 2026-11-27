@@ -7,7 +7,7 @@
  * Celular: una columna, con atajos para saltar entre secciones.
  */
 import { useRef, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/Enlace";
 import { ArrowLeft, CalendarDays, CalendarClock, CheckSquare, Image as ImageIcon, ImagePlus, Mic, NotebookPen, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Field";

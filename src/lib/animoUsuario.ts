@@ -41,10 +41,15 @@ export function animoDe(d: DatosAnimo, fecha: string): NivelAnimo | null {
   return d.registros[fecha] ?? null;
 }
 
-/** ¿Hoy es un día difícil? (respondió mal o bajo) */
-export function diaDificil(d: DatosAnimo, fecha = todayISO()) {
-  const n = d.registros[fecha];
-  return d.activo && n !== undefined && n <= 2;
+/**
+ * ¿Hoy es un día difícil? (respondió mal o bajo). Sin registros no lee la hora: en el prerender
+ * del servidor (sin datos) leer la fecha actual obligaría a renderizar todo en el cliente.
+ */
+export function diaDificil(d: DatosAnimo, fecha?: string) {
+  if (!d.activo) return false;
+  if (Object.keys(d.registros).length === 0) return false;
+  const n = d.registros[fecha ?? todayISO()];
+  return n !== undefined && n <= 2;
 }
 
 export function chequeoPendiente(d: DatosAnimo, fecha: string) {

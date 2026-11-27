@@ -165,7 +165,8 @@ export function CalendarPage() {
         <div className="flex flex-col gap-4 border-b border-line p-4 sm:p-5">
           <div className="flex flex-wrap items-center gap-3">
             <h2 className="num mr-1 text-[22px] tracking-[-0.02em] first-letter:uppercase sm:text-[26px]" aria-live="polite">{title}</h2>
-            <div className="flex items-center gap-1">
+            {/* En celular: flechas, Hoy y la vista en una sola línea (con la vista en tamaño compacto) */}
+            <div className="flex items-center gap-1 max-sm:w-full max-sm:flex-nowrap">
               <Button size="icon" variant="ghost" onClick={() => move(-1)} aria-label="Periodo anterior">
                 <ChevronLeft size={20} />
               </Button>
@@ -175,8 +176,21 @@ export function CalendarPage() {
               <Button size="sm" variant="ghost" onClick={() => setCursor(today)}>
                 Hoy
               </Button>
+              <div className="ml-auto shrink-0 sm:hidden">
+                <Segmented
+                  size="sm"
+                  label="Vista del calendario"
+                  value={view}
+                  onChange={setView}
+                  options={[
+                    { value: "dia", label: "Día" },
+                    { value: "semana", label: "Semana" },
+                    { value: "mes", label: "Mes" },
+                  ]}
+                />
+              </div>
             </div>
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-2 max-sm:hidden">
               <Segmented
                 size="md"
                 label="Vista del calendario"

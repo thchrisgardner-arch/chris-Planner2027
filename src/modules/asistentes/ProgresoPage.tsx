@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef } from "react";
-import Link from "next/link";
+import Link from "@/components/Enlace";
 import { CalendarCheck, Download, Flame, Lock, ListChecks, PiggyBank, Shield, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -111,19 +111,7 @@ function Escalera({ className, principal }: { className?: string; principal: Asi
 }
 
 /* ═════════ Resumen de la semana ═════════ */
-export function useSemana(today: string) {
-  const g = useGamificacion();
-  return useMemo(() => {
-    const inicio = semanaDe(today);
-    const evs = g.progreso.eventos.filter((e) => e.fecha >= inicio && e.fecha <= today);
-    const xp = evs.reduce((s, e) => s + e.xp, 0);
-    const habitos = evs.filter((e) => e.tipo === "habito").length;
-    const tareas = evs.filter((e) => e.tipo === "tarea").length;
-    const dias = new Set(evs.map((e) => e.fecha)).size;
-    const aportes = evs.filter((e) => e.tipo === "aporte-ahorro").length;
-    return { xp, habitos, tareas, dias, aportes };
-  }, [g.progreso.eventos, today]);
-}
+import { useSemana } from "./semana";
 
 function tituloSemana(xp: number, tono: string) {
   if (xp >= 300) return tono === "tranquilo" ? "Gran semana" : tono === "motivador" ? "Semana imparable" : "Semana redonda";

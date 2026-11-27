@@ -5,7 +5,7 @@
  * principal invita a una revisión de 1 minuto en 3 pasos. Completarla da +25 XP.
  */
 import { useMemo, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/Enlace";
 import { ArrowUpRight } from "lucide-react";
 import { Asistente } from "@/components/asistentes/Asistente";
 import { Button } from "@/components/ui/Button";
@@ -19,7 +19,7 @@ import { ANIMO_LABEL, poseDeAnimo } from "@/lib/asistentes/animo";
 import { ASISTENTE_IDS } from "@/lib/asistentes/tipos";
 import { cn } from "@/utils/cn";
 import { useGamificacion } from "./Gamificacion";
-import { useSemana } from "./ProgresoPage";
+import { useSemana } from "./semana";
 
 const INVITA = {
   seco: "Un minuto para revisar la semana. Rápido, lo prometo.",

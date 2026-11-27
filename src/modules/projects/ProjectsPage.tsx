@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/Enlace";
 import { rutaPanel } from "@/modules/proyectos/EspacioDesdeRuta";
 import { espacio } from "@/lib/proyectos/espacio";
 import { ArrowUpRight, CornerDownRight, Plus, Search, Timer } from "lucide-react";

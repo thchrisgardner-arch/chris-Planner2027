@@ -1,11 +1,27 @@
 "use client";
 
-import { createContext, useCallback, useContext, useRef, useState } from "react";
-import { AccountForm, SavingsDepositForm, SavingsGoalForm, TransactionForm } from "@/modules/finance/forms";
-import { DebtForm, DebtPaymentForm } from "@/modules/finance/debtForms";
-import { ProjectForm, TaskForm } from "@/modules/projects/forms";
-import { HabitForm } from "@/modules/habits/forms";
-import { EventForm, GoalForm, WishlistForm } from "@/modules/other/forms";
+import { createContext, lazy, Suspense, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { cuandoLibre } from "@/utils/cuandoLibre";
+
+// Los formularios se descargan al abrirse (o en segundo plano, con el navegador libre): no pesan en
+// la primera pantalla.
+const cargarFinanzas = () => import("@/modules/finance/forms");
+const cargarDeudas = () => import("@/modules/finance/debtForms");
+const cargarProyectos = () => import("@/modules/projects/forms");
+const cargarHabitos = () => import("@/modules/habits/forms");
+const cargarOtros = () => import("@/modules/other/forms");
+const TransactionForm = lazy(() => cargarFinanzas().then((m) => ({ default: m.TransactionForm })));
+const AccountForm = lazy(() => cargarFinanzas().then((m) => ({ default: m.AccountForm })));
+const SavingsGoalForm = lazy(() => cargarFinanzas().then((m) => ({ default: m.SavingsGoalForm })));
+const SavingsDepositForm = lazy(() => cargarFinanzas().then((m) => ({ default: m.SavingsDepositForm })));
+const DebtForm = lazy(() => cargarDeudas().then((m) => ({ default: m.DebtForm })));
+const DebtPaymentForm = lazy(() => cargarDeudas().then((m) => ({ default: m.DebtPaymentForm })));
+const ProjectForm = lazy(() => cargarProyectos().then((m) => ({ default: m.ProjectForm })));
+const TaskForm = lazy(() => cargarProyectos().then((m) => ({ default: m.TaskForm })));
+const HabitForm = lazy(() => cargarHabitos().then((m) => ({ default: m.HabitForm })));
+const EventForm = lazy(() => cargarOtros().then((m) => ({ default: m.EventForm })));
+const GoalForm = lazy(() => cargarOtros().then((m) => ({ default: m.GoalForm })));
+const WishlistForm = lazy(() => cargarOtros().then((m) => ({ default: m.WishlistForm })));
 import type {
   Account,
   AnnualGoal,
@@ -51,9 +67,22 @@ export function FormsProvider({ children }: { children: React.ReactNode }) {
 
   const common = { open: true, onClose: close };
 
+  // Con el navegador libre se precargan los formularios más usados (abrirlos es instantáneo)
+  useEffect(
+    () =>
+      cuandoLibre(() => {
+        void cargarFinanzas();
+        void cargarProyectos();
+        void cargarHabitos();
+        void cargarOtros();
+      }, 4000),
+    [],
+  );
+
   return (
     <FormsContext.Provider value={open}>
       {children}
+      <Suspense fallback={null}>
       {req?.kind === "transaction" && <TransactionForm key={key} {...common} record={req.record} defaults={req.defaults} />}
       {req?.kind === "account" && <AccountForm key={key} {...common} record={req.record} onCreated={req.onCreated} />}
       {req?.kind === "savings" && <SavingsGoalForm key={key} {...common} record={req.record} />}
@@ -66,6 +95,7 @@ export function FormsProvider({ children }: { children: React.ReactNode }) {
       {req?.kind === "wish" && <WishlistForm key={key} {...common} record={req.record} />}
       {req?.kind === "goal" && <GoalForm key={key} {...common} record={req.record} />}
       {req?.kind === "event" && <EventForm key={key} {...common} record={req.record} defaults={req.defaults} />}
+      </Suspense>
     </FormsContext.Provider>
   );
 }

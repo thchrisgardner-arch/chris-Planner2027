@@ -11,24 +11,9 @@ import { useAsistentes } from "@/lib/asistentes/estado";
 import { FICHAS } from "@/lib/asistentes/definiciones";
 import { ASISTENTE_IDS, type AsistenteId } from "@/lib/asistentes/tipos";
 import { cn } from "@/utils/cn";
+import { isOnboardingDone, markOnboardingDone } from "@/lib/onboarding";
 
-const ONBOARDING_KEY = "lifeos:onboarding-done";
-
-export function isOnboardingDone(): boolean {
-  try {
-    return localStorage.getItem(ONBOARDING_KEY) === "1";
-  } catch {
-    return true;
-  }
-}
-
-function markOnboardingDone() {
-  try {
-    localStorage.setItem(ONBOARDING_KEY, "1");
-  } catch {
-    /* sin almacenamiento: se mostrará de nuevo, no pasa nada */
-  }
-}
+export { isOnboardingDone };
 
 /** Primera vez: pide el nombre para el saludo. Al cerrarla o completarla no vuelve a aparecer. */
 export function WelcomeModal({ onDone }: { onDone: () => void }) {

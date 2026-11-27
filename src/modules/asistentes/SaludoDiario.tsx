@@ -6,7 +6,7 @@
  */
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import Link from "next/link";
+import Link from "@/components/Enlace";
 import { Check, ShieldCheck, Wrench } from "lucide-react";
 import { Asistente } from "@/components/asistentes/Asistente";
 import { Button } from "@/components/ui/Button";

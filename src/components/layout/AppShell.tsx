@@ -1,29 +1,37 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RefreshCw, X } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/Enlace";
 import { useData } from "@/lib/store/DataProvider";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/misc";
 import { Sidebar } from "./Sidebar";
 import { BottomNav, MobileDrawer, MobileTopbar } from "./MobileNav";
-import { WelcomeModal, isOnboardingDone } from "./WelcomeModal";
 import { GlobalSearch } from "./GlobalSearch";
 import { Avatar, NotificationsButton } from "./HeaderActions";
 import { GamificacionProvider } from "@/modules/asistentes/Gamificacion";
 import { CapaReacciones, PildorasProgreso, ReaccionNegativa } from "@/modules/asistentes/Protagonismo";
-import { CapaCelebraciones } from "@/modules/asistentes/Celebraciones";
-import { PanelDemo } from "@/modules/asistentes/PanelDemo";
-import { SaludoDiario } from "@/modules/asistentes/SaludoDiario";
-import { Tutorial } from "@/modules/tutorial/Tutorial";
-import { SincronizarAvisos } from "@/modules/avisos/AvisosCelular";
 import { CapturaRapida } from "@/modules/captura/CapturaRapida";
-import { GenerarPagosFijos } from "@/modules/finance/PagosFijosTab";
-import { PWA } from "@/modules/pwa/AppInstalable";
-import { ChequeoAnimo } from "@/modules/asistentes/ChequeoAnimo";
-import { ModoEnfoque } from "@/modules/enfoque/ModoEnfoque";
+import { GenerarPagosFijos } from "@/modules/finance/GenerarPagosFijos";
+import { Diferido } from "@/components/Diferido";
+import { isOnboardingDone } from "@/lib/onboarding";
+
+// Ventanas que se abren encima de la página (celebraciones, racha del día, tutorial, ánimo,
+// bienvenida): se descargan aparte y no compiten con la primera vista
+const CapaCelebraciones = lazy(() => import("@/modules/asistentes/Celebraciones").then((m) => ({ default: m.CapaCelebraciones })));
+const SaludoDiario = lazy(() => import("@/modules/asistentes/SaludoDiario").then((m) => ({ default: m.SaludoDiario })));
+const Tutorial = lazy(() => import("@/modules/tutorial/Tutorial").then((m) => ({ default: m.Tutorial })));
+const ChequeoAnimo = lazy(() => import("@/modules/asistentes/ChequeoAnimo").then((m) => ({ default: m.ChequeoAnimo })));
+const WelcomeModal = lazy(() => import("./WelcomeModal").then((m) => ({ default: m.WelcomeModal })));
+import { PrecargarRutas } from "@/components/PrecargarRutas";
+
+// Piezas que no se ven en la primera pantalla: su código se descarga con el navegador libre
+const SincronizarAvisos = lazy(() => import("@/modules/avisos/AvisosCelular").then((m) => ({ default: m.SincronizarAvisos })));
+const PWA = lazy(() => import("@/modules/pwa/AppInstalable").then((m) => ({ default: m.PWA })));
+const ModoEnfoque = lazy(() => import("@/modules/enfoque/ModoEnfoque").then((m) => ({ default: m.ModoEnfoque })));
+const PanelDemo = lazy(() => import("@/modules/asistentes/PanelDemo").then((m) => ({ default: m.PanelDemo })));
 
 const RAIL_KEY = "lifeos:ui:rail-expanded";
 
@@ -115,19 +123,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <>
           <CapaReacciones />
           <ReaccionNegativa />
-          <CapaCelebraciones />
-          {bienvenida ? null : <SaludoDiario />}
-          {bienvenida ? null : <Tutorial />}
-          <SincronizarAvisos />
           <GenerarPagosFijos />
           <CapturaRapida />
-          <PWA />
-          {bienvenida ? null : <ChequeoAnimo />}
-          <ModoEnfoque />
-          <PanelDemo />
+          <PrecargarRutas />
+          <Diferido espera={400}>
+            <CapaCelebraciones />
+            {bienvenida ? null : <SaludoDiario />}
+            {bienvenida ? null : <Tutorial />}
+            {bienvenida ? null : <ChequeoAnimo />}
+          </Diferido>
+          <Diferido>
+            <SincronizarAvisos />
+            <PWA />
+            <ModoEnfoque />
+            {mode === "demo" ? <PanelDemo /> : null}
+          </Diferido>
         </>
       ) : null}
-      {bienvenida ? <WelcomeModal onDone={() => setOnboarded(true)} /> : null}
+      {bienvenida ? (
+        <Suspense fallback={null}>
+          <WelcomeModal onDone={() => setOnboarded(true)} />
+        </Suspense>
+      ) : null}
     </div>
     </GamificacionProvider>
   );

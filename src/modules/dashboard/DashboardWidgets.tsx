@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 import { Check, ImageOff } from "lucide-react";
 import { Card, CardHeader } from "@/components/ui/Card";
-import { Badge, Delta, Progress, Segmented } from "@/components/ui/misc";
-import { BarChart, HeatGrid, ProgressCard, StatCard, type HeatRow } from "@/components/ui/viz";
+import { Badge, Progress, Segmented } from "@/components/ui/misc";
+import { BarChart, HeatGrid, ProgressCard, type HeatRow } from "@/components/ui/viz";
 import { StoreLogo } from "@/components/ui/StoreLogo";
 import { useForms } from "@/components/providers/FormsProvider";
 import { useFeedback } from "@/components/providers/FeedbackProvider";
@@ -14,18 +14,14 @@ import type { Task } from "@/types/db";
 import {
   WEEKDAYS_SHORT,
   addDays,
-  addMonths,
-  endOfMonth,
   formatTime,
-  monthKey,
-  monthLabel,
   parseISO,
   relativeDay,
   startOfWeek,
 } from "@/utils/dates";
-import { formatCOP, formatKpiCOP, pct, variation } from "@/utils/money";
+import { formatCOP, formatKpiCOP, pct } from "@/utils/money";
 import { cn } from "@/utils/cn";
-import { activitySeries, monthTotals, totalBalance, type ActivityPeriod } from "@/modules/finance/selectors";
+import { activitySeries, type ActivityPeriod } from "@/modules/finance/selectors";
 import { projectProgress, projectStatusLabel } from "@/modules/projects/constants";
 import { isScheduled, logFor } from "@/modules/habits/selectors";
 import { CALENDAR_EXTRA, eventType, wishStatusLabel } from "@/modules/other/constants";
@@ -96,63 +92,7 @@ function EmptyLine({ text, action, onAction }: { text: string; action?: string; 
 }
 
 /* ═════════ Fila KPI ═════════ */
-export function KpiRow({ refMonth }: { refMonth: string }) {
-  const { db } = useData();
-  const open = useForms();
-  const today = useToday();
-  const isCurrent = refMonth === monthKey(today);
-  const prevMonth = addMonths(refMonth, -1);
-  const prevLabel = monthLabel(prevMonth).split(" ")[0].toLowerCase();
-
-  const k = useMemo(() => {
-    const until = isCurrent ? undefined : endOfMonth(refMonth);
-    const balance = totalBalance(db.accounts, db.transactions, until);
-    const prevBalance = totalBalance(db.accounts, db.transactions, endOfMonth(prevMonth));
-    const hasPrev = db.transactions.some((t) => t.date <= endOfMonth(prevMonth));
-    const cur = monthTotals(db.transactions, refMonth);
-    const prev = monthTotals(db.transactions, prevMonth);
-    return { balance, prevBalance, hasPrev, cur, prev, prevHasMoves: prev.income > 0 || prev.expense > 0 };
-  }, [db.accounts, db.transactions, refMonth, prevMonth, isCurrent]);
-
-  const noAccounts = db.accounts.length === 0;
-
-  return (
-    <div data-tour="kpis" className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-      <StatCard
-        variant="inverse"
-        label="Dinero disponible"
-        value={formatKpiCOP(k.balance)}
-        href="/finanzas?tab=cuentas"
-        className="sm:col-span-2 xl:col-span-1"
-        meta={
-          noAccounts ? (
-            <button type="button" onClick={() => open({ kind: "account" })} className="cursor-pointer font-medium text-on-fg underline-offset-4 hover:underline">
-              Agregar cuenta
-            </button>
-          ) : k.hasPrev ? (
-            <Delta inverse value={variation(k.balance, k.prevBalance)} suffix={`vs. ${prevLabel} · ${db.accounts.length} ${db.accounts.length === 1 ? "cuenta" : "cuentas"}`} />
-          ) : (
-            `${db.accounts.length} ${db.accounts.length === 1 ? "cuenta" : "cuentas"}`
-          )
-        }
-      />
-      <StatCard
-        label="Ingresos del mes"
-        value={formatKpiCOP(k.cur.income)}
-        muted={k.cur.income === 0}
-        href="/finanzas?tab=movimientos"
-        meta={k.prevHasMoves ? <Delta value={variation(k.cur.income, k.prev.income)} suffix={`vs. ${prevLabel}`} /> : monthLabel(refMonth)}
-      />
-      <StatCard
-        label="Gastos del mes"
-        value={formatKpiCOP(k.cur.expense)}
-        muted={k.cur.expense === 0}
-        href="/finanzas?tab=movimientos"
-        meta={k.prevHasMoves ? <Delta invert value={variation(k.cur.expense, k.prev.expense)} suffix={`vs. ${prevLabel}`} /> : monthLabel(refMonth)}
-      />
-    </div>
-  );
-}
+export { KpiRow } from "./KpiRow";
 
 /* ═════════ Actividad financiera ═════════ */
 const PERIODS: { value: ActivityPeriod; label: string }[] = [

@@ -5,7 +5,7 @@
  * porque todo vive en la misma app. Máximo una al día (`lifeos:conexiones`); se puede cerrar.
  */
 import { useEffect, useMemo, useSyncExternalStore } from "react";
-import Link from "next/link";
+import Link from "@/components/Enlace";
 import { ArrowUpRight, X } from "lucide-react";
 import { Asistente } from "@/components/asistentes/Asistente";
 import { useData } from "@/lib/store/DataProvider";

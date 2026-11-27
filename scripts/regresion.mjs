@@ -92,7 +92,8 @@ for (const tema of TEMAS) {
         if (result.value) break;
         await esperar(150);
       }
-      await esperar(900);
+      // Los pop-ups del día y el panel de pruebas se montan diferidos (con el navegador libre): se esperan
+      await esperar(3200);
       for (let k = 0; k < 3; k++) {
         await cdp("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
         await cdp("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });

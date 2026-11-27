@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/Enlace";
 import { BadgeCheck, Bell, Database as DataIcon, LogOut, Settings, Plus, UserRound, ArrowUpRight } from "lucide-react";
 import { abrirCaptura } from "@/modules/captura/CapturaRapida";
 import { Button } from "@/components/ui/Button";
