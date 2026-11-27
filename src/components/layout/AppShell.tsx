@@ -28,6 +28,7 @@ const WelcomeModal = lazy(() => import("./WelcomeModal").then((m) => ({ default:
 import { PrecargarRutas } from "@/components/PrecargarRutas";
 
 // Piezas que no se ven en la primera pantalla: su código se descarga con el navegador libre
+const Sincronizador = lazy(() => import("@/modules/sync/Sincronizador").then((m) => ({ default: m.Sincronizador })));
 const SincronizarAvisos = lazy(() => import("@/modules/avisos/AvisosCelular").then((m) => ({ default: m.SincronizarAvisos })));
 const PWA = lazy(() => import("@/modules/pwa/AppInstalable").then((m) => ({ default: m.PWA })));
 const ModoEnfoque = lazy(() => import("@/modules/enfoque/ModoEnfoque").then((m) => ({ default: m.ModoEnfoque })));
@@ -134,6 +135,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Diferido>
           <Diferido>
             <SincronizarAvisos />
+            <Sincronizador />
             <PWA />
             <ModoEnfoque />
             {mode === "demo" ? <PanelDemo /> : null}

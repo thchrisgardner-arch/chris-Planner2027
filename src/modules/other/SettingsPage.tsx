@@ -32,6 +32,8 @@ import { almacenConexiones } from "@/modules/asistentes/ConexionDelDia";
 import { almacenPagosFijos } from "@/lib/finanzas/pagosFijos";
 import { AjustesProgreso } from "@/modules/asistentes/AjustesProgreso";
 import { iniciarTutorial } from "@/modules/tutorial/Tutorial";
+import { TarjetaSincronizacion } from "@/modules/sync/TarjetaSincronizacion";
+import { almacenSync } from "@/lib/sync/almacenes";
 
 type Seccion = "perfil" | "apariencia" | "asistentes" | "progreso" | "datos";
 const SECCIONES: { value: Seccion; label: string }[] = [
@@ -87,6 +89,7 @@ export function SettingsPage() {
         <div className="grid gap-3 xl:grid-cols-2 [&>*]:min-w-0">
           <StorageCard />
           <CategoriesCard />
+          <TarjetaRespaldoYSync />
         </div>
       )}
     </>
@@ -391,15 +394,13 @@ const leerExtra = (k: string) => {
   }
 };
 
-function StorageCard() {
-  const { db, profile, mode, clearAll, importAll } = useData();
-  const { confirm, toast } = useFeedback();
+/** Descarga un respaldo completo de este dispositivo (lo usan «Exportar» y la activación de la sincronización) */
+function useRespaldo() {
+  const { db, profile } = useData();
+  const { toast } = useFeedback();
   const today = useToday();
   const total = TABLES.reduce((n, t) => n + db[t].length, 0);
-  const archivo = useRef<HTMLInputElement>(null);
-  const [importando, setImportando] = useState(false);
-
-  const exportJSON = (silencioso = false) => {
+  return (silencioso = false) => {
     const respaldo = {
       app: "LIFE for LIFE",
       exported_at: new Date().toISOString(),
@@ -424,6 +425,21 @@ function StorageCard() {
     URL.revokeObjectURL(url);
     if (!silencioso) toast(`Exportados ${total} registros.`);
   };
+}
+
+function TarjetaRespaldoYSync() {
+  const respaldar = useRespaldo();
+  return <TarjetaSincronizacion respaldar={() => respaldar(true)} />;
+}
+
+function StorageCard() {
+  const { db, mode, clearAll, importAll } = useData();
+  const { confirm, toast } = useFeedback();
+  const total = TABLES.reduce((n, t) => n + db[t].length, 0);
+  const archivo = useRef<HTMLInputElement>(null);
+  const [importando, setImportando] = useState(false);
+  const exportJSON = useRespaldo();
+  const sincronizado = almacenSync.useValor().activo && mode === "local";
 
   const importar = async (file: File) => {
     let r: { exported_at?: string; profile?: Profile | null; data?: Record<string, unknown>; asistentes?: unknown; progreso?: unknown; salud?: unknown; espacio?: unknown; captura?: unknown; pagosFijos?: unknown; animo?: unknown; enfoque?: unknown; conexiones?: unknown };
@@ -497,10 +513,12 @@ function StorageCard() {
       <div className="flex items-start gap-3 rounded-[20px] bg-bg-2 p-4">
         {mode === "local" ? <HardDrive size={20} className="mt-0.5 shrink-0" /> : mode === "demo" ? <FlaskConical size={20} className="mt-0.5 shrink-0" /> : <Cloud size={20} className="mt-0.5 shrink-0" />}
         <div className="text-[13.5px] leading-relaxed">
-          <p className="text-fg">{mode === "local" ? "Guardado en este dispositivo" : mode === "demo" ? "Datos de ejemplo" : "Sincronizado"}</p>
+          <p className="text-fg">{sincronizado ? "Guardado aquí y en tu cuenta" : mode === "local" ? "Guardado en este dispositivo" : mode === "demo" ? "Datos de ejemplo" : "Sincronizado"}</p>
           <p className="text-muted">
-            {mode === "local"
-              ? "Por ahora tus datos se guardan solo en este dispositivo. La sincronización entre dispositivos llegará pronto."
+            {sincronizado
+              ? "Tus datos se sincronizan entre tus dispositivos y solo tú puedes verlos."
+              : mode === "local"
+              ? "Tus datos se guardan solo en este dispositivo. Puedes activar la sincronización entre dispositivos en esta misma sección."
               : mode === "demo"
                 ? "Estás viendo datos de ejemplo. Nada de lo que hagas aquí se guarda."
                 : "Tus datos se sincronizan entre tus dispositivos y solo tú puedes verlos."}

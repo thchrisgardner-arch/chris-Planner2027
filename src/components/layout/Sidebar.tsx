@@ -1,5 +1,6 @@
 "use client";
 
+import { almacenPendientes, almacenSync } from "@/lib/sync/almacenes";
 import Link from "@/components/Enlace";
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
@@ -36,12 +37,28 @@ const badgeHint: Record<string, string> = {
 /** Etiqueta del modo de datos */
 export function StorageChip() {
   const { mode } = useData();
-  const label = mode === "demo" ? "Demo" : mode === "local" ? "Modo local" : "Sincronizado";
+  const sync = almacenSync.useValor();
+  const pendientes = almacenPendientes.useValor().cambios.length;
+  // Con la sincronización activa la etiqueta cuenta cómo va (Fase 6.3)
+  const sincroniza = sync.activo && mode === "local";
+  const label =
+    mode === "demo"
+      ? "Demo"
+      : sincroniza
+        ? sync.error
+          ? "Sin sincronizar"
+          : pendientes
+            ? `${pendientes} por subir`
+            : "Sincronizado"
+        : mode === "local"
+          ? "Modo local"
+          : "Sincronizado";
   return (
     <span
+      title={sincroniza && sync.error ? sync.error : undefined}
       className={cn(
         "rounded-full px-2.5 py-0.5 text-[11.5px] font-medium",
-        mode === "supabase" ? "bg-brand text-[#0a0a0a]" : mode === "demo" ? "bg-warn-fill text-[#0a0a0a]" : "bg-elev text-fg",
+        mode === "supabase" || (sincroniza && !sync.error && !pendientes) ? "bg-brand text-[#0a0a0a]" : mode === "demo" || (sincroniza && pendientes) ? "bg-warn-fill text-[#0a0a0a]" : "bg-elev text-fg",
       )}
     >
       {label}
