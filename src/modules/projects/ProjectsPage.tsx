@@ -23,6 +23,8 @@ import { relativeDay } from "@/utils/dates";
 import { formatCOP } from "@/utils/money";
 import { cn } from "@/utils/cn";
 import { CheckCircle, useToggleTask } from "@/modules/dashboard/DashboardWidgets";
+import { AsaTarea, LineaFinal, SelectorOrden, useFilaOrdenable, useModoOrden } from "@/modules/proyectos/OrdenTareas";
+import { ordenarTareas } from "@/lib/proyectos/ordenTareas";
 import {
   PROJECT_STATUSES,
   priorityLabel,
@@ -102,6 +104,11 @@ export function ProjectsPage() {
               ]}
             />
           </div>
+          {view === "lista" && (db.tasks.length > 1) ? (
+            <div className="-mt-1 mb-3 flex justify-end">
+              <SelectorOrden clave="global" />
+            </div>
+          ) : null}
           {view === "lista" ? <ListView projects={projects} loose={loose} /> : <KanbanView projects={projects} />}
         </>
       )}
@@ -110,19 +117,21 @@ export function ProjectsPage() {
 }
 
 /* ───────── Fila de tarea (con subtareas) ───────── */
-export function TaskRow({ task, depth = 0 }: { task: Task; depth?: number }) {
+export function TaskRow({ task, depth = 0, clave = "global" }: { task: Task; depth?: number; clave?: string }) {
   const { db } = useData();
   const open = useForms();
   const toggle = useToggleTask();
   const del = useDeleteRecord();
   const today = useToday();
-  const subs = db.tasks.filter((t) => t.parent_task_id === task.id);
+  const subs = ordenarTareas(db.tasks.filter((t) => t.parent_task_id === task.id));
   const done = task.status === "completada";
   const overdue = !done && task.due_date && task.due_date < today;
+  const fila = useFilaOrdenable(task, clave);
 
   return (
     <>
-      <li className={cn("group flex items-center gap-3 rounded-[16px] px-2 py-2 hover:bg-bg-2", depth && "ml-8")}>
+      <li {...fila.props} className={cn("group relative flex items-center gap-3 rounded-[16px] px-2 py-2 hover:bg-bg-2", depth && "ml-8", fila.clase)}>
+        <AsaTarea tarea={task} clave={clave} className="absolute -left-5 top-1/2 -translate-y-1/2" />
         {depth ? <CornerDownRight size={14} className="-ml-5 shrink-0 text-dim" /> : null}
         <CheckCircle checked={done} onToggle={() => toggle(task)} label={`${done ? "Reabrir" : "Completar"} ${task.name}`} />
         <div className="min-w-0 flex-1">
@@ -158,8 +167,9 @@ export function TaskRow({ task, depth = 0 }: { task: Task; depth?: number }) {
         />
       </li>
       {subs.map((s) => (
-        <TaskRow key={s.id} task={s} depth={1} />
+        <TaskRow key={s.id} task={s} depth={1} clave={clave} />
       ))}
+      {subs.length ? <LineaFinal grupo={`${task.project_id ?? ""}|${task.id}`} /> : null}
     </>
   );
 }
@@ -180,6 +190,7 @@ function ProjectMeta({ p }: { p: Project }) {
 
 function ListView({ projects, loose }: { projects: Project[]; loose: Task[] }) {
   const { db, update, remove } = useData();
+  const [modoOrden] = useModoOrden("global");
   const open = useForms();
   const del = useDeleteRecord();
   const { toast } = useFeedback();
@@ -213,7 +224,7 @@ function ListView({ projects, loose }: { projects: Project[]; loose: Task[] }) {
       {projects.length === 0 ? <EmptyState title="Ningún proyecto coincide con los filtros" /> : null}
       {projects.map((p) => {
         const prog = projectProgress(p, db.tasks);
-        const tasks = db.tasks.filter((t) => t.project_id === p.id && !t.parent_task_id);
+        const tasks = ordenarTareas(db.tasks.filter((t) => t.project_id === p.id && !t.parent_task_id), modoOrden);
         return (
           <Card key={p.id}>
             <div className="flex flex-col gap-4 md:flex-row md:items-start">
@@ -278,6 +289,7 @@ function ListView({ projects, loose }: { projects: Project[]; loose: Task[] }) {
               {tasks.map((t) => (
                 <TaskRow key={t.id} task={t} />
               ))}
+              <LineaFinal grupo={`${p.id}|`} />
             </ul>
             <Button size="sm" variant="ghost" className="mt-2" onClick={() => open({ kind: "task", defaults: { project_id: p.id } })}>
               <Plus size={17} /> Agregar tarea
@@ -289,9 +301,10 @@ function ListView({ projects, loose }: { projects: Project[]; loose: Task[] }) {
         <Card>
           <h2 className="text-[17px]">Tareas sin proyecto</h2>
           <ul className="-mx-2 mt-3 flex flex-col">
-            {loose.map((t) => (
+            {ordenarTareas(loose, modoOrden).map((t) => (
               <TaskRow key={t.id} task={t} />
             ))}
+            <LineaFinal grupo="|" />
           </ul>
           <Button size="sm" variant="ghost" className="mt-2" onClick={() => open({ kind: "task" })}>
             <Plus size={17} /> Agregar tarea

@@ -30,6 +30,8 @@ import { iniciarEnfoque } from "@/modules/enfoque/ModoEnfoque";
 import { priorityLabel, priorityTone } from "@/modules/projects/constants";
 import { TaskRow } from "@/modules/projects/ProjectsPage";
 import { Seccion } from "./Seccion";
+import { LineaFinal, MenuMover, SelectorOrden, useModoOrden, useMoverTarea } from "./OrdenTareas";
+import { ordenarTareas } from "@/lib/proyectos/ordenTareas";
 
 export const COLUMNAS: { status: TaskStatus; label: string }[] = [
   { status: "pendiente", label: "Por hacer" },
@@ -45,7 +47,8 @@ export function PanelTareas({ proyecto }: { proyecto: Project }) {
   const vista = almacenVistas.useValor().tareas[proyecto.id] ?? "lista";
   const [nueva, setNueva] = useState("");
   const campo = useRef<HTMLInputElement>(null);
-  const tareas = db.tasks.filter((t) => t.project_id === proyecto.id && !t.parent_task_id);
+  const [modoOrden] = useModoOrden(proyecto.id);
+  const tareas = ordenarTareas(db.tasks.filter((t) => t.project_id === proyecto.id && !t.parent_task_id), modoOrden);
 
   useEffect(() => registrarNuevo(() => campo.current?.focus()), []);
 
@@ -120,16 +123,22 @@ export function PanelTareas({ proyecto }: { proyecto: Project }) {
         Puedes escribir la fecha y el responsable, por ejemplo: Ana, enviar la propuesta el viernes.
       </p>
 
+      {tareas.length > 1 ? (
+        <div className="-mt-1 mb-2 flex justify-end">
+          <SelectorOrden clave={proyecto.id} />
+        </div>
+      ) : null}
       {!tareas.length ? (
         <p className="px-1 py-3 text-[13px] text-dim">Aún no hay tareas. Escribe la primera arriba.</p>
       ) : vista === "lista" ? (
         <ul className="-mx-2 flex flex-col">
           {tareas.map((t) => (
-            <TaskRow key={t.id} task={t} />
+            <TaskRow key={t.id} task={t} clave={proyecto.id} />
           ))}
+          <LineaFinal grupo={`${proyecto.id}|`} />
         </ul>
       ) : (
-        <Tablero tareas={tareas} />
+        <Tablero tareas={tareas} clave={proyecto.id} />
       )}
     </Seccion>
   );
@@ -150,8 +159,9 @@ function useMover() {
   };
 }
 
-function Tablero({ tareas }: { tareas: Task[] }) {
+function Tablero({ tareas, clave }: { tareas: Task[]; clave: string }) {
   const mover = useMover();
+  const orden = useMoverTarea(clave);
   const [sobre, setSobre] = useState<TaskStatus | null>(null);
   const porId = new Map(tareas.map((t) => [t.id, t]));
 
@@ -175,7 +185,17 @@ function Tablero({ tareas }: { tareas: Task[] }) {
               e.preventDefault();
               setSobre(null);
               const t = porId.get(e.dataTransfer.getData("text/plain"));
-              if (t) void mover(t, c.status);
+              if (!t) return;
+              // Dónde cayó dentro de la columna: antes de la primera tarjeta cuyo centro quede abajo
+              const tarjetas = [...e.currentTarget.querySelectorAll<HTMLElement>("[data-tarjeta-id]")].filter((el) => el.dataset.tarjetaId !== t.id);
+              const antes = tarjetas.find((el) => {
+                const r = el.getBoundingClientRect();
+                return e.clientY < r.top + r.height / 2;
+              })?.dataset.tarjetaId ?? null;
+              void (async () => {
+                if (t.status !== c.status) await mover(t, c.status);
+                await orden.antesDe({ ...t, status: c.status }, antes);
+              })();
             }}
             className={cn("min-w-0 rounded-[20px] bg-bg-2 p-2.5", sobre === c.status && "ring-2 ring-fg")}
           >
@@ -185,8 +205,8 @@ function Tablero({ tareas }: { tareas: Task[] }) {
             </h3>
             <ul className="flex min-h-12 flex-col gap-2">
               {lista.map((t) => (
-                <li key={t.id}>
-                  <TarjetaTarea tarea={t} mover={mover} />
+                <li key={t.id} data-tarjeta-id={t.id}>
+                  <TarjetaTarea tarea={t} mover={mover} clave={clave} />
                 </li>
               ))}
             </ul>
@@ -197,7 +217,8 @@ function Tablero({ tareas }: { tareas: Task[] }) {
   );
 }
 
-function TarjetaTarea({ tarea: t, mover }: { tarea: Task; mover: (t: Task, s: TaskStatus) => Promise<void> }) {
+function TarjetaTarea({ tarea: t, mover, clave }: { tarea: Task; mover: (t: Task, s: TaskStatus) => Promise<void>; clave: string }) {
+  const orden = useMoverTarea(clave);
   const { db } = useData();
   const open = useForms();
   const toggle = useToggleTask();
@@ -220,6 +241,12 @@ function TarjetaTarea({ tarea: t, mover }: { tarea: Task; mover: (t: Task, s: Ta
     >
       <article
         draggable
+        onKeyDown={(e) => {
+          if (!e.altKey || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
+          e.preventDefault();
+          const enfocado = document.activeElement as HTMLElement | null;
+          void orden.a(t, e.key === "ArrowUp" ? "arriba" : "abajo").then(() => setTimeout(() => enfocado?.focus(), 60));
+        }}
         onDragStart={(e) => {
           e.dataTransfer.setData("text/plain", t.id);
           e.dataTransfer.effectAllowed = "move";
@@ -247,6 +274,8 @@ function TarjetaTarea({ tarea: t, mover }: { tarea: Task; mover: (t: Task, s: Ta
                     <ArrowRight size={15} /> {c.label}
                   </button>
                 ))}
+                <div className="my-1 h-px bg-line" aria-hidden />
+                <MenuMover tarea={t} clave={clave} cerrar={cerrar} mov={orden} />
                 <div className="my-1 h-px bg-line" aria-hidden />
                 <button type="button" role="menuitem" onClick={() => (cerrar(), open({ kind: "task", record: t }))} className="flex cursor-pointer items-center gap-2 rounded-[12px] px-3 py-2 text-left text-[13.5px] hover:bg-card">
                   <Pencil size={15} /> Editar

@@ -3,6 +3,7 @@
  * el último panel abierto y la vista de tareas (lista o tablero).
  */
 import { crearAlmacen } from "@/lib/almacenLocal";
+import type { ModoOrden } from "./ordenTareas";
 
 import { PANELES, esPanel, type Panel } from "./paneles";
 
@@ -14,12 +15,18 @@ interface Vistas {
   version: 1;
   panel: Record<string, Panel>;
   tareas: Record<string, VistaTareas>;
+  /** Orden de las tareas por proyecto («global» en Proyectos): manual, por fecha o por prioridad */
+  orden?: Record<string, ModoOrden>;
+  /** 1 cuando las tareas existentes ya quedaron numeradas (orden manual) */
+  ordenMigrado?: number;
 }
 
 export const almacenVistas = crearAlmacen<Vistas>("lifeos:vistas", () => ({ version: 1, panel: {}, tareas: {} }), (c) => ({
   version: 1,
   panel: (c.panel as Vistas["panel"]) ?? {},
   tareas: (c.tareas as Vistas["tareas"]) ?? {},
+  orden: (c.orden as Vistas["orden"]) ?? {},
+  ordenMigrado: Number(c.ordenMigrado) || 0,
 }));
 
 export function recordarPanel(proyectoId: string, panel: Panel) {

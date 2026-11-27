@@ -127,6 +127,8 @@ export interface Task extends BaseRow {
   status: TaskStatus;
   /** Responsable (texto libre; p. ej. desde un acuerdo de reunión) */
   assignee?: string | null;
+  /** Orden manual entre sus hermanas (mismo proyecto y misma tarea madre); sin valor, al final */
+  sort_order?: number | null;
 }
 
 /* ── Hábitos ── */
