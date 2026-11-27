@@ -30,6 +30,7 @@ import { Deudas } from "./DeudasTab";
 import { PagosFijos } from "./PagosFijosTab";
 import { ImportarExtracto } from "./ImportarExtracto";
 import { EnQueSeVa } from "./EnQueSeVa";
+import { PreguntaCentavo } from "./PreguntaCentavo";
 import { AsignarProyecto } from "./AsignarProyecto";
 import { accountBalance, avisoBorrarCuenta, expensesByBeneficiary, expensesByCategory, monthTotals, totalBalance } from "./selectors";
 
@@ -117,6 +118,7 @@ function Summary() {
         <Kpi label="Deuda en tarjetas" value={Math.abs(cardDebt)} hint="Saldo negativo de tarjetas" />
       </div>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-12">
+        <PreguntaCentavo className="md:col-span-2 xl:col-span-12" />
         <ActivityWidget className="md:col-span-2 xl:col-span-7" />
         <TarjetaGastosCategoria className="xl:col-span-5" items={byCat} total={m.expense} subtitle={monthLabel(key)} onElegir={setCategoria} elegida={categoria} />
         <EnQueSeVa className="md:col-span-2 xl:col-span-12" categoria={categoria} onQuitarCategoria={() => setCategoria(null)} />
