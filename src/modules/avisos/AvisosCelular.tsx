@@ -75,7 +75,7 @@ async function suscripcionActual() {
   return (await reg?.pushManager.getSubscription()) ?? null;
 }
 
-/** Conteos de un día: eventos, pagos fijos pendientes y hábitos programados */
+/** Conteos de un día: eventos, gastos fijos pendientes y hábitos programados */
 function diaAvisos(db: Database, fecha: string): DiaAvisos {
   const eventos = db.calendar_events.filter((e) => e.date === fecha);
   const horas = eventos.map((e) => e.start_time?.slice(0, 5)).filter((h): h is string => !!h).sort();
@@ -248,7 +248,7 @@ export function AvisosCelular() {
     {
       id: "tic",
       titulo: "Agenda del día",
-      detalle: "Eventos de hoy y pagos fijos por vencer.",
+      detalle: "Eventos de hoy y gastos fijos por vencer.",
       control: (
         <Select aria-label="Hora del recordatorio de la agenda" value={rec.agenda === null ? "" : String(rec.agenda)} onChange={(e) => cambiar({ agenda: e.target.value === "" ? null : Number(e.target.value) })} disabled={demo}>
           <option value="">Apagado</option>

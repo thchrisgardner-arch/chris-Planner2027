@@ -28,10 +28,10 @@ describe("recordatorios en la voz de cada asistente", () => {
       { title: "Brote", body: "Te faltan 2 hábitos. Sin afán, pero hoy.", url: "/salud?vista=habitos", tag: "lifeos-habitos" },
     ]);
   });
-  it("Tic cuenta la agenda y los pagos fijos", () => {
+  it("Tic cuenta la agenda y los gastos fijos", () => {
     const [a] = armarAvisos(base, "2026-11-26", 8);
     expect(a.title).toBe("Tic");
-    expect(a.body).toBe("Hoy tienes 3 eventos; el primero a las 10 a. m. 1 pago fijo vence en estos días. Yo aviso, tú confirmas.");
+    expect(a.body).toBe("Hoy tienes 3 eventos; el primero a las 10 a. m. 1 gasto fijo vence en estos días. Yo aviso, tú confirmas.");
   });
   it("racha en riesgo a las 8 p. m. solo si no has registrado nada", () => {
     expect(armarAvisos(base, "2026-11-26", 20)[0].body).toBe("Tu racha de 12 días está en riesgo. Un registro y listo.");

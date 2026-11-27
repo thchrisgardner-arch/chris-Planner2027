@@ -16,7 +16,7 @@ export type TipoCaptura = "gasto" | "ingreso" | "pago-fijo" | "habito" | "evento
 export const TIPO_CAPTURA_LABEL: Record<TipoCaptura, string> = {
   gasto: "Gasto",
   ingreso: "Ingreso",
-  "pago-fijo": "Pago fijo",
+  "pago-fijo": "Gasto fijo",
   habito: "Hábito",
   evento: "Evento",
   tarea: "Tarea",

@@ -253,7 +253,7 @@ export function Panel() {
           ...d,
           pagos: [
             ...d.pagos,
-            { id: nuevoIdPago(), nombre: desc || p.categoria || "Pago fijo", monto: p.monto!, categoria: p.categoria ?? "Otros", cuentaId: cuenta, dia: p.diaDelMes ?? 1, tipo: tipoPago, activo: true, creado: today },
+            { id: nuevoIdPago(), nombre: desc || p.categoria || "Gasto fijo", monto: p.monto!, categoria: p.categoria ?? "Otros", cuentaId: cuenta, dia: p.diaDelMes ?? 1, tipo: tipoPago, activo: true, creado: today },
           ],
         }));
         if (ed.categoria && base && ed.categoria !== base.categoria) recordarCategoria(palabraClave(desc), ed.categoria);

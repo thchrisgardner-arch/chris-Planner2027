@@ -2,7 +2,7 @@
  * Recordatorios en la voz de cada asistente (versión 2). Función pura: recibe el resumen que mandó
  * el dispositivo y la hora de Bogotá, y devuelve los avisos de esa hora.
  *  - Brote: hábitos pendientes, a la hora elegida.
- *  - Tic: agenda del día (eventos y pagos fijos por vencer o vencidos), a la hora elegida.
+ *  - Tic: agenda del día (eventos y gastos fijos por vencer o vencidos), a la hora elegida.
  *  - El asistente principal: racha en riesgo a las 8 p. m.
  * Un asistente con avisos "Nunca" no envía nada; con "Resumen diario" se mueve a la hora de la agenda.
  */
@@ -73,15 +73,15 @@ export function armarAvisos(e: EstadoAvisos | undefined, fecha: string, hora: nu
     });
   }
 
-  // Tic · agenda del día y pagos fijos
+  // Tic · agenda del día y gastos fijos
   if (r.agenda === hora && activa("tic") && delDia) {
     const partes: string[] = [];
     if (delDia.eventos) {
       const t = `Hoy tienes ${plural(delDia.eventos, "evento", "eventos")}${delDia.primerEvento ? `; el primero a las ${horaTexto(delDia.primerEvento)}` : ""}`;
       partes.push(t.endsWith(".") ? t : `${t}.`);
     }
-    if (delDia.pagosVencidos) partes.push(`${plural(delDia.pagosVencidos, "pago fijo sigue", "pagos fijos siguen")} sin confirmar. Si ya pagaste, confírmalo.`);
-    if (delDia.pagosVencen) partes.push(`${plural(delDia.pagosVencen, "pago fijo vence", "pagos fijos vencen")} en estos días. Yo aviso, tú confirmas.`);
+    if (delDia.pagosVencidos) partes.push(`${plural(delDia.pagosVencidos, "gasto fijo sigue", "gastos fijos siguen")} sin confirmar. Si ya pagaste, confírmalo.`);
+    if (delDia.pagosVencen) partes.push(`${plural(delDia.pagosVencen, "gasto fijo vence", "gastos fijos vencen")} en estos días. Yo aviso, tú confirmas.`);
     if (partes.length) {
       out.push({
         title: nombre("tic"),

@@ -455,7 +455,8 @@ function MonthGrid({
               aria-current={d === today ? "date" : undefined}
               aria-label={`${parseISO(d).toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" })}${items.length ? `, ${items.length} ${items.length === 1 ? "elemento" : "elementos"}` : ""}`}
               className={cn(
-                "focus-ring flex min-h-[64px] cursor-pointer flex-col rounded-[16px] p-1.5 text-left transition-colors sm:min-h-[104px] sm:p-2",
+                // min-w-0: sin esto, un título largo ensancha la columna y se sale de la tarjeta
+                "focus-ring flex min-h-[64px] min-w-0 cursor-pointer flex-col overflow-hidden rounded-[16px] p-1.5 text-left transition-colors sm:min-h-[104px] sm:p-2",
                 inMonth ? "bg-bg-2 hover:bg-elev" : "opacity-35",
               )}
             >
@@ -467,10 +468,22 @@ function MonthGrid({
                   <span key={it.id} className="h-1.5 w-1.5 rounded-full" style={{ background: it.dot }} />
                 ))}
               </span>
-              <span className="mt-1 hidden flex-col gap-1 sm:flex">
+              <span className="mt-1 hidden w-full min-w-0 flex-col gap-1 sm:flex">
                 {items.slice(0, 3).map((it) => (
-                  <span key={it.id} className="truncate rounded-[8px] border-l-[3px] bg-bg px-1.5 py-0.5 text-[11px] text-fg dark:bg-elev" style={{ borderLeftColor: it.dot }}>
-                    {it.title}
+                  // Ficha suave del color del tipo: título en una línea (con «…») y la hora debajo si la tiene
+                  <span
+                    key={it.id}
+                    title={it.start !== null ? `${it.title} · ${formatTime(minToTime(it.start))}` : it.title}
+                    className="flex w-full min-w-0 flex-col rounded-[8px] px-2 py-1 leading-tight"
+                    style={{ background: `color-mix(in srgb, ${it.dot} 24%, transparent)` }}
+                  >
+                    <span className="truncate text-[11.5px] font-medium text-fg">{it.title}</span>
+                    {it.start !== null ? (
+                      <span className="num truncate text-[10.5px] text-muted">
+                        {formatTime(minToTime(it.start))}
+                        {it.end !== null ? ` – ${formatTime(minToTime(it.end))}` : ""}
+                      </span>
+                    ) : null}
                   </span>
                 ))}
                 {items.length > 3 ? <span className="px-1.5 text-[10.5px] text-dim">+{items.length - 3} más</span> : null}

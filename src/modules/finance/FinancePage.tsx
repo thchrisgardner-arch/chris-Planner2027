@@ -42,7 +42,7 @@ const TABS: { value: Tab; label: string }[] = [
   { value: "cuentas", label: "Cuentas" },
   { value: "ahorros", label: "Ahorros" },
   { value: "deudas", label: "Deudas" },
-  { value: "fijos", label: "Pagos fijos" },
+  { value: "fijos", label: "Gastos fijos" },
   { value: "ingresos-fijos", label: "Ingresos fijos" },
 ];
 

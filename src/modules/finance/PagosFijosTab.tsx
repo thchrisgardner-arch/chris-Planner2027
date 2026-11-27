@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Finanzas → Pagos fijos: arriendo, servicios, suscripciones y cuotas. Cada mes se crean como
+ * Finanzas → Gastos fijos: arriendo, servicios, suscripciones y cuotas. Cada mes se crean como
  * movimientos pendientes; se confirman con un toque ("Pagado", con el monto editable).
  * Finanzas → Ingresos fijos: lo mismo para lo que recibes cada mes ("Recibido").
  */
@@ -37,9 +37,9 @@ import { formatAmountInput, formatCOP, formatKpiCOP, parseCOP } from "@/utils/mo
 /** Textos de la pestaña según sea de pagos o de ingresos */
 const TXT = {
   gasto: {
-    vacioTitulo: "Sin pagos fijos",
+    vacioTitulo: "Sin gastos fijos",
     vacio: "Arriendo, servicios, suscripciones y cuotas. Cada mes quedan pendientes y los confirmas con un toque.",
-    agregar: "Agregar pago fijo",
+    agregar: "Agregar gasto fijo",
     hecho: "Pagado",
     kpiHecho: "Pagado este mes",
     kpiFalta: "Falta por pagar",
@@ -47,7 +47,7 @@ const TXT = {
     nada: "Todo pagado",
     plural: ["pago", "pagos"],
     vencido: ["pago vencido", "pagos vencidos"],
-    progreso: "Pagado de los pagos fijos del mes",
+    progreso: "Pagado de los gastos fijos del mes",
   },
   ingreso: {
     vacioTitulo: "Sin ingresos fijos",
@@ -233,7 +233,7 @@ function PagoFijoForm({ pago, mov, onClose }: { pago?: PagoFijo; mov: MovFijo; o
     <FormModal
       open
       onClose={onClose}
-      title={ingreso ? (pago ? "Editar ingreso fijo" : "Nuevo ingreso fijo") : pago ? "Editar pago fijo" : "Nuevo pago fijo"}
+      title={ingreso ? (pago ? "Editar ingreso fijo" : "Nuevo ingreso fijo") : pago ? "Editar gasto fijo" : "Nuevo gasto fijo"}
       description="Cada mes queda pendiente para que lo confirmes."
       onSubmit={async () => {
         const e: Record<string, string> = {};
@@ -248,7 +248,7 @@ function PagoFijoForm({ pago, mov, onClose }: { pago?: PagoFijo; mov: MovFijo; o
           ...d,
           pagos: pago ? d.pagos.map((x) => (x.id === pago.id ? { ...x, ...datos } : x)) : [...d.pagos, { id: nuevoIdPago(), activo: true, creado: today, ...datos }],
         }));
-        return ingreso ? (pago ? "Ingreso fijo actualizado. El pendiente de este mes no cambia." : "Ingreso fijo agregado.") : pago ? "Pago fijo actualizado. El pendiente de este mes no cambia." : "Pago fijo agregado.";
+        return ingreso ? (pago ? "Ingreso fijo actualizado. El pendiente de este mes no cambia." : "Ingreso fijo agregado.") : pago ? "Gasto fijo actualizado. El pendiente de este mes no cambia." : "Gasto fijo agregado.";
       }}
     >
       <Field label="Nombre" error={errores.nombre}>

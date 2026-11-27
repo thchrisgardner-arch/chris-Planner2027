@@ -1,7 +1,7 @@
 /**
  * Pregúntale a Centavo, etapa 1 (Fase 5): respuestas calculadas en el dispositivo, sin IA.
  *  - `armarResumen` junta lo necesario (gastos agregados por día, categoría y concepto; ingresos;
- *    ahorro; pagos fijos). Es lo único que leería la etapa 2, y solo en forma agregada.
+ *    ahorro; gastos fijos). Es lo único que leería la etapa 2, y solo en forma agregada.
  *  - `responderPregunta(pregunta, resumen)` reconoce la intención por reglas (categoría, concepto,
  *    periodo) y responde con plantillas en la voz de Centavo. Nunca inventa cifras: si no entiende
  *    o no hay datos, lo dice.
@@ -143,7 +143,7 @@ export const SUGERENCIAS = [
   "¿En qué gasté más este mes?",
   "¿Cómo voy en comida?",
   "¿Cuánto llevo ahorrado?",
-  "¿Cuánto me falta de pagos fijos?",
+  "¿Cuánto me falta de gastos fijos?",
   "¿Gasté más que el mes pasado?",
   "¿Cuánto gasté en Rappi?",
 ];
@@ -185,14 +185,14 @@ export function responderPregunta(pregunta: string, r: ResumenFinanciero, tranqu
     };
   }
 
-  // Pagos fijos
-  if (/\b(pagos? fijos?|fijos|recibos)\b/.test(q)) {
-    if (!r.fijos.total) return { intencion: "fijos", cifra: formatCOP(0), frase: "No tienes pagos fijos registrados.", enlace: { label: "Ver pagos fijos", href: "/finanzas?tab=fijos" } };
+  // Gastos fijos
+  if (/\b(pagos? fijos?|gastos? fijos?|fijos|recibos)\b/.test(q)) {
+    if (!r.fijos.total) return { intencion: "fijos", cifra: formatCOP(0), frase: "No tienes gastos fijos registrados.", enlace: { label: "Ver gastos fijos", href: "/finanzas?tab=fijos" } };
     return {
       intencion: "fijos",
       cifra: formatCOP(r.fijos.falta),
-      frase: r.fijos.falta ? `Te faltan ${formatCOP(r.fijos.falta)} de pagos fijos este mes (${r.fijos.pendientes} ${r.fijos.pendientes === 1 ? "pendiente" : "pendientes"}). Ya pagaste ${formatCOP(r.fijos.pagado)}.` : `Ya pagaste todos los fijos del mes: ${formatCOP(r.fijos.pagado)}.`,
-      enlace: { label: "Ver pagos fijos", href: "/finanzas?tab=fijos" },
+      frase: r.fijos.falta ? `Te faltan ${formatCOP(r.fijos.falta)} de gastos fijos este mes (${r.fijos.pendientes} ${r.fijos.pendientes === 1 ? "pendiente" : "pendientes"}). Ya pagaste ${formatCOP(r.fijos.pagado)}.` : `Ya pagaste todos los fijos del mes: ${formatCOP(r.fijos.pagado)}.`,
+      enlace: { label: "Ver gastos fijos", href: "/finanzas?tab=fijos" },
     };
   }
 

@@ -40,7 +40,7 @@ const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /* ═════════ Reglas ═════════ */
 
-/** Tic + Centavo: un pago fijo por salir y la cuenta no alcanza */
+/** Tic + Centavo: un gasto fijo por salir y la cuenta no alcanza */
 function pagoSinSaldo({ db, hoy }: EntradaConexiones): Conexion | null {
   const pendientes = db.transactions
     .filter((t) => t.status === "pendiente" && t.type === "gasto" && t.date >= hoy && t.date <= addDays(hoy, 2))
@@ -54,7 +54,7 @@ function pagoSinSaldo({ db, hoy }: EntradaConexiones): Conexion | null {
       id: `pago-sin-saldo:${t.id}`,
       asistentes: ["tic", "centavo"],
       texto: `${capital(cuandoTexto(t.date, hoy))} sale ${t.description.toLowerCase()} y ${cuenta.name} tiene ${formatCOP(t.amount - saldo)} menos de lo necesario.`,
-      accion: { label: "Ver pagos fijos", href: "/finanzas?tab=fijos" },
+      accion: { label: "Ver gastos fijos", href: "/finanzas?tab=fijos" },
       prioridad: 100,
     };
   }
@@ -226,7 +226,7 @@ export function calcularConexiones(e: EntradaConexiones): Conexion[] {
 /** Ejemplos para el panel de pruebas del modo demo */
 export const CONEXIONES_DEMO: Conexion[] = [
   { id: "demo:1", asistentes: ["antojo", "centavo"], texto: "Si esperas al 15, compras los audífonos sin tocar el ahorro.", accion: { label: "Ver wishlist", href: "/wishlist" }, prioridad: 60 },
-  { id: "demo:2", asistentes: ["tic", "centavo"], texto: "Mañana sale el arriendo y la cuenta tiene $80.000 menos de lo necesario.", accion: { label: "Ver pagos fijos", href: "/finanzas?tab=fijos" }, prioridad: 100 },
+  { id: "demo:2", asistentes: ["tic", "centavo"], texto: "Mañana sale el arriendo y la cuenta tiene $80.000 menos de lo necesario.", accion: { label: "Ver gastos fijos", href: "/finanzas?tab=fijos" }, prioridad: 100 },
   { id: "demo:3", asistentes: ["brote", "tuerca"], texto: "Las semanas que cumples el gym terminas un 30 % más de tareas.", accion: { label: "Ver hábitos", href: "/salud" }, prioridad: 40 },
   { id: "demo:4", asistentes: ["cima", "centavo"], texto: "Al ritmo actual, tu meta de viaje llega en marzo. Con $50.000 más al mes, en enero.", accion: { label: "Ver ahorros", href: "/finanzas?tab=ahorros" }, prioridad: 50 },
   { id: "demo:5", asistentes: ["tuerca", "tic"], texto: "Tienes 3 tareas para el viernes y el viernes ya está lleno de eventos.", accion: { label: "Ver tareas", href: "/proyectos" }, prioridad: 80 },

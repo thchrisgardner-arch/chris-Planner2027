@@ -61,7 +61,7 @@ const CASOS: [string, Intencion, string | null][] = [
   ["¿Cuánto gasté en suscripciones?", "categoria", $(45_000)],
   ["¿Cuánto llevo ahorrado?", "ahorro", $(1_300_000)],
   ["cuánto tengo en mis metas", "ahorro", $(1_300_000)],
-  ["¿Cuánto me falta de pagos fijos?", "fijos", $(230_000)],
+  ["¿Cuánto me falta de gastos fijos?", "fijos", $(230_000)],
   ["pagos fijos pendientes", "fijos", $(230_000)],
   ["¿Gasté más que el mes pasado?", "comparar", $(1_520_000 - 1_290_000)],
   ["comparado con el mes pasado cómo voy", "comparar", $(230_000)],
