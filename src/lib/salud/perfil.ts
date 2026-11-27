@@ -52,6 +52,16 @@ function leer(): PerfilFisico {
   return cache!;
 }
 
+
+// Otra pestaña o la sincronización cambiaron el perfil de salud: se vuelve a leer
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (e.key !== CLAVE) return;
+    cache = null;
+    oyentes.forEach((f) => f());
+  });
+}
+
 export function guardarPerfil(p: Partial<PerfilFisico>) {
   cache = { ...leer(), ...p };
   if (typeof window !== "undefined" && !enDemo()) {

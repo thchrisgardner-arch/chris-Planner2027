@@ -1,9 +1,7 @@
 "use client";
 
 import { createContext, startTransition, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { isSupabaseConfigured } from "@/lib/supabase";
 import { localAdapter } from "@/services/localAdapter";
-import { supabaseAdapter } from "@/services/supabaseAdapter";
 import { demoAdapter, setDemoVariant } from "@/services/demoAdapter";
 import type { DataAdapter, DataMode } from "@/services/types";
 import {
@@ -41,15 +39,16 @@ interface DataContextValue {
 const DataContext = createContext<DataContextValue | null>(null);
 
 /**
- * Adaptador de datos:
- *  - Supabase si está configurado.
+ * Adaptador de datos (local primero, Fase 6):
+ *  - La app siempre lee y escribe en este dispositivo. Si la persona activa la sincronización en
+ *    Configuración, el sincronizador (lib/sync) mantiene una copia en Supabase; sin eso, nada sale.
  *  - Modo demo (?demo=1, se recuerda en la pestaña; ?demo=0 lo apaga): ejemplos en memoria,
  *    nunca toca los datos reales.
  *  - Local (localStorage) en los demás casos.
  */
 let chosen: DataAdapter | null = null;
 function getAdapter(): DataAdapter {
-  if (typeof window === "undefined") return isSupabaseConfigured ? supabaseAdapter : localAdapter;
+  if (typeof window === "undefined") return localAdapter;
   if (chosen) return chosen;
   const q = new URLSearchParams(window.location.search).get("demo");
   if (q === "1" || q === "vacio") sessionStorage.setItem("lifeos-demo", q);
@@ -57,7 +56,7 @@ function getAdapter(): DataAdapter {
   const flag = sessionStorage.getItem("lifeos-demo");
   const demo = flag === "1" || flag === "vacio";
   if (demo) setDemoVariant(flag === "vacio" ? "vacio" : "completo");
-  chosen = demo ? demoAdapter : isSupabaseConfigured ? supabaseAdapter : localAdapter;
+  chosen = demo ? demoAdapter : localAdapter;
   return chosen;
 }
 
@@ -85,7 +84,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<Status>("loading");
   const [error, setError] = useState<string | null>(null);
   // El modo se fija al cargar en el navegador (en el servidor no se conoce el modo demo)
-  const [mode, setMode] = useState<DataMode>(isSupabaseConfigured ? "supabase" : "local");
+  const [mode, setMode] = useState<DataMode>("local");
 
   const reload = useCallback(async () => {
     try {

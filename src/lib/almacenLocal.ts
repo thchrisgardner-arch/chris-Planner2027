@@ -50,6 +50,14 @@ export function crearAlmacen<T extends Versionado>(clave: string, vacio: () => T
     oyentes.add(f);
     return () => oyentes.delete(f);
   }
+  // Otra pestaña o la sincronización cambiaron la clave: se olvida la copia en memoria
+  if (typeof window !== "undefined") {
+    window.addEventListener("storage", (e) => {
+      if (e.key !== clave) return;
+      cache = null;
+      oyentes.forEach((f) => f());
+    });
+  }
   function useValor(): T {
     return useSyncExternalStore(suscribir, leer, () => servidor);
   }

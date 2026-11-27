@@ -14,7 +14,7 @@ const MONEY_FIELDS: Partial<Record<TableName, string[]>> = {
   wishlist_items: ["price"],
 };
 
-function normalize<T>(table: TableName, row: Record<string, unknown>): T {
+export function normalize<T>(table: TableName, row: Record<string, unknown>): T {
   const fields = MONEY_FIELDS[table];
   if (!fields) return row as T;
   const out = { ...row };

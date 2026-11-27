@@ -80,6 +80,16 @@ function leer(): Espacio {
   return cache!;
 }
 
+
+// Otra pestaña o la sincronización cambiaron el espacio de proyectos: se vuelve a leer
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (e.key !== CLAVE) return;
+    cache = null;
+    oyentes.forEach((f) => f());
+  });
+}
+
 function guardar(e: Espacio) {
   cache = e;
   if (typeof window !== "undefined" && !enDemo()) {

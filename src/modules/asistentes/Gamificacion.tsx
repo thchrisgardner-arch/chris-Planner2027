@@ -70,6 +70,16 @@ function guardar(p: Progreso) {
   }
   oyentes.forEach((f) => f());
 }
+
+// Otra pestaña o la sincronización cambiaron el progreso: se vuelve a leer
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (e.key !== CLAVE_PROGRESO) return;
+    cache = null;
+    oyentes.forEach((f) => f());
+  });
+}
+
 function suscribir(f: () => void) {
   oyentes.add(f);
   return () => oyentes.delete(f);

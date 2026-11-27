@@ -12,6 +12,7 @@ import {
 import { TIMEZONE } from "@/utils/dates";
 import type { DataAdapter } from "./types";
 import { endLocalSession, getLocalAccount, hasLocalSession, removeLocalAccount } from "./localAuth";
+import { almacenSync, registrarCambio } from "@/lib/sync/almacenes";
 
 const PREFIX = "lifeos:v1:";
 export const LOCAL_USER_ID = "local-user";
@@ -45,8 +46,12 @@ function cascade(table: TableName, id: string) {
     if (rule.action === "delete") {
       const removed = rows.filter((r) => r[rule.field] === id);
       write(rule.table, rows.filter((r) => r[rule.field] !== id));
-      for (const r of removed) cascade(rule.table, r.id as string);
+      for (const r of removed) {
+        registrarCambio(rule.table, r.id as string, "borrar");
+        cascade(rule.table, r.id as string);
+      }
     } else {
+      for (const r of rows) if (r[rule.field] === id) registrarCambio(rule.table, r.id as string, "guardar");
       write(
         rule.table,
         rows.map((r) => (r[rule.field] === id ? { ...r, [rule.field]: null } : r)),
@@ -95,6 +100,7 @@ export const localAdapter: DataAdapter = {
     } as Row<T>;
     const rows = read<Row<T>[]>(table, []);
     write(table, [...rows, row]);
+    registrarCambio(table, row.id, "guardar");
     return row;
   },
 
@@ -108,12 +114,14 @@ export const localAdapter: DataAdapter = {
     });
     if (!updated) throw new Error("El registro ya no existe.");
     write(table, next);
+    registrarCambio(table, id, "guardar");
     return updated;
   },
 
   async remove(table, id) {
     const rows = read<BaseRow[]>(table, []);
     write(table, rows.filter((r) => r.id !== id));
+    registrarCambio(table, id, "borrar");
     cascade(table, id);
   },
 
@@ -121,6 +129,10 @@ export const localAdapter: DataAdapter = {
   async importAll(data, profile) {
     for (const t of TABLES) {
       const filas = Array.isArray((data as Record<string, unknown>)[t]) ? ((data as Record<string, unknown[]>)[t] as BaseRow[]) : [];
+      // Con la sincronización activa, el respaldo también reemplaza lo de la nube
+      const nuevos = new Set(filas.map((r) => r?.id));
+      for (const r of read<BaseRow[]>(t, [])) if (!nuevos.has(r.id)) registrarCambio(t, r.id, "borrar");
+      for (const r of filas) if (r && typeof r.id === "string") registrarCambio(t, r.id, "guardar");
       write(
         t,
         filas.filter((r) => r && typeof r.id === "string").map((r) => ({ ...r, user_id: LOCAL_USER_ID })),
@@ -130,6 +142,8 @@ export const localAdapter: DataAdapter = {
   },
 
   async clearAll() {
+    // «Borrar todo» limpia este dispositivo, no la nube: la sincronización se apaga
+    if (almacenSync.leer().activo) almacenSync.cambiar((e) => ({ ...e, activo: false, marcas: {}, marcaDocs: null, docs: {} }));
     for (const t of TABLES) window.localStorage.removeItem(key(t));
     window.localStorage.removeItem(key("profile"));
     removeLocalAccount();
