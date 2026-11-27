@@ -24,7 +24,7 @@ import { relativeDay } from "@/utils/dates";
 import { formatCOP } from "@/utils/money";
 import { cn } from "@/utils/cn";
 import { CheckCircle, useToggleTask } from "@/modules/dashboard/DashboardWidgets";
-import { AsaTarea, LineaFinal, SelectorOrden, useFilaOrdenable, useModoOrden } from "@/modules/proyectos/OrdenTareas";
+import { AsaTarea, LineaFinal, useFilaOrdenable } from "@/modules/proyectos/OrdenTareas";
 import { ordenarTareas } from "@/lib/proyectos/ordenTareas";
 import {
   PROJECT_STATUSES,
@@ -58,7 +58,6 @@ export function ProjectsPage() {
     [db.projects, db.tasks, q, status],
   );
   const loose = db.tasks.filter((t) => !t.project_id && !t.parent_task_id && (!q || t.name.toLowerCase().includes(q.toLowerCase())));
-  const conOrden = view === "lista" && db.tasks.length > 1;
   const filtroEstado = (ancho: string) => (
     <Select value={status} onChange={(e) => setStatus(e.target.value as ProjectStatus | "")} className={ancho} aria-label="Estado">
       <option value="">Todos los estados</option>
@@ -92,16 +91,13 @@ export function ProjectsPage() {
         />
       ) : (
         <>
-          {/* Una sola fila. En pantallas anchas va todo a la vista; en celular, estado y orden van en «Filtros» */}
+          {/* Una sola fila. En pantallas anchas va todo a la vista; en celular, el estado va en «Filtros» */}
           <div className="mb-4 flex items-center gap-2">
             <div className="relative min-w-0 flex-1">
               <Search size={18} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-dim" />
               <Input placeholder="Buscar proyectos o tareas" className="text-ellipsis pl-10" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar" />
             </div>
-            <div className="hidden shrink-0 items-center gap-2 lg:flex">
-              {filtroEstado("w-[200px]")}
-              {conOrden ? <SelectorOrden clave="global" /> : null}
-            </div>
+            <div className="hidden shrink-0 lg:block">{filtroEstado("w-[200px]")}</div>
             {/* Al final de la fila: el panel se abre hacia la izquierda y cabe en la pantalla */}
             <div className="order-last shrink-0 lg:hidden">
               <Popover
@@ -119,17 +115,9 @@ export function ProjectsPage() {
                 )}
               >
                 {() => (
-                  <div className="grid w-[288px] gap-3 p-3">
-                    <div className="grid gap-1.5">
-                      <p className="text-[12px] font-medium text-muted">Estado</p>
-                      {filtroEstado("w-full")}
-                    </div>
-                    {conOrden ? (
-                      <div className="grid gap-1.5">
-                        <p className="text-[12px] font-medium text-muted">Orden de las tareas</p>
-                        <SelectorOrden clave="global" />
-                      </div>
-                    ) : null}
+                  <div className="grid w-[240px] gap-1.5 p-3">
+                    <p className="text-[12px] font-medium text-muted">Estado</p>
+                    {filtroEstado("w-full")}
                   </div>
                 )}
               </Popover>
@@ -227,7 +215,6 @@ function ProjectMeta({ p }: { p: Project }) {
 
 function ListView({ projects, loose }: { projects: Project[]; loose: Task[] }) {
   const { db, update, remove } = useData();
-  const [modoOrden] = useModoOrden("global");
   const open = useForms();
   const del = useDeleteRecord();
   const { toast } = useFeedback();
@@ -261,7 +248,7 @@ function ListView({ projects, loose }: { projects: Project[]; loose: Task[] }) {
       {projects.length === 0 ? <EmptyState title="Ningún proyecto coincide con los filtros" /> : null}
       {projects.map((p) => {
         const prog = projectProgress(p, db.tasks);
-        const tasks = ordenarTareas(db.tasks.filter((t) => t.project_id === p.id && !t.parent_task_id), modoOrden);
+        const tasks = ordenarTareas(db.tasks.filter((t) => t.project_id === p.id && !t.parent_task_id));
         return (
           <Card key={p.id}>
             <div className="flex flex-col gap-4 md:flex-row md:items-start">
@@ -338,7 +325,7 @@ function ListView({ projects, loose }: { projects: Project[]; loose: Task[] }) {
         <Card>
           <h2 className="text-[17px]">Tareas sin proyecto</h2>
           <ul className="-mx-2 mt-3 flex flex-col">
-            {ordenarTareas(loose, modoOrden).map((t) => (
+            {ordenarTareas(loose).map((t) => (
               <TaskRow key={t.id} task={t} />
             ))}
             <LineaFinal grupo="|" />
