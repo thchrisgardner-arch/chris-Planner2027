@@ -29,6 +29,7 @@ import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, accountTypeLabel } from "./const
 import { Deudas } from "./DeudasTab";
 import { PagosFijos } from "./PagosFijosTab";
 import { ImportarExtracto } from "./ImportarExtracto";
+import { EnQueSeVa } from "./EnQueSeVa";
 import { AsignarProyecto } from "./AsignarProyecto";
 import { accountBalance, avisoBorrarCuenta, expensesByBeneficiary, expensesByCategory, monthTotals, totalBalance } from "./selectors";
 
@@ -90,6 +91,8 @@ export function Kpi({ label, value, hint, inverse }: { label: string; value: num
 function Summary() {
   const { db } = useData();
   const today = useToday();
+  // Categoría elegida en el gráfico: filtra «¿En qué se va tu plata?»
+  const [categoria, setCategoria] = useState<string | null>(null);
   const key = monthKey(today);
   const m = monthTotals(db.transactions, key);
   const available = totalBalance(db.accounts, db.transactions);
@@ -115,7 +118,8 @@ function Summary() {
       </div>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-12">
         <ActivityWidget className="md:col-span-2 xl:col-span-7" />
-        <TarjetaGastosCategoria className="xl:col-span-5" items={byCat} total={m.expense} subtitle={monthLabel(key)} />
+        <TarjetaGastosCategoria className="xl:col-span-5" items={byCat} total={m.expense} subtitle={monthLabel(key)} onElegir={setCategoria} elegida={categoria} />
+        <EnQueSeVa className="md:col-span-2 xl:col-span-12" categoria={categoria} onQuitarCategoria={() => setCategoria(null)} />
         <Card className="md:col-span-2 xl:col-span-12">
           <CardHeader title="¿Para quién fue el gasto?" subtitle="Distribución del mes, solo informativa" />
           {benTotal === 0 ? (
@@ -163,12 +167,17 @@ export function TarjetaGastosCategoria({
   subtitle,
   className,
   vacio = "Aquí verás en qué se va tu plata cuando registres gastos.",
+  onElegir,
+  elegida,
 }: {
   items: { name: string; value: number }[];
   total: number;
   subtitle: string;
   className?: string;
   vacio?: string;
+  /** Tocar una categoría (filtra «¿En qué se va tu plata?») */
+  onElegir?: (categoria: string | null) => void;
+  elegida?: string | null;
 }) {
   return (
     <Card className={className}>
@@ -181,7 +190,31 @@ export function TarjetaGastosCategoria({
       ) : (
         <ul className="flex flex-col gap-3">
           {items.slice(0, 7).map((c, i) => (
-            <li key={c.name}>
+            <li key={c.name} className={cn(elegida && elegida !== c.name && "opacity-50")}>
+              {onElegir ? (
+                <button
+                  type="button"
+                  aria-pressed={elegida === c.name}
+                  aria-label={`${c.name}: ver en qué se va`}
+                  onClick={() => onElegir(elegida === c.name ? null : c.name)}
+                  className="focus-ring block w-full cursor-pointer rounded-[10px] text-left"
+                >
+                  <FilaCategoria c={c} i={i} items={items} total={total} />
+                </button>
+              ) : (
+                <FilaCategoria c={c} i={i} items={items} total={total} />
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+function FilaCategoria({ c, i, items, total }: { c: { name: string; value: number }; i: number; items: { name: string; value: number }[]; total: number }) {
+  return (
+            <>
               <div className="mb-1.5 flex items-baseline justify-between gap-3 text-[13.5px]">
                 <span className="truncate text-fg">{c.name}</span>
                 <span className="num shrink-0 text-muted">
@@ -194,11 +227,7 @@ export function TarjetaGastosCategoria({
                   style={{ width: `${Math.max(4, pct(c.value, items[0].value))}%` }}
                 />
               </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Card>
+            </>
   );
 }
 

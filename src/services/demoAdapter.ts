@@ -255,6 +255,25 @@ function seed(): { db: Database; profile: Profile } {
     tareaMonni("Pruebas de compra", "pendiente", 12),
     tareaMonni("Lanzamiento", "pendiente", 25),
   );
+  // ¿En qué se va tu plata?: conceptos repetidos con variantes de escritura en los últimos tres meses
+  const variantes: [string, number, string, number][] = [
+    ["RAPPI*8812", 38_000, "Alimentación", 3],
+    ["Rappi", 42_500, "Alimentación", 9],
+    ["rappi colombia", 29_900, "Alimentación", 16],
+    ["Almuerzo", 22_000, "Alimentación", 5],
+    ["almuerzo oficina", 24_000, "Alimentación", 12],
+    ["Almuerzo oficina 2", 23_000, "Alimentación", 19],
+    ["UBER *TRIP 8H2K", 16_400, "Transporte", 7],
+    ["Uber", 21_000, "Transporte", 14],
+    ["Café", 8_500, "Alimentación", 4],
+    ["cafe", 9_000, "Alimentación", 11],
+  ];
+  for (let mes = 0; mes < 3; mes++) {
+    for (const [desc, monto, cat, dia] of variantes) {
+      const fecha = addDays(today, -(dia + mes * 30));
+      db.transactions.push({ ...base(), type: "gasto", description: desc, amount: monto + mes * 1_000, category: cat, account_id: nequi.id, to_account_id: null, date: fecha, payment_method: null, status: "completado", beneficiary: "para_mi", notes: null });
+    }
+  }
   // Entrenamiento: además de los días planeados (lunes a viernes) y sus faltas, algunos sábados extra
   for (const k of [1, 2, 4]) {
     const sabado = addDays(startOfWeek(today), -7 * k + 5);
