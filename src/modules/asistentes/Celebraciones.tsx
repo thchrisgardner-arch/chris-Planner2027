@@ -5,6 +5,7 @@
  * personalización. Un solo modal recorre la cola (nivel → logro → desbloqueo).
  * Confeti solo aquí: ~40 partículas CSS, 1,5 s, sin librerías y apagado con movimiento reducido.
  */
+import { MOMENTO_DE_LUGAR } from "@/lib/asistentes/momentos";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
@@ -253,6 +254,7 @@ export function CapaCelebraciones() {
             id={id}
             size={240}
             pose={pose}
+            momento={c.tipo === "nivel" ? MOMENTO_DE_LUGAR["subir-nivel"] : undefined}
             colores={colores ?? a.colores}
             accesorio={accesorio ?? a.accesorio}
             mostrarProp={a.mostrarProp}

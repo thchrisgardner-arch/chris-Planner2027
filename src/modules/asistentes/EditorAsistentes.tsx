@@ -16,21 +16,32 @@ import { AVISOS, FICHAS, TONOS, type Avisos, type Tono } from "@/lib/asistentes/
 import { motorLocal, type Mensaje } from "@/lib/asistentes/motor";
 import {
   ACCESORIOS,
+  ACCESORIOS_SITUACION,
   ACCESORIO_LABEL,
+  ANGULOS,
+  ANGULO_LABEL,
+  MOMENTOS,
+  MOMENTO_LABEL,
   ASISTENTE_IDS,
   CHAR_COLORS,
   CHAR_COLOR_LABEL,
   EXPRESIONES,
   EXPRESION_LABEL,
   charVar,
+  type Angulo,
   type AsistenteId,
   type CharColor,
+  type Momento,
   type Colores,
 } from "@/lib/asistentes/tipos";
 import { cn } from "@/utils/cn";
 import { Lock } from "lucide-react";
 import { useGamificacion } from "./Gamificacion";
 import { vinculoRequerido } from "@/lib/asistentes/progreso";
+import { accesorioDesbloqueado, CONDICION_SITUACION, condicionTexto } from "@/lib/asistentes/momentos";
+
+/** Vista previa del escenario (no se guarda): momento y ángulo elegidos en "Pose y ánimo" */
+type VistaPrevia = { momento: Momento | null; angulo: Angulo | "auto" };
 
 /** Combinación dorada (vínculo 10) */
 const DORADA: Colores = { primario: "yellow", secundario: "yellow-soft", detalle: "ink" };
@@ -55,6 +66,12 @@ export function EditorAsistentes() {
     }
   }, [asisParam]);
   const [salto, setSalto] = useState(0);
+  const [vista, setVista] = useState<VistaPrevia>({ momento: null, angulo: "auto" });
+  // Al cambiar de asistente se vuelve a su pose guardada
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setVista({ momento: null, angulo: "auto" });
+  }, [sel]);
   const ultimoToast = useRef(0);
   const a = estado.ajustes[sel];
   const ficha = FICHAS[sel];
@@ -95,7 +112,7 @@ export function EditorAsistentes() {
           else avisarGuardado();
         }} />
 
-        <Escenario id={sel} a={a} salto={salto} onRestablecer={onRestablecer} onTono={(t) => cambiar({ tono: t })} />
+        <Escenario id={sel} a={a} salto={salto} vista={vista} onRestablecer={onRestablecer} onTono={(t) => cambiar({ tono: t })} />
 
         <Propiedades
           id={sel}
@@ -107,6 +124,8 @@ export function EditorAsistentes() {
             avisarGuardado();
           }}
           prop={ficha.prop}
+          vista={vista}
+          onVista={setVista}
         />
       </div>
     </section>
@@ -180,12 +199,14 @@ function Escenario({
   id,
   a,
   salto,
+  vista,
   onRestablecer,
   onTono,
 }: {
   id: AsistenteId;
   a: AjustesAsistente;
   salto: number;
+  vista: VistaPrevia;
   onRestablecer: () => void;
   onTono: (t: Tono) => void;
 }) {
@@ -206,6 +227,8 @@ function Escenario({
   const mensaje = respuesta?.r ?? motorLocal.mensaje(id, ctx);
   // La expresión elegida manda; si es neutral, el mensaje propone la suya
   const expresion = a.expresion !== "idle" ? a.expresion : mensaje.expresion;
+  // Con un momento o un ángulo en vista previa, el escenario muestra el sistema nuevo
+  const momento = vista.momento ?? (vista.angulo !== "auto" ? "base" : undefined);
 
   const enviar = (e: React.FormEvent) => {
     e.preventDefault();
@@ -254,10 +277,10 @@ function Escenario({
           {a.avisos === "nunca" && !respuesta ? <span className="text-muted">Avisos apagados: {a.nombre} no mostrará burbujas en la app.</span> : mensaje.texto}
         </div>
         <div className="max-md:hidden">
-          <Asistente id={id} size={tamano} colores={a.colores} expresion={expresion} accesorio={a.accesorio} mostrarProp={a.mostrarProp} nombre={a.nombre} interactivo celebrar={salto} />
+          <Asistente id={id} size={tamano} colores={a.colores} expresion={expresion} momento={momento} angulo={vista.angulo} entrada={momento ? "pop" : undefined} accesorio={a.accesorio} mostrarProp={a.mostrarProp} nombre={a.nombre} interactivo celebrar={salto} />
         </div>
         <div className="md:hidden">
-          <Asistente id={id} size={Math.min(tamano, 200)} colores={a.colores} expresion={expresion} accesorio={a.accesorio} mostrarProp={a.mostrarProp} nombre={a.nombre} interactivo celebrar={salto} />
+          <Asistente id={id} size={Math.min(tamano, 200)} colores={a.colores} expresion={expresion} momento={momento} angulo={vista.angulo} entrada={momento ? "pop" : undefined} accesorio={a.accesorio} mostrarProp={a.mostrarProp} nombre={a.nombre} interactivo celebrar={salto} />
         </div>
       </div>
 
@@ -375,6 +398,8 @@ function Propiedades({
   onCambio,
   onPrincipal,
   prop,
+  vista,
+  onVista,
 }: {
   id: AsistenteId;
   a: AjustesAsistente;
@@ -382,6 +407,8 @@ function Propiedades({
   onCambio: (p: Partial<AjustesAsistente>) => void;
   onPrincipal: () => void;
   prop: string;
+  vista: VistaPrevia;
+  onVista: (v: VistaPrevia) => void;
 }) {
   const ficha = FICHAS[id];
   const g = useGamificacion();
@@ -391,6 +418,7 @@ function Propiedades({
     const req = vinculoRequerido(tipo, valor);
     return g.activo && vinculo < req ? req : 0;
   };
+  const racha = g.progreso.racha.actual;
   const combos = [...ficha.combinaciones, DORADA];
   const [nombre, setNombre] = useState(a.nombre);
   useEffect(() => {
@@ -473,6 +501,36 @@ function Propiedades({
             </button>
           ))}
         </div>
+        <p className="mb-1.5 mt-4 text-[12.5px] text-muted">Momentos · vista previa en el escenario</p>
+        <div className="grid max-w-[300px] grid-cols-5 gap-1.5" role="group" aria-label="Momentos">
+          {MOMENTOS.map((m) => (
+            <button
+              key={m}
+              type="button"
+              aria-pressed={vista.momento === m}
+              aria-label={MOMENTO_LABEL[m]}
+              title={MOMENTO_LABEL[m]}
+              onClick={() => onVista({ ...vista, momento: vista.momento === m ? null : m })}
+              className={cn("focus-ring grid aspect-square cursor-pointer place-items-center overflow-hidden rounded-[14px] bg-bg", vista.momento === m && "ring-2 ring-fg")}
+            >
+              <Asistente id={id} size={40} colores={a.colores} momento={m} mostrarProp={false} animado={false} fx={false} decorativo />
+            </button>
+          ))}
+        </div>
+        <div className="mt-3">
+          <Select aria-label="Ángulo" value={vista.angulo} onChange={(e) => onVista({ ...vista, angulo: e.target.value as Angulo | "auto" })}>
+            {[
+              <option key="auto" value="auto">
+                Ángulo: el del momento
+              </option>,
+              ...ANGULOS.map((x) => (
+                <option key={x} value={x}>
+                  Ángulo: {ANGULO_LABEL[x].toLowerCase()}
+                </option>
+              )),
+            ]}
+          </Select>
+        </div>
       </Bloque>
 
       <Bloque titulo="Accesorio">
@@ -503,6 +561,44 @@ function Propiedades({
             );
           })}
         </div>
+        <p className="mb-1.5 mt-4 text-[12.5px] text-muted">De situación</p>
+        <div className="grid max-w-[300px] grid-cols-5 gap-1.5" role="radiogroup" aria-label="Accesorio de situación">
+          {ACCESORIOS_SITUACION.map((x) => {
+            const bloqueado = g.activo && !accesorioDesbloqueado(x, { vinculo, racha });
+            const cond = condicionTexto(CONDICION_SITUACION[x]);
+            return (
+              <button
+                key={x}
+                type="button"
+                role="radio"
+                aria-checked={a.accesorio === x}
+                aria-disabled={bloqueado ? true : undefined}
+                aria-label={bloqueado ? `${ACCESORIO_LABEL[x]}, bloqueado: ${cond}` : ACCESORIO_LABEL[x]}
+                title={bloqueado ? cond : ACCESORIO_LABEL[x]}
+                onClick={() => !bloqueado && onCambio({ accesorio: x })}
+                className={cn(
+                  "focus-ring relative grid aspect-square place-items-center overflow-hidden rounded-[14px] bg-bg",
+                  a.accesorio === x && "ring-2 ring-fg",
+                  bloqueado ? "cursor-not-allowed" : "cursor-pointer",
+                )}
+              >
+                <span className={cn(bloqueado && "opacity-35 grayscale")}>
+                  <Asistente id={id} size={44} colores={a.colores} accesorio={x} mostrarProp={false} animado={false} decorativo />
+                </span>
+                {bloqueado ? <Candado /> : null}
+              </button>
+            );
+          })}
+        </div>
+        {g.activo ? (
+          <ul className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[12px] text-muted">
+            {ACCESORIOS_SITUACION.filter((x) => !accesorioDesbloqueado(x, { vinculo, racha })).map((x) => (
+              <li key={x} className="truncate">
+                {ACCESORIO_LABEL[x]}: {condicionTexto(CONDICION_SITUACION[x])}
+              </li>
+            ))}
+          </ul>
+        ) : null}
         {g.activo ? <ProximoDesbloqueo vinculo={vinculo} nombre={a.nombre} /> : null}
         <label className="mt-3 flex items-center justify-between gap-3 text-[13.5px]">
           Mostrar {prop}

@@ -5,6 +5,7 @@
  * Pantalla mínima con Tuerca y el tiempo grande. Cada bloque completo da +10 XP (máx. 4 al día) y
  * suma horas de enfoque al proyecto de la tarea (`lifeos:enfoque`).
  */
+import { MOMENTO_DE_LUGAR } from "@/lib/asistentes/momentos";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { Pause, Play, X } from "lucide-react";
@@ -164,7 +165,7 @@ function Pantalla({ tareaId }: { tareaId: string | null }) {
       <button type="button" onClick={salir} aria-label="Salir del modo enfoque" className="focus-ring absolute right-4 top-4 grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-card">
         <X size={20} />
       </button>
-      <Asistente id="tuerca" size={140} pose={pose} colores={tuerca.colores} accesorio={tuerca.accesorio} nombre={`${tuerca.nombre}, ${pose === "celebrando" ? "aprobando" : "concentrado"}`} />
+      <Asistente id="tuerca" size={140} momento={pose === "celebrando" ? MOMENTO_DE_LUGAR["enfoque-listo"] : fase === "trabajo" ? MOMENTO_DE_LUGAR["enfoque-trabajo"] : "base"} colores={tuerca.colores} accesorio={tuerca.accesorio} nombre={`${tuerca.nombre}, ${pose === "celebrando" ? "aprobando" : "concentrado"}`} />
       <p className="mt-4 text-[13px] font-medium uppercase tracking-[0.08em] text-muted">{etiqueta}</p>
       <h2 id="enfoque-titulo" className="mt-1 max-w-[520px] text-center text-[18px] font-bold leading-snug">
         {tarea ? tarea.name : "Bloque libre"}

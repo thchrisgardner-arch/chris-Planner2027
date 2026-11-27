@@ -4,6 +4,7 @@
  * La conexión del día en el inicio: dos asistentes juntos (mirándose) dicen algo que solo se ve
  * porque todo vive en la misma app. Máximo una al día (`lifeos:conexiones`); se puede cerrar.
  */
+import { MOMENTO_DE_LUGAR } from "@/lib/asistentes/momentos";
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import Link from "@/components/Enlace";
 import { ArrowUpRight, X } from "lucide-react";
@@ -76,10 +77,10 @@ export function ConexionDelDia() {
   return (
     <section aria-label={`${a.nombre} y ${b.nombre}`} className="card relative flex flex-col gap-4 p-5 animate-in sm:flex-row sm:items-center sm:p-6">
       <div className="flex shrink-0 items-end" aria-hidden>
-        <Asistente id={c.asistentes[0]} size={72} pose="feliz" colores={a.colores} accesorio={a.accesorio} decorativo animado={false} />
+        <Asistente id={c.asistentes[0]} size={72} momento={MOMENTO_DE_LUGAR.conexion} angulo="tres-cuartos" colores={a.colores} accesorio={a.accesorio} decorativo animado={false} />
         {/* El segundo, espejado: los dos se miran */}
         <span className="-ml-2 inline-block -scale-x-100">
-          <Asistente id={c.asistentes[1]} size={72} pose="feliz" colores={b.colores} accesorio={b.accesorio} decorativo animado={false} />
+          <Asistente id={c.asistentes[1]} size={72} momento={MOMENTO_DE_LUGAR.conexion} angulo="tres-cuartos-espejo" colores={b.colores} accesorio={b.accesorio} decorativo animado={false} />
         </span>
       </div>
       <div className="min-w-0 flex-1 pr-8">

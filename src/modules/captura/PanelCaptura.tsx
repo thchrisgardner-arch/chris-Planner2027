@@ -5,6 +5,7 @@
  * botón "Nuevo" y desde el botón + del celular. La vista previa es editable antes de guardar y el
  * asistente del módulo confirma con una frase.
  */
+import { MOMENTO_DE_LUGAR } from "@/lib/asistentes/momentos";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cerrarCaptura, quitarPuente } from "./CapturaRapida";
 import { ArrowLeftRight, CalendarPlus, FolderPlus, Gift, ListTodo, PiggyBank, Repeat, Target, Wallet } from "lucide-react";
@@ -352,7 +353,7 @@ export function Panel() {
         ) : (
           <section aria-label="Vista previa" className="rounded-[20px] bg-card p-4">
             <div className="flex items-center gap-3">
-              <Asistente id={asistente} size={56} pose="feliz" colores={ajustes.colores} accesorio={ajustes.accesorio} decorativo animado={false} />
+              <Asistente id={asistente} size={56} momento={MOMENTO_DE_LUGAR.captura} colores={ajustes.colores} accesorio={ajustes.accesorio} decorativo animado={false} />
               <p aria-live="polite" className="min-w-0 flex-1 text-[14px] leading-snug">
                 <span className="font-medium">{ajustes.nombre}:</span> {frase}
               </p>

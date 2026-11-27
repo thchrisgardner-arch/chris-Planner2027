@@ -1,5 +1,6 @@
 "use client";
 
+import { MOMENTO_DE_EXPRESION, MOMENTO_DE_LUGAR } from "@/lib/asistentes/momentos";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "@/components/Enlace";
 import { ArrowUpRight, X } from "lucide-react";
@@ -46,7 +47,7 @@ export function TarjetaAsistentePrincipal() {
         id={id}
         size={96}
         colores={a.colores}
-        expresion={a.expresion !== "idle" ? a.expresion : msg.expresion}
+        momento={MOMENTO_DE_EXPRESION[a.expresion !== "idle" ? a.expresion : msg.expresion]}
         accesorio={a.accesorio}
         mostrarProp={a.mostrarProp}
         nombre={a.nombre}
@@ -166,7 +167,7 @@ export function useVacioAsistente(id: AsistenteId) {
   return {
     frase: FICHAS[id].vacio[a.tono],
     aside: a.activo ? (
-      <Asistente id={id} size={88} colores={a.colores} expresion="dormido" accesorio={a.accesorio} mostrarProp={a.mostrarProp} nombre={a.nombre} interactivo />
+      <Asistente id={id} size={88} colores={a.colores} momento={MOMENTO_DE_LUGAR["estado-vacio"]} entrada="asomarse" accesorio={a.accesorio} mostrarProp={a.mostrarProp} nombre={a.nombre} interactivo />
     ) : null,
   };
 }

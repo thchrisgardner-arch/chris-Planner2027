@@ -72,7 +72,14 @@ for (let k = 0; k < 60; k++) {
   lista = JSON.parse(result.value ?? "[]");
   if (lista.length) break;
 }
-await esperar(1500);
+// Con la página ya hidratada (lee sus parámetros), se vuelven a medir los elementos
+await esperar(4000);
+{
+  const { result } = await cdp("Runtime.evaluate", {
+    expression: `JSON.stringify([...document.querySelectorAll('[${attr}]')].map(e => { const r = e.getBoundingClientRect(); return { v: e.getAttribute('${attr}'), x: r.left + scrollX, y: r.top + scrollY, w: r.width, h: r.height }; }))`,
+  });
+  lista = JSON.parse(result.value ?? "[]");
+}
 log(`${lista.length} elementos`);
 mkdirSync(salida, { recursive: true });
 for (const el of lista) {

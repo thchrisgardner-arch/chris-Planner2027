@@ -70,6 +70,8 @@ export interface Rig {
   parpado?: "p" | "d";
   /** Pico en lugar de boca (gallo) */
   pico?: boolean;
+  /** De espaldas: cuánto se corre lo de atrás para quedar centrado (el caparazón de la tortuga) */
+  espaldaDx?: number;
   idle: PoseCfg;
   /** Detrás del cuerpo: cola, caparazón, orejas, cuernos, accesorio propio trasero */
   atras: (c: Ctx) => React.ReactNode;
@@ -164,6 +166,7 @@ const brote: Rig = {
   cabeza: { x: 90, y: 44, w: 84 },
   cuello: { x: 90, y: 124, w: 92 },
   anchoCara: 54,
+  espaldaDx: -42,
   idle: { brazos: { modo: "colgar", a: 6 }, ojos: { modo: "abierto", tapa: 0.56 }, boca: "cerrada" },
   atras: (c) => (
     <>

@@ -306,7 +306,7 @@ export function Asistente({
   const label = `${nombre ?? rig.nombre}, ${mcfg ? MOMENTO_LABEL[momento!].toLowerCase() : `asistente de ${MODULO[id]}, ${EXPRESION_LABEL[pose].toLowerCase()}`}`;
   const c = cfg.cuerpo ?? {};
   const cuerpoT = `translate(${c.x ?? 0} ${c.y ?? 0}) rotate(${c.rot ?? 0} ${rig.cuerpo.cx} 184) translate(${rig.cuerpo.cx} 184) scale(${(c.sx ?? 1) * vista.cuerpoSx} ${c.sy ?? 1}) translate(${-rig.cuerpo.cx} -184)`;
-  const ctx = { fino, mostrarProp, uid };
+  const ctx = { fino, mostrarProp: mostrarProp && momento !== "dormido", uid };
   const salto = mcfg ? !!mcfg.idleMov && ["rebota"].includes(mcfg.idleMov) : pose === "feliz" || pose === "celebrando";
   // Rig con la cara, los accesorios y los brazos ubicados según el ángulo
   const W = rig.cuerpo.w;
@@ -432,7 +432,7 @@ export function Asistente({
                       </g>
                     ) : null}
                     {vista.cara ? <g transform={vista.frenteDx ? `translate(${vista.frenteDx * 0.6} 0)` : undefined}>{rig.propDelante?.(ctx)}</g> : null}
-                    {vista.atrasEncima ? rig.atras(ctx) : null}
+                    {vista.atrasEncima ? <g transform={rig.espaldaDx ? `translate(${rig.espaldaDx} 0)` : undefined}>{rig.atras(ctx)}</g> : null}
                     {vista.brazos !== "atras" ? <Brazos rig={rigVista} cfg={cfg} uno={vista.brazos === "uno"} /> : null}
                     {acc !== "ninguno" && !(slot === "eyes" && !vista.cara) ? (
                       <g data-capa={`slot-${slot}`}>
