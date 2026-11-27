@@ -16,6 +16,7 @@ import { KpiRow } from "./KpiRow";
 // después de la primera vista
 const DashboardAbajo = lazy(() => import("./DashboardAbajo"));
 import { HeroAsistente } from "@/modules/asistentes/Protagonismo";
+import { RecomendarApp } from "@/modules/asistentes/RecomendarApp";
 import { InvitacionRevision } from "@/modules/asistentes/Revision";
 import { TuDia } from "@/modules/asistentes/TuDia";
 import { AvisoRepararRacha } from "@/modules/asistentes/RepararRacha";
@@ -63,6 +64,7 @@ export function DashboardPage() {
         <InvitacionRevision />
         <AvisoRepararRacha />
         <HeroAsistente />
+        <RecomendarApp />
         <TuDia />
         <ConexionDelDia />
         {refMonth !== current ? (

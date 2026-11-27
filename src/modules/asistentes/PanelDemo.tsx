@@ -14,6 +14,7 @@ import { abrirCaptura } from "@/modules/captura/CapturaRapida";
 import { abrirChequeoAnimo } from "./ChequeoAnimo";
 import { mostrarConexionDemo } from "./ConexionDelDia";
 import { forzarAvisoDinero } from "@/modules/proyectos/AvisosDinero";
+import { forzarRecomendarDemo } from "./RecomendarApp";
 import { avisoDeEjemplo } from "@/lib/proyectos/avisosDinero";
 import { almacenAnimo, diaDificil } from "@/lib/animoUsuario";
 import { useData } from "@/lib/store/DataProvider";
@@ -222,6 +223,16 @@ export function PanelDemo() {
             </button>
             <button type="button" className={btn} onClick={mostrarConexionDemo}>
               Conexión del día (siguiente)
+            </button>
+            <button
+              type="button"
+              className={btn}
+              onClick={() => {
+                setAbierto(false);
+                forzarRecomendarDemo();
+              }}
+            >
+              Recomendar la app
             </button>
             {([80, 100] as const).map((u) => (
               <button

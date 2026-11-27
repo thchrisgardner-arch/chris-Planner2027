@@ -6,6 +6,8 @@ import { almacenDinero } from "@/lib/proyectos/avisosDinero";
 import { almacenEntrenos } from "@/lib/salud/entrenos";
 import { almacenAportes } from "@/lib/finanzas/aportes";
 import { almacenConceptos } from "@/modules/finance/EnQueSeVa";
+import { almacenRecomendar } from "@/lib/recomendar";
+import { TarjetaRecomendar } from "@/modules/asistentes/RecomendarApp";
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check, Cloud, Download, FlaskConical, GraduationCap, Upload, HardDrive, Monitor, Moon, Plus, Sun, Trash2, X } from "lucide-react";
@@ -81,6 +83,7 @@ export function SettingsPage() {
               <GraduationCap size={18} /> Ver el tutorial otra vez
             </Button>
           </Card>
+          <TarjetaRecomendar />
           <TarjetaInstalar />
         </div>
       ) : seccion === "apariencia" ? (
@@ -396,6 +399,7 @@ const EXTRAS = {
   entrenos: almacenEntrenos.clave,
   aportes: almacenAportes.clave,
   conceptos: almacenConceptos.clave,
+  recomendar: almacenRecomendar.clave,
 } as const;
 const leerExtra = (k: string) => {
   try {
@@ -439,6 +443,7 @@ function useRespaldo() {
       entrenos: leerExtra(EXTRAS.entrenos),
       aportes: leerExtra(EXTRAS.aportes),
       conceptos: leerExtra(EXTRAS.conceptos),
+      recomendar: leerExtra(EXTRAS.recomendar),
       notasVoz,
     };
     const blob = new Blob([JSON.stringify(respaldo, null, 2)], { type: "application/json" });
@@ -475,7 +480,7 @@ function StorageCard() {
   const sincronizado = almacenSync.useValor().activo && mode === "local";
 
   const importar = async (file: File) => {
-    let r: { exported_at?: string; profile?: Profile | null; data?: Record<string, unknown>; asistentes?: unknown; progreso?: unknown; salud?: unknown; espacio?: unknown; captura?: unknown; pagosFijos?: unknown; animo?: unknown; enfoque?: unknown; conexiones?: unknown; documentos?: unknown; vistas?: unknown; dinero?: unknown; entrenos?: unknown; aportes?: unknown; conceptos?: unknown; notasVoz?: { id: string; tipo?: string; audio: string }[] };
+    let r: { exported_at?: string; profile?: Profile | null; data?: Record<string, unknown>; asistentes?: unknown; progreso?: unknown; salud?: unknown; espacio?: unknown; captura?: unknown; pagosFijos?: unknown; animo?: unknown; enfoque?: unknown; conexiones?: unknown; documentos?: unknown; vistas?: unknown; dinero?: unknown; entrenos?: unknown; aportes?: unknown; conceptos?: unknown; recomendar?: unknown; notasVoz?: { id: string; tipo?: string; audio: string }[] };
     try {
       r = JSON.parse(await file.text());
     } catch {
@@ -514,6 +519,7 @@ function StorageCard() {
       if (r.entrenos) escribir(EXTRAS.entrenos, r.entrenos);
       if (r.aportes) escribir(EXTRAS.aportes, r.aportes);
       if (r.conceptos) escribir(EXTRAS.conceptos, r.conceptos);
+      if (r.recomendar) escribir(EXTRAS.recomendar, r.recomendar);
       // Audios de las notas de voz
       for (const n of Array.isArray(r.notasVoz) ? r.notasVoz : []) {
         if (typeof n?.id !== "string" || typeof n.audio !== "string" || !n.audio.startsWith("data:")) continue;
@@ -553,6 +559,7 @@ function StorageCard() {
     almacenEntrenos.borrar();
     almacenAportes.borrar();
     almacenConceptos.borrar();
+    almacenRecomendar.borrar();
     await borrarTodoEspacio();
     toast("Datos borrados.");
   };

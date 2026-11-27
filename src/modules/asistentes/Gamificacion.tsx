@@ -37,6 +37,8 @@ import { ASISTENTE_IDS, type Accesorio, type AsistenteId } from "@/lib/asistente
 import { CrecimientoCtx, crecimientoDeVinculo, type EtapaCrecimiento } from "@/lib/asistentes/crecimiento";
 import { almacenCloset, condicionPieza, ganarPiezas, piezasNuevas } from "@/lib/asistentes/closet";
 import { prepararAudio, retro } from "@/lib/asistentes/sonido";
+import { marcarMomento } from "@/lib/recomendar";
+import { todayISO } from "@/utils/dates";
 
 export const CLAVE_PROGRESO = "lifeos:progreso";
 
@@ -257,6 +259,10 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
         if (b > a) for (const d of DESBLOQUEOS.filter((x) => x.vinculo > a && x.vinculo <= b)) cola.push({ tipo: "desbloqueo", asistente: id, item: d });
         if (a < 10 && b >= 10) cola.push({ tipo: "coronacion", asistente: id });
       }
+      // Recomendar la app: justo después de un momento positivo, nunca tras uno negativo
+      const hoyMomento = todayISO();
+      if (cola.some((c) => (c.tipo === "hito" && c.dias >= 7) || c.tipo === "logro" || c.tipo === "ahorro" || (c.tipo === "nivel" && c.cambioEtapa))) marcarMomento("positivo", hoyMomento);
+      if (cola.some((c) => c.tipo === "balance" && !c.verde)) marcarMomento("negativo", hoyMomento);
       if (cola.length) setCelebraciones((c) => [...c, ...cola]);
       else sonarPequeno();
     },
