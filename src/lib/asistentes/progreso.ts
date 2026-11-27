@@ -9,6 +9,7 @@
  * La fecha de un evento es la del registro (created_at), no la que el usuario escribe, para que no
  * se pueda rellenar el pasado.
  */
+import { enPesosOInfinito } from "@/lib/monedas";
 import type { Database } from "@/types/db";
 import { isScheduled } from "@/modules/habits/selectors";
 import { addDays, addMonths, fechaLocal, monthKey, weekdayMon } from "@/utils/dates";
@@ -377,7 +378,7 @@ function candidatos(db: Database, prev: Progreso, today: string): { lista: Candi
   for (const w of db.wishlist_items) {
     if (w.status !== "comprado" || !w.savings_goal_id) continue;
     const g = db.savings_goals.find((x) => x.id === w.savings_goal_id);
-    if (yaVisto(`ws:${w.id}`) || (g && g.current_amount >= w.price)) lista.push({ refId: `ws:${w.id}`, tipo: "compra-planificada", fecha: yaVisto(`ws:${w.id}`) ?? today });
+    if (yaVisto(`ws:${w.id}`) || (g && g.current_amount >= enPesosOInfinito(w))) lista.push({ refId: `ws:${w.id}`, tipo: "compra-planificada", fecha: yaVisto(`ws:${w.id}`) ?? today });
   }
   return { lista, snap, vivos };
 }

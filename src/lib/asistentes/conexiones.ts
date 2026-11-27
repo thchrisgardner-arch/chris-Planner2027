@@ -3,6 +3,7 @@
  * viven juntos. Cada regla la dicen dos asistentes. Funciones puras: reciben los datos y hoy, y
  * devuelven las conexiones válidas ordenadas por prioridad (el dashboard muestra máximo 1 al día).
  */
+import { enPesosOInfinito } from "../monedas";
 import type { Database } from "../../types/db";
 import type { AsistenteId } from "./tipos";
 import { accountBalance, totalBalance } from "../../modules/finance/selectors";
@@ -97,8 +98,8 @@ function deseoEsperar({ db, hoy }: EntradaConexiones): Conexion | null {
   const ahorro = db.savings_goals.reduce((n, g) => n + g.current_amount, 0);
   const libre = totalBalance(db.accounts, db.transactions) - ahorro - pendientesAntes;
   const deseo = db.wishlist_items
-    .filter((w) => w.status !== "comprado" && w.status !== "descartado" && w.price > Math.max(0, libre) && w.price <= Math.max(0, libre) + sueldo.amount)
-    .sort((a, b) => a.price - b.price)[0];
+    .filter((w) => w.status !== "comprado" && w.status !== "descartado" && enPesosOInfinito(w) > Math.max(0, libre) && enPesosOInfinito(w) <= Math.max(0, libre) + sueldo.amount)
+    .sort((a, b) => enPesosOInfinito(a) - enPesosOInfinito(b))[0];
   if (!deseo) return null;
   return {
     id: `deseo-esperar:${deseo.id}:${proximo}`,

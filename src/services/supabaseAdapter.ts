@@ -18,7 +18,11 @@ export function normalize<T>(table: TableName, row: Record<string, unknown>): T 
   const fields = MONEY_FIELDS[table];
   if (!fields) return row as T;
   const out = { ...row };
-  for (const f of fields) if (out[f] != null) out[f] = Math.round(Number(out[f]));
+  for (const f of fields) {
+    if (out[f] == null) continue;
+    // Un deseo en dólares o euros conserva los centavos
+    out[f] = table === "wishlist_items" && out.currency && out.currency !== "COP" ? Math.round(Number(out[f]) * 100) / 100 : Math.round(Number(out[f]));
+  }
   return out as T;
 }
 

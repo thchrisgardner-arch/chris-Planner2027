@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, CircleAlert, ImageOff, Link2, RefreshCw, Sparkles, X } from "lucide-react";
 import { StoreLogo } from "@/components/ui/StoreLogo";
-import { formatCOP } from "@/utils/money";
+import { formatoPrecio } from "@/lib/monedas";
 import { cn } from "@/utils/cn";
 import { detectStore } from "./stores";
 
@@ -14,6 +14,9 @@ export interface ProductResult {
   price: number | null;
   currency: string | null;
   siteName: string | null;
+  /** La tienda pidió verificación: se conserva lo que se pudo saber */
+  bloqueado?: boolean;
+  tienda?: string;
 }
 
 type State =
@@ -113,6 +116,12 @@ export function ProductLinkFinder({
           placeholder="https://www.falabella.com.co/…"
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => {
+            // Enter busca el producto; no envía el formulario del deseo
+            if (e.key !== "Enter") return;
+            e.preventDefault();
+            void search(value, true);
+          }}
           onPaste={(e) => {
             const text = e.clipboardData.getData("text").trim();
             if (isUrl(text)) {
@@ -197,10 +206,9 @@ export function ProductLinkFinder({
 
 function ResultCard({ data, storeName, onRetry }: { data: ProductResult; storeName?: string; onRetry: () => void }) {
   const [imgOk, setImgOk] = useState(true);
-  const cop = data.currency === null || data.currency === "COP";
   const fields = [
     { label: "Nombre", ok: !!data.title },
-    { label: "Precio", ok: data.price !== null && cop },
+    { label: "Precio", ok: data.price !== null },
     { label: "Imagen", ok: !!data.image && imgOk },
   ];
   return (
@@ -219,7 +227,7 @@ function ResultCard({ data, storeName, onRetry }: { data: ProductResult; storeNa
           <p className="truncate text-[12px] text-muted">{storeName ?? data.siteName ?? new URL(data.url).hostname.replace(/^www\./, "")}</p>
           <p className="mt-0.5 line-clamp-2 text-[14.5px] font-medium leading-snug">{data.title ?? "Producto sin nombre"}</p>
           <p className="num mt-1 text-[18px] font-medium">
-            {data.price !== null ? (cop ? formatCOP(data.price) : `${data.currency} ${data.price.toLocaleString("es-CO")}`) : <span className="text-[13px] font-normal text-dim">Precio no disponible</span>}
+            {data.price !== null ? formatoPrecio({ price: data.price, currency: data.currency }) : <span className="text-[13px] font-normal text-dim">Precio no disponible</span>}
           </p>
         </div>
         <button
@@ -246,10 +254,12 @@ function ResultCard({ data, storeName, onRetry }: { data: ProductResult; storeNa
         ))}
         <span className="ml-auto text-[11.5px] text-dim">Revisa antes de guardar</span>
       </div>
-      {!cop && data.price !== null ? (
-        <p className="mt-2 rounded-[12px] bg-warn/10 px-3 py-2 text-[12.5px] text-warn">
-          El precio viene en {data.currency}. Escríbelo en pesos colombianos en «Precio estimado».
+      {data.bloqueado ? (
+        <p className="mt-2 rounded-[12px] bg-warn/10 px-3 py-2 text-[12.5px] text-warn" role="status">
+          {data.tienda ?? "La tienda"} no dejó leer este producto. Completa el precio y agrega la foto.
         </p>
+      ) : data.price !== null && data.currency && data.currency !== "COP" ? (
+        <p className="mt-2 rounded-[12px] bg-bg-2 px-3 py-2 text-[12.5px] text-muted">El precio está en {data.currency}: se guarda así y, si escribes la tasa, te muestro el equivalente en pesos.</p>
       ) : null}
     </div>
   );

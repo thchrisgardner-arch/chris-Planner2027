@@ -1,4 +1,5 @@
 import type { SavingsGoal, WishlistItem } from "@/types/db";
+import { enPesos } from "@/lib/monedas";
 
 const PESO = { alta: 0, media: 1, baja: 2 } as const;
 
@@ -15,7 +16,7 @@ export function ahorroPorDeseo(items: WishlistItem[], goals: SavingsGoal[]): Map
     .sort((a, b) => PESO[a.priority] - PESO[b.priority] || a.created_at.localeCompare(b.created_at));
   for (const w of activos) {
     const queda = restante.get(w.savings_goal_id!) ?? 0;
-    const toca = Math.min(queda, w.price);
+    const toca = Math.min(queda, enPesos(w) ?? 0);
     out.set(w.id, toca);
     restante.set(w.savings_goal_id!, queda - toca);
   }

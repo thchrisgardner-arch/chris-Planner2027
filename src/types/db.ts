@@ -169,6 +169,8 @@ export interface WishlistItem extends BaseRow {
   store: string | null;
   status: WishStatus;
   savings_goal_id: ID | null;
+  /** Moneda del precio (la de la tienda): COP, USD o EUR. Sin valor, COP (así quedan los deseos existentes) */
+  currency?: "COP" | "USD" | "EUR" | null;
 }
 
 /* ── Objetivos ── */

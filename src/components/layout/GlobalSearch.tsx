@@ -1,5 +1,6 @@
 "use client";
 
+import { formatoPrecio } from "@/lib/monedas";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeftRight, CalendarDays, FolderKanban, Gift, ListTodo, PiggyBank, Search, Target, X } from "lucide-react";
 import { useData } from "@/lib/store/DataProvider";
@@ -58,7 +59,7 @@ export function GlobalSearch({ className }: { className?: string }) {
         out.push({ id: t.id, group: "Movimientos", title: t.description, meta: `${formatCOP(t.amount)} · ${formatShortDate(t.date)}`, Icon: ArrowLeftRight, form: { kind: "transaction", record: t } });
     for (const t of db.tasks) if (has(t.name)) out.push({ id: t.id, group: "Tareas", title: t.name, meta: t.due_date ? formatShortDate(t.due_date) : "Sin fecha", Icon: ListTodo, form: { kind: "task", record: t } });
     for (const p of db.projects) if (has(p.name) || has(p.category)) out.push({ id: p.id, group: "Proyectos", title: p.name, meta: p.category ?? "Proyecto", Icon: FolderKanban, form: { kind: "project", record: p } });
-    for (const w of db.wishlist_items) if (has(w.name)) out.push({ id: w.id, group: "Wishlist", title: w.name, meta: formatCOP(w.price), Icon: Gift, form: { kind: "wish", record: w } });
+    for (const w of db.wishlist_items) if (has(w.name)) out.push({ id: w.id, group: "Wishlist", title: w.name, meta: formatoPrecio(w), Icon: Gift, form: { kind: "wish", record: w } });
     for (const e of db.calendar_events) if (has(e.title)) out.push({ id: e.id, group: "Calendario", title: e.title, meta: formatShortDate(e.date), Icon: CalendarDays, form: { kind: "event", record: e } });
     for (const g of db.savings_goals) if (has(g.name)) out.push({ id: g.id, group: "Ahorros", title: g.name, meta: formatCOP(g.target_amount), Icon: PiggyBank, form: { kind: "savings", record: g } });
     for (const g of db.annual_goals) if (has(g.title)) out.push({ id: g.id, group: "Objetivos", title: g.title, meta: `${g.progress} %`, Icon: Target, form: { kind: "goal", record: g } });

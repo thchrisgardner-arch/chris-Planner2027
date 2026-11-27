@@ -17,10 +17,12 @@ import type {
   WishlistItem,
 } from "@/types/db";
 import { todayISO } from "@/utils/dates";
-import { Trash2 } from "lucide-react";
+import { ClipboardPaste, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useDeleteRecord } from "@/components/ui/RowActions";
-import { formatAmountInput, parseCOP } from "@/utils/money";
+import { formatAmountInput, formatCOP, parseCOP } from "@/utils/money";
+import { almacenMonedas, monedaDe, MONEDAS, type Moneda } from "@/lib/monedas";
+import { guardarImagenLocal, imagenDelPortapapeles, useImagenGuardada } from "@/components/ui/ImagenGuardada";
 import { PRIORITIES } from "@/modules/projects/constants";
 import { StorePicker } from "./StorePicker";
 import { detectStore, findStore } from "./stores";
@@ -59,7 +61,12 @@ export function WishlistForm({ open, onClose, record }: { open: boolean; onClose
   const [name, setName] = useState(record?.name ?? "");
   const [image, setImage] = useState(record?.image_url ?? "");
   const [description, setDescription] = useState(record?.description ?? "");
-  const [price, setPrice] = useState(record ? formatAmountInput(String(record.price)) : "");
+  const [moneda, setMoneda] = useState<Moneda>(monedaDe(record ?? {}));
+  const [price, setPrice] = useState(record ? (monedaDe(record) === "COP" ? formatAmountInput(String(record.price)) : record.price.toLocaleString("es-CO", { minimumFractionDigits: 2 })) : "");
+  const tasas = almacenMonedas.useValor().tasas;
+  const [subiendo, setSubiendo] = useState(false);
+  const inputArchivo = useRef<HTMLInputElement>(null);
+  const vistaImagen = useImagenGuardada(image || null);
   const [category, setCategory] = useState(record?.category ?? WISH_CATEGORIES[0]);
   const [classification, setClassification] = useState<WishClassification>(record?.classification ?? "gusto");
   const [priority, setPriority] = useState<Priority>(record?.priority ?? "media");
@@ -94,9 +101,10 @@ export function WishlistForm({ open, onClose, record }: { open: boolean; onClose
       setName(r.title);
       auto.current.add("name");
     }
-    const cop = r.currency === null || r.currency === "COP";
-    if (r.price !== null && cop && canFill("price", price)) {
-      setPrice(formatAmountInput(String(r.price)));
+    if (r.price !== null && canFill("price", price)) {
+      const m: Moneda = r.currency === "USD" || r.currency === "EUR" ? r.currency : "COP";
+      setMoneda(m);
+      setPrice(m === "COP" ? formatAmountInput(String(r.price)) : r.price.toLocaleString("es-CO", { minimumFractionDigits: 2 }));
       auto.current.add("price");
     }
     if (r.image && canFill("image", image)) {
@@ -111,10 +119,11 @@ export function WishlistForm({ open, onClose, record }: { open: boolean; onClose
 
   const submit = async () => {
     const e: Errors = {};
-    const p = parseCOP(price);
+    // En dólares o euros el precio lleva centavos ("24,00"); en pesos, como siempre
+    const p = moneda === "COP" ? parseCOP(price) : Number(price.replace(/\./g, "").replace(",", ".")) || null;
     if (!name.trim()) e.name = "Escribe el nombre.";
     if (!p || p <= 0) e.price = "Ingresa un precio estimado.";
-    if (image && !isValidUrl(image)) e.image = "Pega un enlace de imagen válido (https://…).";
+    if (image && !image.startsWith("archivo:") && !isValidUrl(image)) e.image = "Pega un enlace de imagen válido (https://…).";
     if (link && !isValidUrl(link)) e.link = "Enlace no válido.";
     setErrors(e);
     if (Object.keys(e).length) return false;
@@ -123,6 +132,7 @@ export function WishlistForm({ open, onClose, record }: { open: boolean; onClose
       image_url: image.trim() || null,
       description: description.trim() || null,
       price: p!,
+      currency: moneda,
       category,
       classification,
       priority,
@@ -157,25 +167,87 @@ export function WishlistForm({ open, onClose, record }: { open: boolean; onClose
             />
           )}
         </Field>
-        <Field label="Precio estimado" error={errors.price}>
-          {(id) => (
-            <AmountInput
-              id={id}
-              value={price}
-              onChange={(v) => {
-                setPrice(v);
-                auto.current.delete("price");
-              }}
-              invalid={!!errors.price}
-            />
-          )}
+        <Field label={moneda === "COP" ? "Precio estimado" : `Precio estimado (${moneda})`} error={errors.price} hint={moneda !== "COP" ? (tasas[moneda] && Number(price.replace(/\./g, "").replace(",", ".")) ? `≈ ${formatCOP(Math.round(Number(price.replace(/\./g, "").replace(",", ".")) * tasas[moneda]!))}` : "Sin tasa no se suma con tus pesos.") : undefined}>
+          {(id) =>
+            moneda === "COP" ? (
+              <AmountInput
+                id={id}
+                value={price}
+                onChange={(v) => {
+                  setPrice(v);
+                  auto.current.delete("price");
+                }}
+                invalid={!!errors.price}
+              />
+            ) : (
+              <Input
+                id={id}
+                inputMode="decimal"
+                value={price}
+                placeholder="24,00"
+                onChange={(e) => {
+                  setPrice(e.target.value.replace(/[^\d.,]/g, ""));
+                  auto.current.delete("price");
+                }}
+              />
+            )
+          }
         </Field>
-        <Field label="Imagen (enlace)" error={errors.image} hint={image ? undefined : "Se completa con la búsqueda, o pega la URL de una imagen."} className="sm:col-span-2">
+        {/* Siempre a la vista: si la tienda bloquea la lectura (Amazon), el precio en dólares se elige a mano */}
+        <div className="grid grid-cols-2 gap-3 sm:col-span-2">
+          <Field label="Moneda">
+            {(id) => (
+              <Select
+                id={id}
+                value={moneda}
+                onChange={(e) => {
+                  // Cada moneda escribe el monto distinto ("96.000" pesos, "24,00" dólares): se vuelve a escribir
+                  setMoneda(e.target.value as Moneda);
+                  setPrice("");
+                  auto.current.delete("price");
+                }}
+              >
+                {MONEDAS.map((m) => (
+                  <option key={m} value={m}>
+                    {m === "COP" ? "COP · pesos" : m === "USD" ? "USD · dólares" : "EUR · euros"}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+          {moneda !== "COP" ? (
+            <Field label={`1 ${moneda} en pesos (opcional)`}>
+              {(id) => (
+                <AmountInput
+                  id={id}
+                  value={tasas[moneda] ? formatAmountInput(String(tasas[moneda])) : ""}
+                  onChange={(v) => almacenMonedas.cambiar((d) => ({ ...d, tasas: { ...d.tasas, [moneda]: parseCOP(v) ?? undefined } }))}
+                />
+              )}
+            </Field>
+          ) : null}
+        </div>
+        <Field label="Imagen (enlace)" error={errors.image} hint={image ? undefined : "Se completa con la búsqueda; también puedes pegar una imagen (Ctrl+V) o subirla."} className="sm:col-span-2">
           {(id) => (
             <div className="relative">
               <Input
                 id={id}
-                value={image}
+                onPaste={(e) => {
+                  // Pegar una imagen copiada (no un texto): se guarda comprimida en este dispositivo
+                  const f = [...e.clipboardData.files].find((x) => x.type.startsWith("image/"));
+                  if (!f) return;
+                  e.preventDefault();
+                  setSubiendo(true);
+                  void guardarImagenLocal(f, "deseo")
+                    .then((v) => {
+                      setImage(v);
+                      setImgBroken(false);
+                      auto.current.delete("image");
+                    })
+                    .finally(() => setSubiendo(false));
+                }}
+                value={image.startsWith("archivo:") ? "Imagen guardada en este dispositivo" : image}
+                readOnly={image.startsWith("archivo:")}
                 placeholder="https://…"
                 onChange={(e) => {
                   setImage(e.target.value);
@@ -189,13 +261,65 @@ export function WishlistForm({ open, onClose, record }: { open: boolean; onClose
                   {!imgBroken ? (
                     // Miniatura de la imagen elegida
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={image} alt="" referrerPolicy="no-referrer" onError={() => setImgBroken(true)} className="h-full w-full object-contain" />
+                    <img src={vistaImagen ?? undefined} alt="" referrerPolicy="no-referrer" onError={() => setImgBroken(true)} className="h-full w-full object-contain" />
                   ) : null}
                 </span>
               ) : null}
             </div>
           )}
         </Field>
+        <div className="-mt-2 flex flex-wrap gap-2 sm:col-span-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            className="bg-bg-2"
+            disabled={subiendo}
+            onClick={async () => {
+              try {
+                const f = await imagenDelPortapapeles();
+                if (!f) return;
+                setSubiendo(true);
+                setImage(await guardarImagenLocal(f, "deseo"));
+                setImgBroken(false);
+                auto.current.delete("image");
+              } catch {
+                /* el navegador no dejó leer el portapapeles: queda Ctrl+V o Subir */
+              } finally {
+                setSubiendo(false);
+              }
+            }}
+          >
+            <ClipboardPaste size={15} /> Pegar imagen
+          </Button>
+          <Button type="button" size="sm" variant="secondary" className="bg-bg-2" disabled={subiendo} onClick={() => inputArchivo.current?.click()}>
+            <Upload size={15} /> Subir imagen
+          </Button>
+          {image ? (
+            <Button type="button" size="sm" variant="ghost" onClick={() => setImage("")}>
+              Quitar
+            </Button>
+          ) : null}
+          <input
+            ref={inputArchivo}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={async (e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (!f) return;
+              setSubiendo(true);
+              try {
+                setImage(await guardarImagenLocal(f, "deseo"));
+                setImgBroken(false);
+                auto.current.delete("image");
+              } finally {
+                setSubiendo(false);
+              }
+            }}
+          />
+        </div>
         <Field label="Categoría">
           {(id) => (
             <Select

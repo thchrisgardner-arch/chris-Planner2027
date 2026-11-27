@@ -4,6 +4,7 @@
  * Principio: el ánimo premia el COMPORTAMIENTO (registrar, cumplir, ser constante, mejorar frente a
  * uno mismo), nunca cuánto dinero hay. Las comparaciones de dinero son solo contra el propio promedio.
  */
+import { enPesosOInfinito } from "@/lib/monedas";
 import type { Database } from "@/types/db";
 import { isScheduled, logFor, streak } from "@/modules/habits/selectors";
 import { addDays, addMonths, bogotaHour, monthKey } from "@/utils/dates";
@@ -194,7 +195,7 @@ function antojo(db: Database): Senal[] | null {
   const comprados = deseos.filter((w) => w.status === "comprado");
   const planeados = comprados.filter((w) => {
     const g = db.savings_goals.find((x) => x.id === w.savings_goal_id);
-    return g && g.current_amount >= w.price;
+    return g && g.current_amount >= enPesosOInfinito(w);
   }).length;
   return [
     { label: "Deseos con meta de ahorro", valor: pendientes.length ? conMeta / pendientes.length : 1, peso: 60 },

@@ -1,5 +1,7 @@
 "use client";
 
+import { ImagenGuardada } from "@/components/ui/ImagenGuardada";
+import { enPesosOInfinito, formatoPrecio } from "@/lib/monedas";
 import { useMemo, useState } from "react";
 import { Check, ImageOff } from "lucide-react";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -19,7 +21,7 @@ import {
   relativeDay,
   startOfWeek,
 } from "@/utils/dates";
-import { formatCOP, formatKpiCOP, pct } from "@/utils/money";
+import { formatKpiCOP, pct } from "@/utils/money";
 import { cn } from "@/utils/cn";
 import { activitySeries, type ActivityPeriod } from "@/modules/finance/selectors";
 import { projectProgress, projectStatusLabel } from "@/modules/projects/constants";
@@ -483,7 +485,7 @@ export function WishlistCard({ className }: { className?: string }) {
                 <span className="relative grid aspect-square w-20 shrink-0 place-items-center overflow-hidden rounded-[16px] bg-white sm:aspect-[4/3] sm:w-full">
                   {w.image_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={w.image_url} alt={w.name} referrerPolicy="no-referrer" className="h-full w-full object-contain p-2" />
+                    <ImagenGuardada src={w.image_url} alt={w.name} referrerPolicy="no-referrer" className="h-full w-full object-contain p-2" />
                   ) : (
                     <ImageOff size={20} className="text-dim" />
                   )}
@@ -491,9 +493,9 @@ export function WishlistCard({ className }: { className?: string }) {
                 </span>
                 <span className="min-w-0 flex-1 sm:px-1 sm:pb-1">
                   <span className="block truncate text-[14px] font-medium">{w.name}</span>
-                  <span className="num block text-[13.5px] text-muted">{formatCOP(w.price)}</span>
+                  <span className="num block text-[13.5px] text-muted">{formatoPrecio(w)}</span>
                   <span className="mt-1.5 block">
-                    {goal ? <Badge>{Math.round(pct(saved, w.price))} % ahorrado</Badge> : <Badge>{wishStatusLabel(w.status)}</Badge>}
+                    {goal ? <Badge>{Math.round(pct(saved, enPesosOInfinito(w)))} % ahorrado</Badge> : <Badge>{wishStatusLabel(w.status)}</Badge>}
                   </span>
                 </span>
               </button>

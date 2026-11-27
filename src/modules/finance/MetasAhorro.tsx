@@ -198,12 +198,11 @@ const ARCHIVO = "archivo:";
 /** URL que se puede mostrar: un archivo de este dispositivo o un enlace */
 export function useImagenMeta(meta: Pick<SavingsGoal, "id" | "image">) {
   const { db } = useData();
-  const archivo = meta.image?.startsWith(ARCHIVO) ? meta.image.slice(ARCHIVO.length) : null;
+  // Sin imagen propia: la del deseo de la wishlist vinculado a la meta (también puede ser «archivo:<id>»)
+  const valor = meta.image || (db.wishlist_items.find((w) => w.savings_goal_id === meta.id && w.image_url)?.image_url ?? null);
+  const archivo = valor?.startsWith(ARCHIVO) ? valor.slice(ARCHIVO.length) : null;
   const local = useArchivoUrl(archivo);
-  if (archivo) return local;
-  if (meta.image) return meta.image;
-  // Sin imagen propia: la del deseo de la wishlist vinculado a la meta
-  return db.wishlist_items.find((w) => w.savings_goal_id === meta.id && w.image_url)?.image_url ?? null;
+  return archivo ? local : valor;
 }
 
 export function ImagenMeta({ meta }: { meta: Pick<SavingsGoal, "id" | "image" | "name"> }) {

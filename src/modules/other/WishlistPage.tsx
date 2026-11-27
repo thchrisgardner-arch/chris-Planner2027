@@ -1,5 +1,7 @@
 "use client";
 
+import { ImagenGuardada } from "@/components/ui/ImagenGuardada";
+import { enPesos, enPesosOInfinito, equivalente, formatoPrecio } from "@/lib/monedas";
 import { useMemo, useState } from "react";
 import { ExternalLink, Gift, ImageOff, Plus } from "lucide-react";
 import { AsistenteModulo, useVacioAsistente } from "@/modules/asistentes/Presencia";
@@ -46,7 +48,7 @@ export function WishlistPage() {
         .sort((a, b) => b.created_at.localeCompare(a.created_at)),
     [db.wishlist_items, status, category, store],
   );
-  const activeTotal = sum(db.wishlist_items.filter((w) => w.status !== "comprado" && w.status !== "descartado").map((w) => w.price));
+  const activeTotal = sum(db.wishlist_items.filter((w) => w.status !== "comprado" && w.status !== "descartado").map((w) => enPesos(w) ?? 0));
   const bought = db.wishlist_items.filter((w) => w.status === "comprado").length;
 
   return (
@@ -119,8 +121,7 @@ export function WishlistPage() {
                   <Card key={w.id} className="flex flex-col overflow-hidden p-0 sm:p-0">
                     <div className="relative aspect-[4/3] bg-elev">
                       {w.image_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={w.image_url} alt={w.name} className="h-full w-full object-cover" />
+                        <ImagenGuardada src={w.image_url} alt={w.name} className="h-full w-full object-cover" />
                       ) : (
                         <div className="grid h-full place-items-center text-dim">
                           <ImageOff size={26} />
@@ -141,12 +142,13 @@ export function WishlistPage() {
                         </div>
                         <RowActions label={w.name} onEdit={() => open({ kind: "wish", record: w })} onDelete={() => del("wishlist_items", w.id, `¿Eliminar ${w.name}?`)} />
                       </div>
-                      <p className="num mt-3 text-[22px] font-medium">{formatCOP(w.price)}</p>
+                      <p className="num mt-3 text-[22px] font-medium">{formatoPrecio(w)}</p>
+                      {equivalente(w) ? <p className="num text-[12.5px] text-muted">{equivalente(w)}</p> : null}
                       {goal ? (
                         <div className="mt-3">
-                          <Progress value={pct(saved, w.price)} label={`Ahorro para ${w.name}`} />
+                          <Progress value={pct(saved, enPesosOInfinito(w))} label={`Ahorro para ${w.name}`} />
                           <p className="mt-1.5 text-[11.5px] text-dim">
-                            {Math.round(pct(saved, w.price))} % · meta «{goal.name}»
+                            {Math.round(pct(saved, enPesosOInfinito(w)))} % · meta «{goal.name}»
                           </p>
                         </div>
                       ) : null}

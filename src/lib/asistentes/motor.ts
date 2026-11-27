@@ -4,6 +4,7 @@
  * La interfaz `MotorAsistentes` está pensada para cambiar esta implementación por una llamada a la
  * API de Claude más adelante: misma entrada (id + contexto), misma salida (Mensaje).
  */
+import { enPesos, enPesosOInfinito } from "@/lib/monedas";
 import type { Database } from "@/types/db";
 import { accountBalance } from "@/modules/finance/selectors";
 import { isScheduled, logFor, streak } from "@/modules/habits/selectors";
@@ -188,17 +189,18 @@ function antojo({ db, tono }: ContextoAsistente): Mensaje {
   const disponible = sum(db.accounts.map((a) => accountBalance(a, db.transactions)));
   const ahorro = sum(db.savings_goals.map((g) => g.current_amount));
   const libre = disponible - ahorro;
-  const porPrecio = [...pendientes].sort((a, b) => a.price - b.price);
-  const cabe = porPrecio.find((w) => w.price > 0 && w.price <= libre);
+  // Sin tasa de cambio, un deseo en dólares no se compara con pesos
+  const porPrecio = [...pendientes].filter((w) => enPesos(w) !== null).sort((a, b) => enPesosOInfinito(a) - enPesosOInfinito(b));
+  const cabe = porPrecio.find((w) => enPesosOInfinito(w) > 0 && enPesosOInfinito(w) <= libre);
   if (cabe) return m(t("antojo", "alcanza", tono, { deseo: cabe.name }), "feliz", 1, accion);
   const conMeta = pendientes.find((w) => w.savings_goal_id);
   if (conMeta) {
     const g = db.savings_goals.find((x) => x.id === conMeta.savings_goal_id);
-    const pct = g && conMeta.price ? Math.min(100, Math.round((g.current_amount / conMeta.price) * 100)) : 0;
+    const pct = g && enPesos(conMeta) ? Math.min(100, Math.round((g.current_amount / enPesosOInfinito(conMeta)) * 100)) : 0;
     return m(t("antojo", "ahorrando", tono, { deseo: conMeta.name, pct }), "idle", 1, accion);
   }
   const w = porPrecio[0];
-  return m(t("antojo", "esperar", tono, { deseo: w.name, falta: formatKpiCOP(Math.max(0, w.price - Math.max(0, libre))) }), "idle", 1, accion);
+  return m(t("antojo", "esperar", tono, { deseo: w.name, falta: formatKpiCOP(Math.max(0, (enPesos(w) ?? 0) - Math.max(0, libre))) }), "idle", 1, accion);
 }
 
 const REGLAS: Record<AsistenteId, (c: ContextoAsistente) => Mensaje> = { centavo, brote, tuerca, tic, cima, antojo };
