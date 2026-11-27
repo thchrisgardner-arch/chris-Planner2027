@@ -22,6 +22,7 @@ import { RIGS, bloque, type Boca, type Ceja, type Fx, type PoseCfg, type Punto, 
 import { momentoCfg, ojosDeVariante, type MomentoCfg } from "./momentos";
 import { COLORES_POR_DEFECTO } from "@/lib/asistentes/tipos";
 import { nivelCrecimiento, useCrecimiento, type EtapaCrecimiento } from "@/lib/asistentes/crecimiento";
+import { RasgoAtras, RasgoCabeza, RasgoFrente, alturaCorona } from "./crecimiento";
 export { COLORES_POR_DEFECTO };
 
 const MODULO: Record<AsistenteId, string> = {
@@ -404,7 +405,12 @@ export function Asistente({
                     {etapa >= 3 && !mcfg?.trono ? <circle data-capa="aura" className="f-yellow-soft" opacity="0.6" cx={rig.cuerpo.cx} cy={rig.cuerpo.top + rig.cuerpo.h / 2} r={rig.cuerpo.w * 0.66} /> : null}
                     {oscuro ? <circle className="f-halo" cx={rig.cuerpo.cx} cy={rig.cuerpo.top + rig.cuerpo.h / 2} r={rig.cuerpo.w * 0.6} /> : null}
                     {acc === "capa" ? <CapaAtras rig={rigVista} /> : null}
-                    {vista.atrasEncima ? null : <g transform={vista.atrasDx ? `translate(${vista.atrasDx} 0)` : undefined}>{rig.atras(ctx)}</g>}
+                    {vista.atrasEncima ? null : (
+                      <g transform={vista.atrasDx ? `translate(${vista.atrasDx} 0)` : undefined}>
+                        {rig.atras(ctx)}
+                        <RasgoAtras id={id} n={etapa} ctx={ctx} trono={!!mcfg?.trono} />
+                      </g>
+                    )}
                     {vista.brazos === "atras" ? <Brazos rig={rigVista} cfg={cfg} /> : null}
                     {/* Pies */}
                     <g data-capa="feet" transform={vista.piesDx ? `translate(${vista.piesDx} 0)` : undefined}>
@@ -432,10 +438,18 @@ export function Asistente({
                     {vista.cara ? (
                       vista.frenteDx ? (
                         <g clipPath={`url(#${uid}-cuerpo)`}>
-                          <g transform={`translate(${vista.frenteDx} 0)`}>{rig.frente(ctx)}</g>
+                          <g transform={`translate(${vista.frenteDx} 0)`}>
+                            {rig.frente(ctx)}
+                            <RasgoFrente id={id} n={etapa} />
+                          </g>
                         </g>
                       ) : (
-                        rig.frente(ctx)
+                        <>
+                          {rig.frente(ctx)}
+                          <g clipPath={`url(#${uid}-cuerpo)`}>
+                            <RasgoFrente id={id} n={etapa} />
+                          </g>
+                        </>
                       )
                     ) : null}
                     {vista.cara ? (
@@ -445,15 +459,20 @@ export function Asistente({
                       </g>
                     ) : null}
                     {vista.cara ? <g transform={vista.frenteDx ? `translate(${vista.frenteDx * 0.6} 0)` : undefined}>{rig.propDelante?.(ctx)}</g> : null}
-                    {vista.atrasEncima ? <g transform={rig.espaldaDx ? `translate(${rig.espaldaDx} 0)` : undefined}>{rig.atras(ctx)}</g> : null}
+                    {vista.atrasEncima ? (
+                      <g transform={rig.espaldaDx ? `translate(${rig.espaldaDx} 0)` : undefined}>
+                        {rig.atras(ctx)}
+                        <RasgoAtras id={id} n={etapa} ctx={ctx} trono={!!mcfg?.trono} />
+                      </g>
+                    ) : null}
                     {vista.brazos !== "atras" ? <Brazos rig={rigVista} cfg={cfg} uno={vista.brazos === "uno"} /> : null}
                     {acc !== "ninguno" && !(slot === "eyes" && !vista.cara) ? (
                       <g data-capa={`slot-${slot}`}>
                         <AccesorioSvg rig={rigVista} acc={acc} />
                       </g>
                     ) : null}
-                    {vista.cara && etapa >= 1 ? <Insignia rig={rigVista} etapa={etapa} /> : null}
-                    {etapa >= 3 && cabezaLibre ? <CoronitaRey rig={rigVista} /> : null}
+                    {cabezaLibre ? <RasgoCabeza id={id} n={etapa} rig={rigVista} /> : null}
+                    {etapa >= 3 && cabezaLibre ? <CoronitaRey rig={rigVista} dy={alturaCorona(id, cabezaLibre)} /> : null}
                     {asomado ? <Manos rig={rig} /> : null}
                   </g>
                 </g>
@@ -474,31 +493,10 @@ export function Asistente({
 const estrella4 = (cx: number, cy: number, k: number) =>
   `M${cx} ${cy - k} Q${cx + k * 0.22} ${cy - k * 0.22} ${cx + k} ${cy} Q${cx + k * 0.22} ${cy + k * 0.22} ${cx} ${cy + k} Q${cx - k * 0.22} ${cy + k * 0.22} ${cx - k} ${cy} Q${cx - k * 0.22} ${cy - k * 0.22} ${cx} ${cy - k} Z`;
 
-/** Crece: insignia · Experto y Rey: medalla con cinta (del lado del pecho, sin tapar la cara) */
-function Insignia({ rig, etapa }: { rig: Rig; etapa: number }) {
-  const x = rig.cuello.x - rig.cuello.w * 0.27;
-  const y = rig.cuello.y + 4;
-  if (etapa === 1)
-    return (
-      <g data-capa="crecimiento">
-        <circle className="f-lime" cx={x} cy={y} r="7" />
-        <path className="f-white" d={estrella4(x, y, 4.6)} />
-      </g>
-    );
-  return (
-    <g data-capa="crecimiento">
-      <path className="f-lime-shade" d={`M${x - 8} ${y - 16} L${x - 2} ${y - 16} L${x + 2} ${y} L${x - 3} ${y} Z`} />
-      <path className="f-lime" d={`M${x + 8} ${y - 16} L${x + 2} ${y - 16} L${x - 2} ${y} L${x + 3} ${y} Z`} />
-      <circle className="f-yellow-shade" cx={x} cy={y + 5} r="9.5" />
-      <circle className="f-yellow" cx={x} cy={y + 4} r="8" />
-      <path className="f-white" d={estrella4(x, y + 4, 4.8)} />
-    </g>
-  );
-}
-
 /** Rey: corona pequeña ladeada (cuando la cabeza no lleva otro accesorio) */
-function CoronitaRey({ rig }: { rig: Rig }) {
-  const { x, y, w } = rig.cabeza;
+function CoronitaRey({ rig, dy = 0 }: { rig: Rig; dy?: number }) {
+  const { x, w } = rig.cabeza;
+  const y = rig.cabeza.y + dy;
   const cx = x + w * 0.2;
   return (
     <g data-capa="corona-rey" transform={`rotate(14 ${cx} ${y})`}>

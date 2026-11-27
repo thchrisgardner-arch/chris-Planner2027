@@ -7,6 +7,7 @@
  *  - Momentos: los 20 momentos.
  * ?base=1 muestra solo cada personaje en grande (para renderizar los PNG de referencia).
  * ?solo=centavo muestra un solo personaje.
+ * ?crecimiento=1 muestra la hoja de crecimiento de cada personaje (4 etapas), para los PNG.
  */
 import { useEffect, useState } from "react";
 import { Asistente } from "@/components/asistentes/Asistente";
@@ -33,14 +34,35 @@ export function Galeria() {
   const [solo, setSolo] = useState<AsistenteId | "todos">("centavo");
   const [animado, setAnimado] = useState(false);
   const [base, setBase] = useState(false);
+  const [hojaCrecimiento, setHojaCrecimiento] = useState(false);
 
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- parámetros de la URL, solo en el navegador
     setBase(q.get("base") === "1");
+    setHojaCrecimiento(q.get("crecimiento") === "1");
     const s = q.get("solo");
     if (s === "todos" || (ASISTENTE_IDS as readonly string[]).includes(s ?? "")) setSolo(s as AsistenteId | "todos");
   }, []);
+
+  if (hojaCrecimiento) {
+    // Hoja de crecimiento de cada personaje (3:2), para guardarla en docs/asistentes/v2/{id}/crecimiento.png
+    return (
+      <div className="flex flex-col gap-6 bg-white p-6">
+        <style>{"nextjs-portal{display:none!important}"}</style>
+        {ASISTENTE_IDS.map((id) => (
+          <div key={id} data-crecimiento={id} className="grid h-[640px] w-[960px] grid-cols-4 items-center bg-white px-4">
+            {ETAPAS_CRECIMIENTO.map((e) => (
+              <figure key={e} className="flex flex-col items-center gap-3">
+                <Asistente id={id} momento="base" angulo="tres-cuartos" crecimiento={e} size={220} animado={false} decorativo />
+                <figcaption className="text-[15px] text-[#6b6b6b]">{CRECIMIENTO_LABEL[e]}</figcaption>
+              </figure>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   if (base) {
     return (
