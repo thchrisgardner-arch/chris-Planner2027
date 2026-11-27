@@ -32,6 +32,7 @@ const Sincronizador = lazy(() => import("@/modules/sync/Sincronizador").then((m)
 const SincronizarAvisos = lazy(() => import("@/modules/avisos/AvisosCelular").then((m) => ({ default: m.SincronizarAvisos })));
 const PWA = lazy(() => import("@/modules/pwa/AppInstalable").then((m) => ({ default: m.PWA })));
 const ModoEnfoque = lazy(() => import("@/modules/enfoque/ModoEnfoque").then((m) => ({ default: m.ModoEnfoque })));
+const MigracionReuniones = lazy(() => import("@/modules/proyectos/MigracionReuniones").then((m) => ({ default: m.MigracionReuniones })));
 const PanelDemo = lazy(() => import("@/modules/asistentes/PanelDemo").then((m) => ({ default: m.PanelDemo })));
 
 const RAIL_KEY = "lifeos:ui:rail-expanded";
@@ -134,6 +135,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {bienvenida ? null : <ChequeoAnimo />}
           </Diferido>
           <Diferido>
+            <MigracionReuniones />
             <SincronizarAvisos />
             <Sincronizador />
             <PWA />

@@ -56,20 +56,25 @@ export interface ImagenProyecto {
 }
 
 interface Espacio {
-  /** 2: el título de las notas de voz es opcional (antes se guardaba «Nota de voz · fecha») */
-  version?: 2;
+  /**
+   * 2: el título de las notas de voz es opcional (antes se guardaba «Nota de voz · fecha»).
+   * 3: las reuniones viven en el calendario (calendar_events con project_id y meeting); aquí quedan
+   *    vacías y `reunionId` de las notas de voz apunta al evento.
+   */
+  version?: 2 | 3;
   notas: Record<string, NotaProyecto>;
   voz: NotaVoz[];
+  /** Solo para migrar (versión ≤ 2) */
   reuniones: Reunion[];
   imagenes: ImagenProyecto[];
   portadas: Record<string, string>;
 }
 
-const VACIO: Espacio = { version: 2, notas: {}, voz: [], reuniones: [], imagenes: [], portadas: {} };
+const VACIO: Espacio = { version: 3, notas: {}, voz: [], reuniones: [], imagenes: [], portadas: {} };
 
 /** Versión 1 → 2: los títulos automáticos («Nota de voz · 26 de nov, 12:52 p. m.») se quitan; la fecha ya va aparte */
 export function migrarEspacio(e: Espacio): Espacio {
-  if (e.version === 2) return e;
+  if ((e.version ?? 1) >= 2) return e;
   return {
     ...e,
     version: 2,
@@ -172,14 +177,10 @@ export const espacio = {
     guardar({ ...e, voz: e.voz.filter((v) => v.id !== id) });
     await borrarArchivo(id);
   },
-  guardarReunion(r: Reunion) {
+  /** Fin de la migración de reuniones: las notas de voz apuntan al evento y la lista queda vacía */
+  cerrarMigracionReuniones(mapa: Record<string, string>) {
     const e = leer();
-    const existe = e.reuniones.some((x) => x.id === r.id);
-    guardar({ ...e, reuniones: existe ? e.reuniones.map((x) => (x.id === r.id ? r : x)) : [...e.reuniones, r] });
-  },
-  borrarReunion(id: string) {
-    const e = leer();
-    guardar({ ...e, reuniones: e.reuniones.filter((r) => r.id !== id) });
+    guardar({ ...e, version: 3, reuniones: [], voz: e.voz.map((v) => (v.reunionId && mapa[v.reunionId] ? { ...v, reunionId: mapa[v.reunionId] } : v)) });
   },
   agregarImagen(img: ImagenProyecto) {
     const e = leer();
@@ -197,33 +198,30 @@ export const espacio = {
     return {
       nota: !!e.notas[proyectoId]?.texto.trim(),
       voz: e.voz.filter((v) => v.proyectoId === proyectoId).length,
-      reuniones: e.reuniones.filter((r) => r.proyectoId === proyectoId).length,
       imagenes: e.imagenes.filter((i) => i.proyectoId === proyectoId).length,
     };
   },
   /**
-   * Borra todo el espacio de un proyecto: nota, notas de voz, reuniones, imágenes, portada y archivos.
-   * Devuelve los ids de los eventos de calendario de sus reuniones, para borrarlos también.
+   * Borra todo el espacio de un proyecto: nota, notas de voz, imágenes, portada y archivos.
+   * (Sus reuniones son eventos del calendario: se borran desde ProjectsPage.)
    */
-  async borrarProyecto(proyectoId: string): Promise<string[]> {
+  async borrarProyecto(proyectoId: string): Promise<void> {
     const e = leer();
     const voz = e.voz.filter((v) => v.proyectoId === proyectoId);
     const imagenes = e.imagenes.filter((i) => i.proyectoId === proyectoId);
-    const eventos = e.reuniones.filter((r) => r.proyectoId === proyectoId && r.eventoId).map((r) => r.eventoId!);
     const notas = { ...e.notas };
     delete notas[proyectoId];
     const portadas = { ...e.portadas };
     delete portadas[proyectoId];
     guardar({
-      version: 2,
+      version: e.version,
       notas,
       portadas,
       voz: e.voz.filter((v) => v.proyectoId !== proyectoId),
-      reuniones: e.reuniones.filter((r) => r.proyectoId !== proyectoId),
+      reuniones: e.reuniones,
       imagenes: e.imagenes.filter((i) => i.proyectoId !== proyectoId),
     });
     await Promise.all([...voz, ...imagenes].map((x) => borrarArchivo(x.id)));
-    return eventos;
   },
   ponerPortada(proyectoId: string, imagenId: string | null) {
     const e = leer();

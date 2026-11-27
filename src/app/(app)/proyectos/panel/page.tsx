@@ -1,15 +1,14 @@
 import { Suspense } from "react";
-import { EspacioDesdeRuta } from "@/modules/proyectos/EspacioDesdeRuta";
+import { AbrirUltimoPanel } from "@/modules/proyectos/EspacioDesdeRuta";
 
-// Contenido que depende de datos del navegador: sin validación de navegación instantánea
+// Datos del navegador: sin validación de navegación instantánea
 export const instant = false;
 
-// Panel de un proyecto: /proyectos/panel?id=<id>. El id va en la dirección (no en un segmento
-// dinámico) para que la compilación de producción con Cache Components funcione.
+// Dirección anterior (/proyectos/panel?id=<id>): lleva al último panel usado del proyecto
 export default function Page() {
   return (
     <Suspense>
-      <EspacioDesdeRuta />
+      <AbrirUltimoPanel />
     </Suspense>
   );
 }

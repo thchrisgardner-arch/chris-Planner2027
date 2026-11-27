@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useData } from "@/lib/store/DataProvider";
 import { useToday } from "@/hooks/useToday";
 import { tituloVoz, useEspacio } from "@/lib/proyectos/espacio";
+import { tituloReunion } from "@/lib/proyectos/reuniones";
 import type { Project } from "@/types/db";
 import { WEEKDAYS_SHORT, addMonths, daysInMonth, fechaLocal, formatTime, monthKey, monthLabel, weekdayMon } from "@/utils/dates";
 import { cn } from "@/utils/cn";
@@ -24,7 +25,8 @@ export function CalendarioProyecto({ proyecto }: { proyecto: Project }) {
   const porDia = new Map<string, Item[]>();
   const add = (d: string | null | undefined, it: Item) => d && porDia.set(d, [...(porDia.get(d) ?? []), it]);
   for (const t of db.tasks.filter((x) => x.project_id === proyecto.id)) add(t.due_date, { tipo: "tarea", texto: t.name, detalle: t.status === "completada" ? "Completada" : undefined });
-  for (const r of e.reuniones.filter((x) => x.proyectoId === proyecto.id)) add(r.fecha, { tipo: "reunion", texto: r.titulo, detalle: formatTime(r.inicio) });
+  // Eventos del proyecto (las reuniones son eventos con datos de reunión)
+  for (const ev of db.calendar_events.filter((x) => x.project_id === proyecto.id)) add(ev.date, { tipo: "reunion", texto: tituloReunion(ev), detalle: ev.start_time ? formatTime(ev.start_time) : undefined });
   for (const v of e.voz.filter((x) => x.proyectoId === proyecto.id)) add(fechaLocal(v.creada), { tipo: "voz", texto: tituloVoz(v) });
   add(proyecto.due_date, { tipo: "entrega", texto: `Entrega de ${proyecto.name}` });
 

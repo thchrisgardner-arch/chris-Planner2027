@@ -6,6 +6,7 @@
  * Este archivo es liviano y siempre está cargado (apertura, atajos y puente del teclado); el panel
  * con el parser se descarga la primera vez que se abre (PanelCaptura.tsx).
  */
+import { nuevoDelPanel } from "@/lib/atajoNuevo";
 import { lazy, Suspense, useEffect, useSyncExternalStore } from "react";
 import { cuandoLibre } from "@/utils/cuandoLibre";
 
@@ -63,7 +64,10 @@ function useAtajos() {
       const dialogoAbierto = [...document.querySelectorAll('[role="dialog"][aria-modal="true"]')].some((d) => !d.closest("[inert]"));
       if (escribiendo || dialogoAbierto) return;
       e.preventDefault();
-      abrirCaptura();
+      // Dentro de un panel de proyecto, N crea en ese panel
+      const local = nuevoDelPanel();
+      if (local) local();
+      else abrirCaptura();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);

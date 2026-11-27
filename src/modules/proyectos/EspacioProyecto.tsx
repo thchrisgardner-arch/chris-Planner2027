@@ -2,13 +2,14 @@
 
 /**
  * Espacio de trabajo de un proyecto (tipo Notion): portada, encabezado con estado y progreso, y
- * secciones de tareas, notas, notas de voz, reuniones, imágenes y calendario interno.
- * Escritorio: dos columnas (contenido a la izquierda, voz/reuniones/calendario a la derecha).
- * Celular: una columna, con atajos para saltar entre secciones.
+ * pestañas que abren un panel a la vez, cada uno con su dirección (/proyectos/<id>/<panel>):
+ * Tareas, Notas de voz, Reuniones, Notas, Imágenes y Calendario. Cada panel es una vista filtrada
+ * por proyecto de los datos de toda la app (tareas, eventos, notas de voz…), no una copia.
  */
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "@/components/Enlace";
-import { ArrowLeft, CalendarDays, CalendarClock, CheckSquare, FolderDown, Image as ImageIcon, ImagePlus, Mic, NotebookPen, Pencil, Plus } from "lucide-react";
+import { ArrowLeft, CalendarDays, CalendarClock, CheckSquare, FolderDown, Image as ImageIcon, ImagePlus, Mic, NotebookPen, Pencil, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Field";
 import { EmptyState } from "@/components/ui/misc";
@@ -18,48 +19,34 @@ import { useData } from "@/lib/store/DataProvider";
 import { useToday } from "@/hooks/useToday";
 import { espacio, leerArchivo, leerEspacio, useEspacio } from "@/lib/proyectos/espacio";
 import { descargar, slug, zipNotas } from "@/lib/proyectos/exportarVoz";
+import { cuenta, esReunion, ordenarReuniones, tituloReunion } from "@/lib/proyectos/reuniones";
+import { PANELES, recordarPanel, rutaProyecto, type Panel } from "@/lib/proyectos/vistas";
 import type { Project, ProjectStatus } from "@/types/db";
 import { relativeDay } from "@/utils/dates";
 import { formatCOP } from "@/utils/money";
 import { cn } from "@/utils/cn";
 import { PROJECT_STATUSES, priorityLabel, projectProgress, projectStatusLabel } from "@/modules/projects/constants";
-import { TaskRow } from "@/modules/projects/ProjectsPage";
 import { CalendarioProyecto } from "./CalendarioProyecto";
 import { Imagenes, useArchivoUrl, useSubirImagenes } from "./Imagenes";
 import { NotasProyecto } from "./NotasProyecto";
 import { Grabadora, TarjetaVoz } from "./NotasVoz";
-import { Reuniones, cuenta } from "./Reuniones";
+import { PanelReuniones } from "./Reuniones";
+import { PanelTareas } from "./PanelTareas";
+import { Seccion } from "./Seccion";
 
-const SECCIONES = [
-  { id: "tareas", label: "Tareas", icon: CheckSquare },
-  { id: "voz", label: "Notas de voz", icon: Mic },
-  { id: "reuniones", label: "Reuniones", icon: CalendarClock },
-  { id: "notas", label: "Notas", icon: NotebookPen },
-  { id: "imagenes", label: "Imágenes", icon: ImageIcon },
-  { id: "calendario", label: "Calendario", icon: CalendarDays },
-] as const;
+const PESTANAS: Record<Panel, { label: string; icon: LucideIcon }> = {
+  tareas: { label: "Tareas", icon: CheckSquare },
+  "notas-de-voz": { label: "Notas de voz", icon: Mic },
+  reuniones: { label: "Reuniones", icon: CalendarClock },
+  notas: { label: "Notas", icon: NotebookPen },
+  imagenes: { label: "Imágenes", icon: ImageIcon },
+  calendario: { label: "Calendario", icon: CalendarDays },
+};
 
-function Seccion({ id, titulo, icon: Icon, cuenta, accion, children }: { id: string; titulo: string; icon: typeof Mic; cuenta?: number; accion?: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <section id={id} aria-labelledby={`${id}-titulo`} className="card min-w-0 scroll-mt-24 p-4 sm:p-5">
-      <div className="mb-3 flex items-center gap-2">
-        <span className="grid h-8 w-8 place-items-center rounded-full bg-bg-2">
-          <Icon size={16} />
-        </span>
-        <h2 id={`${id}-titulo`} className="text-[16px] font-bold">
-          {titulo}
-        </h2>
-        {cuenta ? <span className="num rounded-full bg-bg-2 px-2 py-0.5 text-[12px] text-muted">{cuenta}</span> : null}
-        <div className="ml-auto">{accion}</div>
-      </div>
-      {children}
-    </section>
-  );
-}
-
-export function EspacioProyecto({ id }: { id: string }) {
-  const { db } = useData();
+export function EspacioProyecto({ id, panel }: { id: string; panel: Panel }) {
+  const { db, status } = useData();
   const proyecto = db.projects.find((p) => p.id === id);
+  if (status !== "ready") return null;
   if (!proyecto) {
     return (
       <div className="mx-auto mt-10 max-w-md">
@@ -70,11 +57,67 @@ export function EspacioProyecto({ id }: { id: string }) {
       </div>
     );
   }
-  return <Espacio proyecto={proyecto} />;
+  return <Espacio proyecto={proyecto} panel={panel} />;
 }
 
-function Espacio({ proyecto: p }: { proyecto: Project }) {
-  const { db, update, insert } = useData();
+/** Se cambió de pestaña con el teclado: la nueva pestaña recibe el foco al aparecer */
+let focoPendiente = false;
+
+/** Barra de pestañas (mismos chips de siempre): enlaces reales, con flechas, Inicio y Fin */
+function Pestanas({ proyectoId, activo }: { proyectoId: string; activo: Panel }) {
+  const router = useRouter();
+  const refs = useRef<Record<string, HTMLAnchorElement | null>>({});
+  // Cada panel es otra página: al llegar, el foco vuelve a la pestaña activa
+  useEffect(() => {
+    if (!focoPendiente) return;
+    focoPendiente = false;
+    refs.current[activo]?.focus();
+  }, [activo]);
+  const ir = (p: Panel) => {
+    focoPendiente = true;
+    router.push(rutaProyecto(proyectoId, p), { scroll: false });
+    refs.current[p]?.focus();
+  };
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    const i = PANELES.indexOf(activo);
+    const destino =
+      e.key === "ArrowRight" ? PANELES[(i + 1) % PANELES.length] : e.key === "ArrowLeft" ? PANELES[(i - 1 + PANELES.length) % PANELES.length] : e.key === "Home" ? PANELES[0] : e.key === "End" ? PANELES[PANELES.length - 1] : null;
+    if (!destino) return;
+    e.preventDefault();
+    ir(destino);
+  };
+  return (
+    <nav aria-label="Paneles del proyecto" className="mt-4">
+      <div role="tablist" aria-label="Paneles del proyecto" className="flex flex-wrap gap-1.5" onKeyDown={onKeyDown}>
+        {PANELES.map((p) => {
+          const { label, icon: Icon } = PESTANAS[p];
+          const sel = p === activo;
+          return (
+            <Link
+              key={p}
+              ref={(el: HTMLAnchorElement | null) => {
+                refs.current[p] = el;
+              }}
+              href={rutaProyecto(proyectoId, p)}
+              scroll={false}
+              role="tab"
+              id={`pestana-${p}`}
+              aria-selected={sel}
+              aria-controls="panel-proyecto"
+              tabIndex={sel ? 0 : -1}
+              className={cn("focus-ring inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-medium", sel ? "bg-fg text-on-fg" : "bg-card hover:bg-elev")}
+            >
+              <Icon size={15} /> {label}
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
+function Espacio({ proyecto: p, panel }: { proyecto: Project; panel: Panel }) {
+  const { db, update } = useData();
   const open = useForms();
   const { toast } = useFeedback();
   const today = useToday();
@@ -82,24 +125,18 @@ function Espacio({ proyecto: p }: { proyecto: Project }) {
   const [exportando, setExportando] = useState(false);
   const subir = useSubirImagenes(p.id);
   const inputPortada = useRef<HTMLInputElement>(null);
-  const [nueva, setNueva] = useState("");
+
+  useEffect(() => recordarPanel(p.id, panel), [p.id, panel]);
 
   const prog = projectProgress(p, db.tasks);
-  const tareas = db.tasks.filter((t) => t.project_id === p.id && !t.parent_task_id);
   const voces = e.voz.filter((v) => v.proyectoId === p.id);
-  const reuniones = e.reuniones.filter((r) => r.proyectoId === p.id);
+  const reuniones = db.calendar_events.filter((x) => x.project_id === p.id).filter(esReunion).sort(ordenarReuniones);
   const imagenes = e.imagenes.filter((i) => i.proyectoId === p.id);
   const portadaId = e.portadas[p.id];
   const portada = useArchivoUrl(portadaId);
   // Las reuniones que ya terminaron hoy no cuentan como «próxima»
-  const proxima = reuniones.filter((r) => r.fecha >= today && cuenta(r).tono !== "pasada").sort((a, b) => `${a.fecha}${a.inicio}`.localeCompare(`${b.fecha}${b.inicio}`))[0];
-
-  const agregarTarea = async () => {
-    const nombre = nueva.trim();
-    if (!nombre) return;
-    await insert("tasks", { project_id: p.id, parent_task_id: null, name: nombre, description: null, due_date: null, priority: "media", status: "pendiente" });
-    setNueva("");
-  };
+  const siguiente = reuniones.find((r) => r.date >= today && cuenta(r).tono !== "pasada");
+  const proxima = siguiente ? { fecha: siguiente.date, titulo: tituloReunion(siguiente) } : null;
 
   return (
     <div className="mx-auto max-w-[1280px]">
@@ -214,58 +251,14 @@ function Espacio({ proyecto: p }: { proyecto: Project }) {
         ))}
       </div>
 
-      {/* Atajos a las secciones */}
-      <nav aria-label="Secciones del proyecto" className="mt-4 flex flex-wrap gap-1.5">
-        {SECCIONES.map((s) => (
-          <a key={s.id} href={`#${s.id}`} className="focus-ring inline-flex h-9 items-center gap-1.5 rounded-full bg-card px-3.5 text-[13px] font-medium hover:bg-elev">
-            <s.icon size={15} /> {s.label}
-          </a>
-        ))}
-      </nav>
+      <Pestanas proyectoId={p.id} activo={panel} />
 
-      <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
-        <div className="grid min-w-0 grid-cols-1 gap-3">
-          <Seccion id="tareas" titulo="Tareas" icon={CheckSquare} cuenta={tareas.length}>
-            <form
-              onSubmit={(ev) => {
-                ev.preventDefault();
-                void agregarTarea();
-              }}
-              className="mb-2 flex items-center gap-2 rounded-[16px] bg-bg-2 p-1.5 pl-3"
-            >
-              <Plus size={17} className="shrink-0 text-dim" />
-              <input
-                value={nueva}
-                onChange={(ev) => setNueva(ev.target.value)}
-                placeholder="Escribe una tarea y presiona Enter"
-                aria-label="Nueva tarea"
-                className="min-w-0 flex-1 rounded-[8px] bg-transparent px-1 py-1.5 text-[14px] outline-none placeholder:text-dim focus-visible:ring-2 focus-visible:ring-fg"
-              />
-              <Button type="submit" size="sm" variant="primary" disabled={!nueva.trim()}>
-                Agregar
-              </Button>
-            </form>
-            {tareas.length ? (
-              <ul className="-mx-2 flex flex-col">
-                {tareas.map((t) => (
-                  <TaskRow key={t.id} task={t} />
-                ))}
-              </ul>
-            ) : (
-              <p className="px-1 py-3 text-[13px] text-dim">Aún no hay tareas. Escribe la primera arriba.</p>
-            )}
-          </Seccion>
-
-          <Seccion id="notas" titulo="Notas" icon={NotebookPen}>
-            <NotasProyecto proyectoId={p.id} />
-          </Seccion>
-
-          <Seccion id="imagenes" titulo="Imágenes" icon={ImageIcon} cuenta={imagenes.length}>
-            <Imagenes proyectoId={p.id} />
-          </Seccion>
-        </div>
-
-        <div className="grid min-w-0 grid-cols-1 gap-3 lg:sticky lg:top-24">
+      <div role="tabpanel" id="panel-proyecto" aria-labelledby={`pestana-${panel}`} className="mt-4 min-w-0">
+        {panel === "tareas" ? (
+          <PanelTareas proyecto={p} />
+        ) : panel === "reuniones" ? (
+          <PanelReuniones proyecto={p} />
+        ) : panel === "notas-de-voz" ? (
           <Seccion
             id="voz"
             titulo="Notas de voz"
@@ -297,22 +290,28 @@ function Espacio({ proyecto: p }: { proyecto: Project }) {
               ) : null
             }
           >
-            <div className="grid grid-cols-1 gap-2.5">
+            <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
               <Grabadora proyectoId={p.id} />
-              {voces.map((v) => (
-                <TarjetaVoz key={v.id} nota={v} reunionTitulo={v.reunionId ? reuniones.find((r) => r.id === v.reunionId)?.titulo : undefined} />
-              ))}
+              {voces.map((v) => {
+                const r = v.reunionId ? reuniones.find((x) => x.id === v.reunionId) : undefined;
+                return <TarjetaVoz key={v.id} nota={v} reunionTitulo={r ? tituloReunion(r) : undefined} />;
+              })}
             </div>
           </Seccion>
-          <Seccion id="reuniones" titulo="Reuniones" icon={CalendarClock} cuenta={reuniones.length}>
-            <Reuniones proyecto={p} />
+        ) : panel === "notas" ? (
+          <Seccion id="notas" titulo="Notas" icon={NotebookPen}>
+            <NotasProyecto proyectoId={p.id} />
           </Seccion>
+        ) : panel === "imagenes" ? (
+          <Seccion id="imagenes" titulo="Imágenes" icon={ImageIcon} cuenta={imagenes.length}>
+            <Imagenes proyectoId={p.id} />
+          </Seccion>
+        ) : (
           <Seccion id="calendario" titulo="Calendario del proyecto" icon={CalendarDays}>
             <CalendarioProyecto proyecto={p} />
           </Seccion>
-        </div>
+        )}
       </div>
     </div>
   );
 }
-

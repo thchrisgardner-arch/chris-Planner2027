@@ -1,3 +1,5 @@
+import type { DatosReunion } from "@/lib/proyectos/reuniones";
+
 /** Tipos de las entidades de LIFE for LIFE. Coinciden con supabase/migrations/0001_life_os.sql */
 
 export type ID = string;
@@ -118,6 +120,8 @@ export interface Task extends BaseRow {
   due_date: string | null;
   priority: Priority;
   status: TaskStatus;
+  /** Responsable (texto libre; p. ej. desde un acuerdo de reunión) */
+  assignee?: string | null;
 }
 
 /* ── Hábitos ── */
@@ -190,6 +194,10 @@ export interface CalendarEvent extends BaseRow {
   end_time: string | null;
   type: EventType;
   notes: string | null;
+  /** Proyecto al que pertenece (Paneles de proyectos) */
+  project_id?: ID | null;
+  /** Si es una reunión: modalidad, asistentes, agenda, notas y acuerdos */
+  meeting?: DatosReunion | null;
 }
 
 export interface Profile {
@@ -252,7 +260,11 @@ export const CASCADES: Partial<
     { table: "transactions", field: "to_account_id", action: "delete" },
     { table: "savings_goals", field: "account_id", action: "nullify" },
   ],
-  projects: [{ table: "tasks", field: "project_id", action: "delete" }],
+  projects: [
+    { table: "tasks", field: "project_id", action: "delete" },
+    // Las reuniones se borran aparte (ProjectsPage); los demás eventos solo se desvinculan
+    { table: "calendar_events", field: "project_id", action: "nullify" },
+  ],
   tasks: [{ table: "tasks", field: "parent_task_id", action: "delete" }],
   habits: [{ table: "habit_logs", field: "habit_id", action: "delete" }],
   savings_goals: [{ table: "wishlist_items", field: "savings_goal_id", action: "nullify" }],

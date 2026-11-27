@@ -1,13 +1,29 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { rutaProyecto, ultimoPanel, type Panel } from "@/lib/proyectos/vistas";
 import { EspacioProyecto } from "./EspacioProyecto";
 
-/** Lee el id de la dirección (/proyectos/panel?id=…) y muestra el espacio del proyecto. */
-export function EspacioDesdeRuta() {
+/** /proyectos/panel/<panel>?id=<id>: muestra ese panel del proyecto (cada panel es una ruta fija) */
+export function EspacioDesdeRuta({ panel }: { panel: Panel }) {
   const id = useSearchParams().get("id") ?? "";
-  return <EspacioProyecto id={id} />;
+  const router = useRouter();
+  useEffect(() => {
+    if (!id) router.replace("/proyectos");
+  }, [id, router]);
+  return id ? <EspacioProyecto id={id} panel={panel} /> : null;
 }
 
-/** Enlace al panel de un proyecto */
-export const rutaPanel = (id: string) => `/proyectos/panel?id=${encodeURIComponent(id)}`;
+/** /proyectos/panel?id=<id> (también la dirección de antes): abre el último panel usado, o Tareas */
+export function AbrirUltimoPanel() {
+  const id = useSearchParams().get("id");
+  const router = useRouter();
+  useEffect(() => {
+    router.replace(id ? rutaProyecto(id, ultimoPanel(id)) : "/proyectos");
+  }, [id, router]);
+  return null;
+}
+
+/** Enlace a un proyecto (abre su último panel) */
+export const rutaPanel = (id: string) => rutaProyecto(id);

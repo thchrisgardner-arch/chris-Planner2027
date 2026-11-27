@@ -186,18 +186,19 @@ function ListView({ projects, loose }: { projects: Project[]; loose: Task[] }) {
   /** Borra el proyecto y todo su espacio (nota, audios, imágenes, reuniones y sus eventos del calendario). */
   const borrarProyecto = async (p: Project, nTareas: number) => {
     const r = espacio.resumenProyecto(p.id);
+    const reuniones = db.calendar_events.filter((e) => e.project_id === p.id && e.meeting);
     const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
     const partes = [
       nTareas ? plural(nTareas, "tarea", "tareas") : "",
       r.nota ? "su nota" : "",
       r.voz ? plural(r.voz, "nota de voz", "notas de voz") : "",
       r.imagenes ? plural(r.imagenes, "imagen", "imágenes") : "",
-      r.reuniones ? `${plural(r.reuniones, "reunión", "reuniones")} (y sus eventos del calendario)` : "",
+      reuniones.length ? `${plural(reuniones.length, "reunión", "reuniones")} (también del calendario)` : "",
     ].filter(Boolean);
     const ok = await del("projects", p.id, `¿Eliminar el proyecto ${p.name}?`, partes.length ? `También se eliminarán: ${partes.join(", ")}.` : undefined);
     if (!ok) return;
-    const eventos = await espacio.borrarProyecto(p.id);
-    await Promise.all(eventos.map((id) => remove("calendar_events", id).catch(() => {})));
+    await espacio.borrarProyecto(p.id);
+    await Promise.all(reuniones.map((e) => remove("calendar_events", e.id).catch(() => {})));
   };
 
   return (

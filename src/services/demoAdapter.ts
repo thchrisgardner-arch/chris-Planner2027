@@ -123,6 +123,13 @@ function seed(): { db: Database; profile: Profile } {
     { ...base(), debt_id: cmr.id, amount: 180_000, date: addDays(today, -50), transaction_id: null, notes: null },
   ];
 
+  // Proyecto de ejemplo con contenido en sus paneles (Portafolio 2027)
+  const casos = { ...task("Seleccionar casos de estudio", p1.id, today, "pendiente", "alta"), description: "Tres casos con resultados medibles; uno de producto digital.", assignee: "Laura Gómez" };
+  const inicio = { ...task("Diseñar la página de inicio", p1.id, addDays(today, 3), "en_proceso", "media"), description: "Hero, casos destacados y contacto." };
+  const paleta = task("Definir paleta y tipografía", p1.id, addDays(today, -4), "completada", "baja");
+  const sub = (name: string, status: "pendiente" | "completada") => ({ ...task(name, p1.id, null, status, "media"), parent_task_id: inicio.id });
+  const reunionBase = { modalidad: "video" as const, enlace: "https://meet.google.com/abc-defg-hij", lugar: "", notas: "", acuerdos: [] as { id: string; texto: string; tareaId?: string | null }[] };
+
   const db: Database = {
     accounts: [bancolombia, nequi, nu],
     debts: [credito, tarjetaNu, cmr, prestamo],
@@ -132,9 +139,12 @@ function seed(): { db: Database; profile: Profile } {
     savings_goals: [fondo, viaje, monitor],
     projects: [p1, p2, p3],
     tasks: [
-      task("Seleccionar casos de estudio", p1.id, today, "pendiente", "alta"),
-      task("Diseñar la página de inicio", p1.id, addDays(today, 3), "en_proceso", "media"),
-      task("Definir paleta y tipografía", p1.id, addDays(today, -4), "completada", "baja"),
+      casos,
+      inicio,
+      paleta,
+      sub("Hero con foto y frase", "completada"),
+      sub("Grilla de casos destacados", "pendiente"),
+      sub("Formulario de contacto", "pendiente"),
       task("Cotizar trasteo", p2.id, addDays(today, 2), "pendiente", "media"),
       task("Renovar SOAT", null, addDays(today, 5), "pendiente", "alta"),
     ],
@@ -153,7 +163,49 @@ function seed(): { db: Database; profile: Profile } {
     ],
     calendar_events: [
       { ...base(), title: "Pierna en el gym", date: today, start_time: "07:00", end_time: "08:00", type: "entrenamiento", notes: null },
-      { ...base(), title: "Reunión con cliente", date: today, start_time: "10:30", end_time: "11:30", type: "personal", notes: null },
+      {
+        ...base(),
+        title: "Reunión con cliente",
+        date: today,
+        start_time: "10:30",
+        end_time: "11:30",
+        type: "personal",
+        notes: null,
+        project_id: p1.id,
+        meeting: { ...reunionBase, participantes: ["Laura Gómez", "Milo Orden"], agenda: "Avances de la página de inicio" },
+      },
+      {
+        ...base(),
+        title: "Reunión: Kickoff del portafolio",
+        date: addDays(today, -6),
+        start_time: "15:00",
+        end_time: "16:00",
+        type: "personal",
+        notes: "Proyecto: Portafolio 2027",
+        project_id: p1.id,
+        meeting: {
+          ...reunionBase,
+          participantes: ["Laura Gómez"],
+          agenda: "Alcance, estilo y fechas",
+          notas: "Laura prefiere un estilo sobrio. La paleta queda en tonos lila y negro.",
+          acuerdos: [
+            { id: "acu-demo-1", texto: "Definir paleta y tipografía", tareaId: paleta.id },
+            { id: "acu-demo-2", texto: "Laura: enviar referencias de portafolios el lunes" },
+            { id: "acu-demo-3", texto: "Escribir la biografía corta para la página" },
+          ],
+        },
+      },
+      {
+        ...base(),
+        title: "Reunión: Revisión de diseño",
+        date: addDays(today, 5),
+        start_time: "09:00",
+        end_time: "10:00",
+        type: "personal",
+        notes: "Proyecto: Portafolio 2027\nLugar: Oficina de Laura",
+        project_id: p1.id,
+        meeting: { ...reunionBase, modalidad: "presencial", enlace: "", lugar: "Oficina de Laura", participantes: ["Laura Gómez", "Milo Orden", "Ana Ruiz"], agenda: "Página de inicio y casos" },
+      },
       { ...base(), title: "Pago tarjeta Nu", date: addDays(today, 2), start_time: "09:00", end_time: "09:30", type: "pago", notes: null },
       { ...base(), title: "Cardio", date: addDays(today, 1), start_time: "18:00", end_time: "19:00", type: "entrenamiento", notes: null },
       { ...base(), title: "Vence SOAT", date: addDays(today, 5), start_time: null, end_time: null, type: "vencimiento", notes: null },

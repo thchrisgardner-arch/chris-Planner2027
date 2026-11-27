@@ -68,6 +68,9 @@ await db.exec(`
 await correr("0004_sincronizacion.sql");
 await correr("0004_sincronizacion.sql");
 check("0004 se ejecuta dos veces sin errores", true);
+await correr("0006_paneles.sql");
+await correr("0006_paneles.sql");
+check("0006 se ejecuta dos veces sin errores", true);
 await correr("0005_archivos.sql");
 await correr("0005_archivos.sql");
 check("0005 se ejecuta dos veces sin errores", true);
@@ -177,6 +180,27 @@ check("B no puede borrar archivos de A", borB.affectedRows === 0);
 await como("anon", null);
 const verAnon = await db.query("select count(*)::int n from storage.objects");
 check("sin sesión no se ve ningún archivo", verAnon.rows[0].n === 0);
+
+// ── 0006: paneles de proyectos ──
+await como("authenticated", A);
+const proyA = await db.query(`insert into public.projects (name) values ('Portafolio') returning id`);
+const pid = proyA.rows[0].id;
+const reu = await db.query(
+  `insert into public.calendar_events (title, date, start_time, project_id, meeting) values ('Reunión: Kickoff', '2026-12-02', '10:00', $1, '{"modalidad":"video","acuerdos":[{"id":"a1","texto":"Enviar propuesta"}]}') returning project_id, meeting`,
+  [pid],
+);
+check("una reunión es un evento con proyecto y datos de reunión", reu.rows[0].project_id === pid && reu.rows[0].meeting.acuerdos.length === 1);
+await falla("meeting tiene que ser un objeto", `insert into public.calendar_events (title, date, meeting) values ('x', '2026-12-02', '[1,2]')`);
+const tareaResp = await db.query(`insert into public.tasks (name, project_id, assignee) values ('Enviar propuesta', $1, 'Ana') returning assignee`, [pid]);
+check("tarea con responsable", tareaResp.rows[0].assignee === "Ana");
+await db.query(`insert into public.user_state (clave, data) values ('documentos', '{"notas":[]}')`);
+check("user_state admite «documentos»", true);
+await como("authenticated", B);
+await falla("B no puede poner un evento en el proyecto de A", `insert into public.calendar_events (title, date, project_id) values ('Intruso', '2026-12-02', $1)`, [pid]);
+await como("authenticated", A);
+await db.query(`delete from public.projects where id = $1`, [pid]);
+const huerfano = await db.query(`select project_id from public.calendar_events where title = 'Reunión: Kickoff'`);
+check("al borrar el proyecto, el evento queda sin proyecto (no se pierde)", huerfano.rows.length === 1 && huerfano.rows[0].project_id === null);
 
 console.log(`\n${ok} correctas, ${fallos} fallidas`);
 process.exit(fallos ? 1 : 0);
