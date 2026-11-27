@@ -348,3 +348,48 @@
     transform: none !important;
   }
 }
+
+/* ═════════ Fase 4: momentos (solo transform y opacity) ═════════ */
+/* Cambio de momento o de ángulo: squash & stretch (0.92 → 1.06 → 1) con fundido de 150 ms */
+.asis-svg .asis-entra-momento {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: asis-squash 300ms var(--ease-os, ease-out) both;
+}
+@keyframes asis-squash {
+  0% { transform: scale(1.04, 0.92); opacity: 0.4; }
+  50% { transform: scale(0.97, 1.06); opacity: 1; }
+  100% { transform: scale(1, 1); opacity: 1; }
+}
+/* Movimiento propio en reposo según el momento */
+.asis-idle-respira .asis-cuerpo { transform-box: fill-box; transform-origin: 50% 100%; animation: asis-respira 3.4s ease-in-out infinite; }
+.asis-idle-rebota .asis-cuerpo { transform-box: fill-box; transform-origin: 50% 100%; animation: asis-rebota-idle 1.6s ease-in-out infinite; }
+.asis-idle-asiente .asis-cuerpo { transform-box: fill-box; transform-origin: 50% 100%; animation: asis-asiente 1.8s ease-in-out infinite; }
+.asis-idle-flota .asis-cuerpo { transform-box: fill-box; transform-origin: 50% 100%; animation: asis-flota 2.6s ease-in-out infinite; }
+@keyframes asis-respira { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.012, 0.985); } }
+@keyframes asis-rebota-idle { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-4%); } 60% { transform: translateY(-4%) scale(1.01, 0.99); } }
+@keyframes asis-asiente { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-3deg) translateY(1%); } 50% { transform: rotate(0deg); } }
+@keyframes asis-flota { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3%); } }
+/* Efectos vivos: el sudor tiembla, la lágrima cae, las "z" suben (ya existen); confeti y velocidad */
+.asis-svg .fx-confeti > * { animation: asis-confeti 1.8s ease-in-out infinite; }
+.asis-svg .fx-confeti > *:nth-child(2n) { animation-delay: -0.6s; }
+.asis-svg .fx-velocidad > * { animation: asis-velocidad 0.6s linear infinite; }
+.asis-svg .fx-velocidad > *:nth-child(2) { animation-delay: -0.2s; }
+.asis-svg .fx-velocidad > *:nth-child(3) { animation-delay: -0.4s; }
+@keyframes asis-confeti { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(6px) rotate(25deg); } }
+@keyframes asis-velocidad { 0% { transform: translateX(10px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateX(-12px); opacity: 0; } }
+/* Entradas: pop-in (0.6 → 1.08 → 1 en 280 ms), asomarse (desde abajo) y caer (desde arriba con rebote) */
+.asis-entrada-pop .asis-svg { animation: asis-pop 280ms var(--ease-os, ease-out) both; transform-origin: 50% 90%; }
+.asis-entrada-asomarse .asis-svg { animation: asis-asomarse 420ms var(--ease-os, ease-out) both; }
+.asis-entrada-caer .asis-svg { animation: asis-caer 560ms cubic-bezier(0.3, 1.5, 0.6, 1) both; }
+@keyframes asis-pop { 0% { transform: scale(0.6); opacity: 0; } 70% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); } }
+@keyframes asis-asomarse { 0% { transform: translateY(45%); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+@keyframes asis-caer { 0% { transform: translateY(-70%); opacity: 0; } 60% { opacity: 1; } 100% { transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .asis-entrada-pop .asis-svg,
+  .asis-entrada-asomarse .asis-svg,
+  .asis-entrada-caer .asis-svg,
+  [class*="asis-idle-"] .asis-cuerpo {
+    animation: none !important;
+  }
+}

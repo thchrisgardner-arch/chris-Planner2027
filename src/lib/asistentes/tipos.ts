@@ -56,7 +56,11 @@ export const EXPRESION_LABEL: Record<Expresion, string> = {
 export const EXPRESION_LEGADA: Record<string, Expresion> = { neutral: "idle", contento: "feliz", alerta: "preocupado" };
 
 export const ACCESORIOS = ["ninguno", "gafas", "gorro", "audifonos", "bufanda"] as const;
-export type Accesorio = (typeof ACCESORIOS)[number];
+/** Accesorios de situación: se desbloquean usando la app (vínculo o racha) */
+export const ACCESORIOS_SITUACION = ["gafas-sol", "chef", "fedora", "dedo-espuma", "patines", "corona"] as const;
+export type AccesorioSituacion = (typeof ACCESORIOS_SITUACION)[number];
+export type Accesorio = (typeof ACCESORIOS)[number] | AccesorioSituacion;
+export const TODOS_LOS_ACCESORIOS: Accesorio[] = [...ACCESORIOS, ...ACCESORIOS_SITUACION];
 
 export const ACCESORIO_LABEL: Record<Accesorio, string> = {
   ninguno: "Ninguno",
@@ -64,7 +68,76 @@ export const ACCESORIO_LABEL: Record<Accesorio, string> = {
   gorro: "Gorro",
   audifonos: "Audífonos",
   bufanda: "Bufanda",
+  "gafas-sol": "Gafas de sol",
+  chef: "Gorro de chef",
+  fedora: "Sombrero fedora",
+  "dedo-espuma": "Dedo de espuma",
+  patines: "Patines",
+  corona: "Corona",
 };
+
+/* ═════════ Fase 4: momentos, ángulos, ojos y bocas ═════════ */
+export const MOMENTOS = [
+  "base",
+  "saludo",
+  "feliz",
+  "celebrando",
+  "euforico",
+  "enamorado",
+  "orgulloso",
+  "aprobando",
+  "sorprendido",
+  "pensativo",
+  "senalando",
+  "preocupado",
+  "triste",
+  "molesto",
+  "dormido",
+  "aburrido",
+  "asomado",
+  "en-racha",
+  "trabajando",
+  "despedida",
+] as const;
+export type Momento = (typeof MOMENTOS)[number];
+
+export const MOMENTO_LABEL: Record<Momento, string> = {
+  base: "Base",
+  saludo: "Saludo",
+  feliz: "Feliz",
+  celebrando: "Celebrando",
+  euforico: "Eufórico",
+  enamorado: "Enamorado",
+  orgulloso: "Orgulloso",
+  aprobando: "Aprobando",
+  sorprendido: "Sorprendido",
+  pensativo: "Pensativo",
+  senalando: "Señalando",
+  preocupado: "Preocupado",
+  triste: "Triste",
+  molesto: "Molesto",
+  dormido: "Dormido",
+  aburrido: "Aburrido",
+  asomado: "Asomado",
+  "en-racha": "En racha",
+  trabajando: "Trabajando",
+  despedida: "Despedida",
+};
+
+export const ANGULOS = ["frente", "tres-cuartos", "tres-cuartos-espejo", "perfil", "espalda"] as const;
+export type Angulo = (typeof ANGULOS)[number];
+export const ANGULO_LABEL: Record<Angulo, string> = {
+  frente: "Frente",
+  "tres-cuartos": "Tres cuartos",
+  "tres-cuartos-espejo": "Tres cuartos (espejo)",
+  perfil: "Perfil",
+  espalda: "Espalda",
+};
+
+export const OJOS_VARIANTES = ["normal", "feliz", "entrecerrados", "estrella", "corazon", "llorosos", "sorprendidos", "cerrados", "guino", "pestanas"] as const;
+export type OjosVariante = (typeof OJOS_VARIANTES)[number];
+export const BOCAS_VARIANTES = ["cerrada", "sonrisa", "abierta", "o", "lengua", "silbando", "temblorosa", "gritando"] as const;
+export type BocaVariante = (typeof BOCAS_VARIANTES)[number];
 
 export type Colores = { primario: CharColor; secundario: CharColor; detalle: CharColor };
 

@@ -11,17 +11,29 @@ export type Punto = { x: number; y: number };
 export type Slot = { x: number; y: number; w: number };
 
 export type BrazoModo = "colgar" | "cruzados" | "cintura" | "juntas" | "abrazo";
-export type OjoModo = "abierto" | "feliz" | "cerrado" | "llorando";
+export type OjoModo = "abierto" | "feliz" | "cerrado" | "llorando" | "estrella" | "corazon" | "guino" | "pestanas" | "sorprendido";
 export type Ceja = "ninguna" | "arriba" | "enojo" | "esceptico";
-export type Boca = "cerrada" | "sonrisa" | "abierta" | "o" | "triste" | "lado";
-export type Fx = "destellos" | "sudor" | "lagrimas" | "vapor" | "zzz" | "corazones";
+export type Boca = "cerrada" | "sonrisa" | "abierta" | "o" | "triste" | "lado" | "lengua" | "silbando" | "temblorosa" | "gritando" | "o-grande";
+export type Fx =
+  | "destellos"
+  | "sudor"
+  | "lagrimas"
+  | "vapor"
+  | "zzz"
+  | "corazones"
+  | "confeti"
+  | "exclamacion"
+  | "pensamiento"
+  | "velocidad"
+  | "corazon-grande"
+  | "herramienta";
 
 export interface PoseCfg {
   /** a = apertura en grados: 0 colgando, 150 brazos arriba; negativo hacia adentro. [izq, der] si difieren */
   brazos: { modo: BrazoModo; a?: number | [number, number] };
   ojos: { modo: OjoModo; tapa?: number; inclina?: number; ceja?: Ceja; mirada?: [number, number]; grande?: boolean };
   boca: Boca;
-  cuerpo?: { y?: number; sx?: number; sy?: number; rot?: number };
+  cuerpo?: { x?: number; y?: number; sx?: number; sy?: number; rot?: number };
   fx?: Fx[];
 }
 
