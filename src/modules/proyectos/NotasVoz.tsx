@@ -6,11 +6,13 @@
  * (fechas, montos, acciones) que se pueden convertir en tareas.
  */
 import { useEffect, useRef, useState } from "react";
-import { CalendarClock, Check, ChevronDown, Mic, Pause, Play, Sparkles, Square, Trash2, X } from "lucide-react";
+import { CalendarClock, Check, ChevronDown, Download, FileText, Mic, MoreHorizontal, Pause, Play, Sparkles, Square, Trash2, X } from "lucide-react";
+import { Popover } from "@/components/ui/Popover";
 import { Button } from "@/components/ui/Button";
 import { useFeedback } from "@/components/providers/FeedbackProvider";
 import { useData } from "@/lib/store/DataProvider";
-import { ETIQUETA_DESTACADO, destacados, espacio, guardarArchivo, leerArchivo, nuevoId, type NotaVoz, type SegmentoVoz } from "@/lib/proyectos/espacio";
+import { ETIQUETA_DESTACADO, destacados, espacio, guardarArchivo, leerArchivo, nuevoId, tituloVoz, type NotaVoz, type SegmentoVoz } from "@/lib/proyectos/espacio";
+import { compartirODescargar, extensionAudio, nombreBase, transcripcionTxt } from "@/lib/proyectos/exportarVoz";
 import { cn } from "@/utils/cn";
 import { analizarAudio, audioEjemplo, crearReconocedor, formatoGrabacion, tiempo } from "./audio";
 
@@ -27,6 +29,8 @@ export function Grabadora({ proyectoId, reunionId, onGuardada }: { proyectoId: s
   const [texto, setTexto] = useState<SegmentoVoz[]>([]);
   const [parcial, setParcial] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // La transcripción falló mientras se grababa (red, permiso, idioma): se dice claro
+  const [avisoVoz, setAvisoVoz] = useState<string | null>(null);
   const r = useRef<{
     rec?: MediaRecorder;
     stream?: MediaStream;
@@ -38,7 +42,13 @@ export function Grabadora({ proyectoId, reunionId, onGuardada }: { proyectoId: s
     activo: boolean;
     segmentos: SegmentoVoz[];
     cancelado: boolean;
-  }>({ inicio: 0, trozos: [], activo: false, segmentos: [], cancelado: false });
+    /** Lo último que se oyó y todavía no era frase final */
+    parcial: string;
+    errorVoz: boolean;
+    /** Se resuelve cuando el reconocedor terminó de entregar sus últimas frases */
+    finVoz?: Promise<void>;
+    resolverFin?: () => void;
+  }>({ inicio: 0, trozos: [], activo: false, segmentos: [], cancelado: false, parcial: "", errorVoz: false });
   const puedeTranscribir = typeof window !== "undefined" && !!crearReconocedor();
 
   useEffect(() => () => limpiar(), []);
@@ -67,7 +77,8 @@ export function Grabadora({ proyectoId, reunionId, onGuardada }: { proyectoId: s
       const tipo = formatoGrabacion();
       const rec = new MediaRecorder(stream, tipo ? { mimeType: tipo } : undefined);
       const x = r.current;
-      Object.assign(x, { rec, stream, inicio: performance.now(), trozos: [], activo: true, segmentos: [], cancelado: false });
+      Object.assign(x, { rec, stream, inicio: performance.now(), trozos: [], activo: true, segmentos: [], cancelado: false, parcial: "", errorVoz: false });
+      setAvisoVoz(null);
       rec.ondataavailable = (e) => e.data.size && x.trozos.push(e.data);
       rec.onstop = () => void terminar(tipo || rec.mimeType || "audio/webm");
       rec.start(250);
@@ -109,18 +120,38 @@ export function Grabadora({ proyectoId, reunionId, onGuardada }: { proyectoId: s
               if (frase) x.segmentos = [...x.segmentos, { t: Math.max(0, (performance.now() - x.inicio) / 1000 - 2), texto: frase.charAt(0).toUpperCase() + frase.slice(1) }];
             } else interino += res[0].transcript;
           }
+          x.parcial = interino;
           setTexto(x.segmentos);
           setParcial(interino);
         };
-        voz.onerror = () => {};
+        voz.onerror = (e) => {
+          // Silencio o detención: no son fallas
+          if (e.error === "no-speech" || e.error === "aborted") return;
+          // Algunos navegadores no tienen es-CO: se intenta con español general
+          if (e.error === "language-not-supported" && voz.lang !== "es-ES") {
+            voz.lang = "es-ES";
+            return;
+          }
+          x.errorVoz = true;
+          setAvisoVoz(
+            e.error === "network"
+              ? "La transcripción necesita conexión a internet. El audio sí se guarda."
+              : e.error === "not-allowed" || e.error === "service-not-allowed"
+                ? "El navegador no dio permiso para transcribir. El audio sí se guarda."
+                : "La transcripción no está disponible ahora. El audio sí se guarda.",
+          );
+        };
+        x.finVoz = new Promise<void>((res) => (x.resolverFin = res));
         voz.onend = () => {
-          if (x.activo) {
+          if (x.activo && !x.errorVoz) {
             try {
               voz.start();
+              return;
             } catch {
               /* sin reintento */
             }
           }
+          x.resolverFin?.();
         };
         try {
           voz.start();
@@ -155,8 +186,14 @@ export function Grabadora({ proyectoId, reunionId, onGuardada }: { proyectoId: s
   async function terminar(tipo: string) {
     const x = r.current;
     const duracionReloj = (performance.now() - x.inicio) / 1000;
+    // Al detener, el navegador entrega la última frase un momento después: se espera (máx. 2 s)
+    // para no perderla. Antes se guardaba de inmediato y las notas cortas quedaban sin texto.
+    if (x.voz && x.finVoz && !x.cancelado) await Promise.race([x.finVoz, new Promise((res) => setTimeout(res, 2000))]);
     limpiar();
     if (x.cancelado) return;
+    // Lo que quedó a medias también cuenta
+    const resto = x.parcial.trim();
+    if (resto) x.segmentos = [...x.segmentos, { t: Math.max(0, duracionReloj - 2), texto: resto.charAt(0).toUpperCase() + resto.slice(1) }];
     const blob = new Blob(x.trozos, { type: tipo });
     const id = nuevoId("voz");
     let picos = barras;
@@ -170,7 +207,8 @@ export function Grabadora({ proyectoId, reunionId, onGuardada }: { proyectoId: s
     }
     await guardarArchivo(id, blob);
     const creada = new Date().toISOString();
-    espacio.agregarVoz({ id, proyectoId, reunionId, titulo: `Nota de voz · ${fechaHora(creada)}`, creada, duracion, picos, transcripcion: x.segmentos, tipo });
+    const sinTexto = x.segmentos.length ? undefined : !crearReconocedor() ? "no-soportado" : x.errorVoz ? "error" : "silencio";
+    espacio.agregarVoz({ id, proyectoId, reunionId, creada, duracion, picos, transcripcion: x.segmentos, tipo, ...(sinTexto ? { sinTexto } : {}) });
     setEstado("listo");
     setBarras(Array(36).fill(0.06));
     toast("Nota de voz guardada");
@@ -203,7 +241,7 @@ export function Grabadora({ proyectoId, reunionId, onGuardada }: { proyectoId: s
 
   const grabando = estado === "grabando";
   return (
-    <div className="relative overflow-hidden rounded-[24px] bg-card p-4 sm:p-5">
+    <div className="relative overflow-clip rounded-[24px] bg-card p-4 sm:p-5">
       {/* Brillo lima en la esquina, como el degradado de la referencia */}
       <div aria-hidden className="pointer-events-none absolute -bottom-16 -right-10 h-48 w-56 rounded-full bg-brand opacity-25 blur-3xl" />
       <div className="relative flex items-center gap-3">
@@ -228,7 +266,7 @@ export function Grabadora({ proyectoId, reunionId, onGuardada }: { proyectoId: s
             <p className="text-[14.5px] font-bold">{estado === "guardando" ? "Guardando nota…" : "Graba una nota de voz"}</p>
           )}
           <p className="truncate text-[12.5px] text-muted">
-            {grabando ? "Toca el cuadrado para guardar" : puedeTranscribir ? "Se transcribe mientras hablas" : "Este navegador no transcribe; el audio sí se guarda"}
+            {grabando ? (avisoVoz ? "Grabando sin transcripción" : "Toca el cuadrado para guardar") : puedeTranscribir ? "Se transcribe mientras hablas" : "Este navegador no transcribe; el audio sí se guarda"}
           </p>
         </div>
         {grabando ? (
@@ -249,7 +287,11 @@ export function Grabadora({ proyectoId, reunionId, onGuardada }: { proyectoId: s
               <span key={i} className="w-full rounded-full bg-fg transition-[height] duration-75" style={{ height: `${Math.round(b * 100)}%` }} />
             ))}
           </div>
-          {puedeTranscribir ? (
+          {puedeTranscribir && avisoVoz ? (
+            <p className="mt-3 rounded-[16px] bg-bg px-3 py-2 text-[13px] text-muted" aria-live="polite">
+              {avisoVoz}
+            </p>
+          ) : puedeTranscribir ? (
             <p className="mt-3 max-h-24 overflow-y-auto rounded-[16px] bg-bg px-3 py-2 text-[13.5px] leading-relaxed" aria-live="polite">
               {texto.map((s) => s.texto).join(" ")} <span className="text-dim">{parcial}</span>
               {!texto.length && !parcial ? <span className="text-dim">Empieza a hablar…</span> : null}
@@ -273,7 +315,8 @@ export function TarjetaVoz({ nota, reunionTitulo }: { nota: NotaVoz; reunionTitu
   const [velocidad, setVelocidad] = useState(1);
   const [abierta, setAbierta] = useState(false);
   const [editando, setEditando] = useState(false);
-  const [titulo, setTitulo] = useState(nota.titulo);
+  const titulo = tituloVoz(nota);
+  const [borrador, setBorrador] = useState("");
   const [creadas, setCreadas] = useState<Set<number>>(new Set());
 
   useEffect(
@@ -332,7 +375,7 @@ export function TarjetaVoz({ nota, reunionTitulo }: { nota: NotaVoz; reunionTitu
 
   async function crearTarea(k: number, texto: string) {
     const nombre = texto.length > 90 ? `${texto.slice(0, 87)}…` : texto;
-    await insert("tasks", { project_id: nota.proyectoId, parent_task_id: null, name: nombre, description: `Desde la nota de voz «${nota.titulo}»`, due_date: null, priority: "media", status: "pendiente" });
+    await insert("tasks", { project_id: nota.proyectoId, parent_task_id: null, name: nombre, description: `Desde la nota de voz «${titulo}»`, due_date: null, priority: "media", status: "pendiente" });
     setCreadas((s) => new Set(s).add(k));
     toast("Tarea creada en el proyecto");
   }
@@ -342,12 +385,37 @@ export function TarjetaVoz({ nota, reunionTitulo }: { nota: NotaVoz; reunionTitu
       await espacio.borrarVoz(nota.id);
     }
   }
-  const guardarTitulo = () => {
-    setEditando(false);
-    const t = titulo.trim();
-    if (t && t !== nota.titulo) espacio.actualizarVoz(nota.id, { titulo: t });
-    else setTitulo(nota.titulo);
+  const renombrar = () => {
+    setBorrador(nota.titulo ?? "");
+    setEditando(true);
   };
+  /** Vacío = vuelve al nombre automático (primeras palabras o «Nota de voz») */
+  const guardarTitulo = () => {
+    if (!editando) return;
+    setEditando(false);
+    const t = borrador.trim().slice(0, 60);
+    if (t === (nota.titulo ?? "")) return;
+    espacio.actualizarVoz(nota.id, { titulo: t || undefined });
+  };
+  async function bajarAudio() {
+    const blob = await leerArchivo(nota.id);
+    if (!blob) return toast("El audio de esta nota no está en este dispositivo.", "error");
+    const r = await compartirODescargar(blob, `${nombreBase(nota)}.${extensionAudio(blob.type || nota.tipo)}`, titulo);
+    if (r !== "cancelado") toast(r === "compartido" ? "Audio compartido" : "Audio descargado");
+  }
+  async function bajarTexto() {
+    const blob = new Blob([transcripcionTxt(nota)], { type: "text/plain;charset=utf-8" });
+    const r = await compartirODescargar(blob, `${nombreBase(nota)}.txt`, titulo);
+    if (r !== "cancelado") toast(r === "compartido" ? "Transcripción compartida" : "Transcripción descargada");
+  }
+  const sinTexto =
+    nota.sinTexto === "no-soportado"
+      ? { corto: "Sin transcripción", largo: "Este navegador no transcribe; el audio sí se guardó." }
+      : nota.sinTexto === "error"
+        ? { corto: "No se pudo transcribir", largo: "La transcripción falló al grabar (conexión o permiso); el audio sí se guardó." }
+        : nota.sinTexto === "silencio"
+          ? { corto: "Sin voz detectada", largo: "No se reconoció ninguna frase en la grabación." }
+          : { corto: "Sin transcripción", largo: "Esta nota no tiene transcripción." };
   const resaltes = nota.transcripcion.flatMap((s) => destacados(s.texto));
 
   return (
@@ -357,15 +425,23 @@ export function TarjetaVoz({ nota, reunionTitulo }: { nota: NotaVoz; reunionTitu
           {editando ? (
             <input
               autoFocus
-              value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
+              value={borrador}
+              maxLength={60}
+              placeholder={tituloVoz({ transcripcion: nota.transcripcion })}
+              onChange={(e) => setBorrador(e.target.value)}
               onBlur={guardarTitulo}
-              onKeyDown={(e) => e.key === "Enter" && guardarTitulo()}
-              aria-label="Título de la nota"
-              className="w-full rounded-[10px] bg-bg px-2 py-1 text-[14.5px] font-bold outline-none ring-2 ring-[var(--color-brand)]"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") guardarTitulo();
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  setEditando(false);
+                }
+              }}
+              aria-label="Nombre de la nota"
+              className="focus-ring block w-full rounded-[8px] bg-transparent text-[14.5px] font-bold outline-none placeholder:font-normal placeholder:text-dim"
             />
           ) : (
-            <button type="button" onClick={() => setEditando(true)} className="focus-ring block max-w-full cursor-text truncate rounded-[8px] text-left text-[14.5px] font-bold" title="Cambiar título">
+            <button type="button" onClick={renombrar} aria-label="Renombrar nota" className="focus-ring block max-w-full cursor-text truncate rounded-[8px] text-left text-[14.5px] font-bold" title="Renombrar nota">
               {titulo}
             </button>
           )}
@@ -378,6 +454,27 @@ export function TarjetaVoz({ nota, reunionTitulo }: { nota: NotaVoz; reunionTitu
             ) : null}
           </p>
         </div>
+        <Popover
+          side="bottom"
+          trigger={({ open, toggle }) => (
+            <Button size="icon-sm" variant="ghost" aria-label={`Exportar ${titulo}`} aria-expanded={open} onClick={toggle}>
+              <MoreHorizontal size={17} />
+            </Button>
+          )}
+        >
+          {(cerrar: () => void) => (
+            <div className="grid min-w-[200px] gap-0.5 p-1">
+              <button type="button" onClick={() => (cerrar(), void bajarAudio())} className="flex cursor-pointer items-center gap-2 rounded-[12px] px-3 py-2 text-left text-[13.5px] hover:bg-card">
+                <Download size={15} /> Descargar audio
+              </button>
+              {nota.transcripcion.length ? (
+                <button type="button" onClick={() => (cerrar(), void bajarTexto())} className="flex cursor-pointer items-center gap-2 rounded-[12px] px-3 py-2 text-left text-[13.5px] hover:bg-card">
+                  <FileText size={15} /> Descargar transcripción
+                </button>
+              ) : null}
+            </div>
+          )}
+        </Popover>
         <Button size="icon-sm" variant="ghost" aria-label={`Eliminar ${titulo}`} onClick={borrar}>
           <Trash2 size={16} />
         </Button>
@@ -439,7 +536,10 @@ export function TarjetaVoz({ nota, reunionTitulo }: { nota: NotaVoz; reunionTitu
               Transcripción <ChevronDown size={14} className={cn("transition-transform", abierta && "rotate-180")} />
             </button>
           ) : (
-            <span className="text-[12px] text-dim">Sin transcripción</span>
+            <span className="text-[12px] text-dim" title={sinTexto.largo}>
+              {sinTexto.corto}
+              <span className="sr-only">. {sinTexto.largo}</span>
+            </span>
           )}
         </div>
       </div>

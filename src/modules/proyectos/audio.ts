@@ -17,7 +17,7 @@ type Reconocedor = {
   start: () => void;
   stop: () => void;
   onresult: ((e: { resultIndex: number; results: { isFinal: boolean; 0: { transcript: string } }[] & { length: number } }) => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((e: { error: string }) => void) | null;
   onend: (() => void) | null;
 };
 export function crearReconocedor(): Reconocedor | null {

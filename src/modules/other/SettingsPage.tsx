@@ -23,7 +23,7 @@ import { borrarAsistentes, exportarAsistentes } from "@/lib/asistentes/estado";
 import { EditorAsistentes } from "@/modules/asistentes/EditorAsistentes";
 import { borrarProgreso, exportarProgreso } from "@/modules/asistentes/Gamificacion";
 import { borrarPerfil } from "@/lib/salud/perfil";
-import { borrarTodoEspacio } from "@/lib/proyectos/espacio";
+import { borrarTodoEspacio, guardarArchivo, leerArchivo, leerEspacio } from "@/lib/proyectos/espacio";
 import { almacenCaptura } from "@/lib/captura/aprendizaje";
 import { TarjetaInstalar } from "@/modules/pwa/AppInstalable";
 import { almacenAnimo } from "@/lib/animoUsuario";
@@ -400,7 +400,13 @@ function useRespaldo() {
   const { toast } = useFeedback();
   const today = useToday();
   const total = TABLES.reduce((n, t) => n + db[t].length, 0);
-  return (silencioso = false) => {
+  return async (silencioso = false) => {
+    // Notas de voz con su audio (en base64): así el respaldo se restaura completo en otro equipo
+    const notasVoz: { id: string; tipo: string; audio: string }[] = [];
+    for (const v of leerEspacio().voz) {
+      const blob = await leerArchivo(v.id);
+      if (blob) notasVoz.push({ id: v.id, tipo: blob.type || v.tipo, audio: await aDataUrl(blob) });
+    }
     const respaldo = {
       app: "LIFE for LIFE",
       exported_at: new Date().toISOString(),
@@ -415,6 +421,7 @@ function useRespaldo() {
       animo: leerExtra(EXTRAS.animo),
       enfoque: leerExtra(EXTRAS.enfoque),
       conexiones: leerExtra(EXTRAS.conexiones),
+      notasVoz,
     };
     const blob = new Blob([JSON.stringify(respaldo, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -427,9 +434,17 @@ function useRespaldo() {
   };
 }
 
+const aDataUrl = (blob: Blob) =>
+  new Promise<string>((ok, mal) => {
+    const lector = new FileReader();
+    lector.onload = () => ok(String(lector.result));
+    lector.onerror = () => mal(lector.error);
+    lector.readAsDataURL(blob);
+  });
+
 function TarjetaRespaldoYSync() {
   const respaldar = useRespaldo();
-  return <TarjetaSincronizacion respaldar={() => respaldar(true)} />;
+  return <TarjetaSincronizacion respaldar={() => void respaldar(true)} />;
 }
 
 function StorageCard() {
@@ -442,7 +457,7 @@ function StorageCard() {
   const sincronizado = almacenSync.useValor().activo && mode === "local";
 
   const importar = async (file: File) => {
-    let r: { exported_at?: string; profile?: Profile | null; data?: Record<string, unknown>; asistentes?: unknown; progreso?: unknown; salud?: unknown; espacio?: unknown; captura?: unknown; pagosFijos?: unknown; animo?: unknown; enfoque?: unknown; conexiones?: unknown };
+    let r: { exported_at?: string; profile?: Profile | null; data?: Record<string, unknown>; asistentes?: unknown; progreso?: unknown; salud?: unknown; espacio?: unknown; captura?: unknown; pagosFijos?: unknown; animo?: unknown; enfoque?: unknown; conexiones?: unknown; notasVoz?: { id: string; tipo?: string; audio: string }[] };
     try {
       r = JSON.parse(await file.text());
     } catch {
@@ -464,7 +479,7 @@ function StorageCard() {
     if (!ok) return;
     setImportando(true);
     try {
-      if (total) exportJSON(true);
+      if (total) await exportJSON(true);
       const escribir = (k: string, v: unknown) => (v == null ? window.localStorage.removeItem(k) : window.localStorage.setItem(k, JSON.stringify(v)));
       if (r.asistentes) escribir("lifeos:asistentes", r.asistentes);
       if (r.progreso) escribir("lifeos:progreso", r.progreso);
@@ -475,6 +490,11 @@ function StorageCard() {
       if (r.animo) escribir(EXTRAS.animo, r.animo);
       if (r.enfoque) escribir(EXTRAS.enfoque, r.enfoque);
       if (r.conexiones) escribir(EXTRAS.conexiones, r.conexiones);
+      // Audios de las notas de voz
+      for (const n of Array.isArray(r.notasVoz) ? r.notasVoz : []) {
+        if (typeof n?.id !== "string" || typeof n.audio !== "string" || !n.audio.startsWith("data:")) continue;
+        await guardarArchivo(n.id, await (await fetch(n.audio)).blob());
+      }
       await importAll(r.data as unknown as Database, r.profile ?? null);
       toast(`Respaldo importado: ${nuevos} registros.`);
       // Recarga para que asistentes, progreso y demás partes lean lo importado
@@ -526,11 +546,11 @@ function StorageCard() {
         </div>
       </div>
       <p className="mt-4 text-[12.5px] leading-relaxed text-muted">
-        El respaldo incluye tus registros, perfil, progreso y las notas y reuniones de tus proyectos. Los archivos de audio e imágenes no viajan
-        en el respaldo: al restaurarlo en otro equipo, esas notas de voz e imágenes aparecerán sin archivo.
+        El respaldo incluye tus registros, perfil, progreso, las notas y reuniones de tus proyectos y tus notas de voz con su audio. Las imágenes no
+        viajan en el respaldo: al restaurarlo en otro equipo aparecerán sin archivo.
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
-        <Button variant="secondary" className="bg-bg-2" onClick={() => exportJSON()}>
+        <Button variant="secondary" className="bg-bg-2" onClick={() => void exportJSON()}>
           <Download size={18} /> Exportar respaldo
         </Button>
         {mode === "local" ? (

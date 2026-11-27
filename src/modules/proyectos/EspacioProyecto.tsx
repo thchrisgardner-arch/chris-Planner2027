@@ -8,7 +8,7 @@
  */
 import { useRef, useState } from "react";
 import Link from "@/components/Enlace";
-import { ArrowLeft, CalendarDays, CalendarClock, CheckSquare, Image as ImageIcon, ImagePlus, Mic, NotebookPen, Pencil, Plus } from "lucide-react";
+import { ArrowLeft, CalendarDays, CalendarClock, CheckSquare, FolderDown, Image as ImageIcon, ImagePlus, Mic, NotebookPen, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Field";
 import { EmptyState } from "@/components/ui/misc";
@@ -16,7 +16,8 @@ import { useForms } from "@/components/providers/FormsProvider";
 import { useFeedback } from "@/components/providers/FeedbackProvider";
 import { useData } from "@/lib/store/DataProvider";
 import { useToday } from "@/hooks/useToday";
-import { espacio, leerEspacio, useEspacio } from "@/lib/proyectos/espacio";
+import { espacio, leerArchivo, leerEspacio, useEspacio } from "@/lib/proyectos/espacio";
+import { descargar, slug, zipNotas } from "@/lib/proyectos/exportarVoz";
 import type { Project, ProjectStatus } from "@/types/db";
 import { relativeDay } from "@/utils/dates";
 import { formatCOP } from "@/utils/money";
@@ -78,6 +79,7 @@ function Espacio({ proyecto: p }: { proyecto: Project }) {
   const { toast } = useFeedback();
   const today = useToday();
   const e = useEspacio();
+  const [exportando, setExportando] = useState(false);
   const subir = useSubirImagenes(p.id);
   const inputPortada = useRef<HTMLInputElement>(null);
   const [nueva, setNueva] = useState("");
@@ -264,7 +266,37 @@ function Espacio({ proyecto: p }: { proyecto: Project }) {
         </div>
 
         <div className="grid min-w-0 grid-cols-1 gap-3 lg:sticky lg:top-24">
-          <Seccion id="voz" titulo="Notas de voz" icon={Mic} cuenta={voces.length}>
+          <Seccion
+            id="voz"
+            titulo="Notas de voz"
+            icon={Mic}
+            cuenta={voces.length}
+            accion={
+              voces.length ? (
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  aria-label="Exportar todas las notas de voz en un .zip"
+                  title="Exportar todas (.zip)"
+                  disabled={exportando}
+                  onClick={async () => {
+                    setExportando(true);
+                    try {
+                      const { zip, sinAudio } = await zipNotas(voces, leerArchivo, p.name);
+                      descargar(zip, `notas-de-voz-${slug(p.name)}-${today}.zip`);
+                      toast(sinAudio ? `Notas exportadas. ${sinAudio === 1 ? "1 no tenía" : `${sinAudio} no tenían`} el audio en este dispositivo.` : "Notas de voz exportadas");
+                    } catch {
+                      toast("No se pudieron exportar las notas.", "error");
+                    } finally {
+                      setExportando(false);
+                    }
+                  }}
+                >
+                  <FolderDown size={17} />
+                </Button>
+              ) : null
+            }
+          >
             <div className="grid grid-cols-1 gap-2.5">
               <Grabadora proyectoId={p.id} />
               {voces.map((v) => (

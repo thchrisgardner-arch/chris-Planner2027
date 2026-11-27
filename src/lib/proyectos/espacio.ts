@@ -18,7 +18,10 @@ export interface SegmentoVoz {
 export interface NotaVoz {
   id: string;
   proyectoId: string;
-  titulo: string;
+  /** Nombre elegido por la persona; sin él se usan las primeras palabras de la transcripción (tituloVoz) */
+  titulo?: string;
+  /** Por qué no hay transcripción: el navegador no la tiene, falló o no se detectó voz */
+  sinTexto?: "no-soportado" | "error" | "silencio";
   creada: string;
   duracion: number;
   /** Alturas normalizadas 0–1 para dibujar la onda */
@@ -53,6 +56,8 @@ export interface ImagenProyecto {
 }
 
 interface Espacio {
+  /** 2: el título de las notas de voz es opcional (antes se guardaba «Nota de voz · fecha») */
+  version?: 2;
   notas: Record<string, NotaProyecto>;
   voz: NotaVoz[];
   reuniones: Reunion[];
@@ -60,7 +65,35 @@ interface Espacio {
   portadas: Record<string, string>;
 }
 
-const VACIO: Espacio = { notas: {}, voz: [], reuniones: [], imagenes: [], portadas: {} };
+const VACIO: Espacio = { version: 2, notas: {}, voz: [], reuniones: [], imagenes: [], portadas: {} };
+
+/** Versión 1 → 2: los títulos automáticos («Nota de voz · 26 de nov, 12:52 p. m.») se quitan; la fecha ya va aparte */
+export function migrarEspacio(e: Espacio): Espacio {
+  if (e.version === 2) return e;
+  return {
+    ...e,
+    version: 2,
+    voz: e.voz.map((v) => {
+      if (!v.titulo || !/^Nota de voz · /.test(v.titulo)) return v;
+      const sinTitulo = { ...v };
+      delete sinTitulo.titulo;
+      return sinTitulo;
+    }),
+  };
+}
+
+/** Título que se muestra: el elegido, o las primeras 6 palabras de la transcripción, o «Nota de voz» */
+export function tituloVoz(v: Pick<NotaVoz, "titulo" | "transcripcion">): string {
+  if (v.titulo?.trim()) return v.titulo.trim();
+  const palabras = v.transcripcion
+    .map((s) => s.texto)
+    .join(" ")
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!palabras.length) return "Nota de voz";
+  const corto = palabras.slice(0, 6).join(" ").replace(/[.,;:]+$/, "");
+  return palabras.length > 6 ? `${corto}…` : corto;
+}
 const CLAVE = "lifeos:espacio";
 const enDemo = () => typeof window !== "undefined" && !!window.sessionStorage.getItem("lifeos-demo");
 
@@ -73,7 +106,9 @@ function leer(): Espacio {
   if (enDemo()) return (cache = { ...VACIO });
   try {
     const raw = window.localStorage.getItem(CLAVE);
-    cache = raw ? { ...VACIO, ...JSON.parse(raw) } : { ...VACIO };
+    const crudo: Espacio = raw ? { ...VACIO, version: undefined, ...JSON.parse(raw) } : { ...VACIO };
+    cache = migrarEspacio(crudo);
+    if (raw && crudo.version !== 2) window.localStorage.setItem(CLAVE, JSON.stringify(cache));
   } catch {
     cache = { ...VACIO };
   }
@@ -180,6 +215,7 @@ export const espacio = {
     const portadas = { ...e.portadas };
     delete portadas[proyectoId];
     guardar({
+      version: 2,
       notas,
       portadas,
       voz: e.voz.filter((v) => v.proyectoId !== proyectoId),
