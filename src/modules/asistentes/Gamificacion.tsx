@@ -33,7 +33,9 @@ import {
   type LogroDef,
   type Progreso,
 } from "@/lib/asistentes/progreso";
-import { ASISTENTE_IDS, type AsistenteId } from "@/lib/asistentes/tipos";
+import { ASISTENTE_IDS, type Accesorio, type AsistenteId } from "@/lib/asistentes/tipos";
+import { CrecimientoCtx, crecimientoDeVinculo, type EtapaCrecimiento } from "@/lib/asistentes/crecimiento";
+import { almacenCloset, condicionPieza, ganarPiezas, piezasNuevas } from "@/lib/asistentes/closet";
 import { prepararAudio, retro } from "@/lib/asistentes/sonido";
 
 export const CLAVE_PROGRESO = "lifeos:progreso";
@@ -94,7 +96,10 @@ export type Celebracion =
   | { tipo: "meta"; meta: number }
   | { tipo: "misiones" }
   | { tipo: "hito"; dias: number; xp: number }
-  | { tipo: "reparada"; dias: number };
+  | { tipo: "reparada"; dias: number }
+  /* Fase 5 */
+  | { tipo: "coronacion"; asistente: AsistenteId }
+  | { tipo: "closet"; acc: Accesorio; condicion: string };
 
 interface Valor {
   progreso: Progreso;
@@ -131,6 +136,10 @@ interface Valor {
   demo: boolean;
   forzarSalud: Partial<Record<AsistenteId, number | null>>;
   setForzarSalud: (v: Partial<Record<AsistenteId, number | null>>) => void;
+  /** Etapa de crecimiento de cada asistente (vínculo 1–10); en demo se puede forzar */
+  crecimientos: Record<AsistenteId, EtapaCrecimiento>;
+  forzarCrecimiento: Partial<Record<AsistenteId, EtapaCrecimiento>>;
+  setForzarCrecimiento: (v: Partial<Record<AsistenteId, EtapaCrecimiento>>) => void;
   sumarXPDemo: (xp: number, asistente: AsistenteId) => void;
   celebrarDemo: (c: Celebracion) => void;
   romperRachaDemo: (modo: boolean | "reparable") => void;
@@ -151,6 +160,7 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
   const [reacciones, setReacciones] = useState<Reaccion[]>([]);
   const [celebraciones, setCelebraciones] = useState<Celebracion[]>([]);
   const [forzarSalud, setForzarSalud] = useState<Partial<Record<AsistenteId, number | null>>>({});
+  const [forzarCrecimiento, setForzarCrecimiento] = useState<Partial<Record<AsistenteId, EtapaCrecimiento>>>({});
   const [revisionOculta, setRevisionOculta] = useState(false);
   const [negativaDemo, setNegativaDemo] = useState(0);
   const [saludoForzado, setSaludoForzado] = useState(false);
@@ -231,6 +241,7 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
         const a = vinculoDeXP(vA[id]).nivel;
         const b = vinculoDeXP(vB[id]).nivel;
         if (b > a) for (const d of DESBLOQUEOS.filter((x) => x.vinculo > a && x.vinculo <= b)) cola.push({ tipo: "desbloqueo", asistente: id, item: d });
+        if (a < 10 && b >= 10) cola.push({ tipo: "coronacion", asistente: id });
       }
       if (cola.length) setCelebraciones((c) => [...c, ...cola]);
       else sonarPequeno();
@@ -253,6 +264,17 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
     if (cambio) guardar(next);
     emitir(prev, next, r.nuevos, silencio);
   }, [db, status, today, principal, emitir]);
+
+  // Clóset: guarda las piezas nuevas (racha, logro, temporada) y las celebra
+  useEffect(() => {
+    if (status !== "ready" || !today || !progreso.ajustes.gamificacion) return;
+    const nuevas = piezasNuevas(almacenCloset.leer(), { mejorRacha: Math.max(progreso.racha.mejor, progreso.racha.actual), logros: progreso.logros, hoy: today });
+    if (!nuevas.length) return;
+    ganarPiezas(nuevas, today);
+    if (progreso.ui.iniciado === undefined || progreso.ajustes.celebraciones === "ninguna") return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- celebración por un cambio del progreso
+    setCelebraciones((c) => [...c, ...nuevas.map((p) => ({ tipo: "closet" as const, acc: p.acc, condicion: condicionPieza(p) }))]);
+  }, [status, today, progreso]);
 
   const saludes = useMemo(() => {
     const base = calcularTodas(db, today || "2000-01-01");
@@ -280,6 +302,13 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
     const porA = xpPorAsistente(progreso);
     return Object.fromEntries(ASISTENTE_IDS.map((id) => [id, vinculoDeXP(porA[id])])) as Record<AsistenteId, ReturnType<typeof vinculoDeXP>>;
   }, [progreso]);
+  const crecimientos = useMemo(
+    () =>
+      Object.fromEntries(
+        ASISTENTE_IDS.map((id) => [id, forzarCrecimiento[id] ?? (progreso.ajustes.gamificacion ? crecimientoDeVinculo(vinculos[id].nivel) : "inicial")]),
+      ) as Record<AsistenteId, EtapaCrecimiento>,
+    [vinculos, forzarCrecimiento, progreso.ajustes.gamificacion],
+  );
   const reparable = useMemo(() => (today && progreso.ajustes.gamificacion ? rachaReparable(progreso, today) : null), [progreso, today]);
   const general = animoGeneral(ASISTENTE_IDS.filter((id) => estado.ajustes[id].activo).map((id) => saludes[id]));
   const semana = today ? semanaDe(today) : "";
@@ -360,6 +389,9 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
     demo: mode === "demo",
     forzarSalud,
     setForzarSalud,
+    crecimientos,
+    forzarCrecimiento,
+    setForzarCrecimiento,
     sumarXPDemo: (cantidad, asistente) => {
       if (mode !== "demo") return;
       const prev = leer();
@@ -392,7 +424,11 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
     negativaDemo,
   };
 
-  return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider value={valor}>
+      <CrecimientoCtx.Provider value={crecimientos}>{children}</CrecimientoCtx.Provider>
+    </Ctx.Provider>
+  );
 }
 
 export function useGamificacion() {

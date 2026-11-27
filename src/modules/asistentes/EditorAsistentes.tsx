@@ -16,11 +16,12 @@ import { AVISOS, FICHAS, TONOS, type Avisos, type Tono } from "@/lib/asistentes/
 import { motorLocal, type Mensaje } from "@/lib/asistentes/motor";
 import {
   ACCESORIOS,
-  ACCESORIOS_SITUACION,
+
   ACCESORIO_LABEL,
   ANGULOS,
   ANGULO_LABEL,
   MOMENTOS,
+  MOMENTOS_REY,
   MOMENTO_LABEL,
   ASISTENTE_IDS,
   CHAR_COLORS,
@@ -28,6 +29,7 @@ import {
   EXPRESIONES,
   EXPRESION_LABEL,
   charVar,
+  type Accesorio,
   type Angulo,
   type AsistenteId,
   type CharColor,
@@ -38,7 +40,11 @@ import { cn } from "@/utils/cn";
 import { Lock } from "lucide-react";
 import { useGamificacion } from "./Gamificacion";
 import { vinculoRequerido } from "@/lib/asistentes/progreso";
-import { accesorioDesbloqueado, CONDICION_SITUACION, condicionTexto } from "@/lib/asistentes/momentos";
+import { CATALOGO_CLOSET, condicionPieza, enCloset, piezaDe, useCloset } from "@/lib/asistentes/closet";
+import { CRECIMIENTO_LABEL, useCrecimiento } from "@/lib/asistentes/crecimiento";
+
+/** Piezas del clóset que no están en la fila de accesorios de siempre */
+const DEL_CLOSET = CATALOGO_CLOSET.map((p) => p.acc).filter((x) => !(ACCESORIOS as readonly string[]).includes(x));
 
 /** Vista previa del escenario (no se guarda): momento y ángulo elegidos en "Pose y ánimo" */
 type VistaPrevia = { momento: Momento | null; angulo: Angulo | "auto" };
@@ -414,11 +420,15 @@ function Propiedades({
   const g = useGamificacion();
   const vinculo = g.vinculos[id].nivel;
   /** Nivel de vínculo que falta para usar algo (0 = disponible). Sin gamificación, todo está disponible. */
+  const closet = useCloset();
   const falta = (tipo: "combinacion" | "accesorio", valor: string) => {
+    // Bufanda y audífonos también se ganan por racha (clóset): ganados así, sirven para todos
+    if (tipo === "accesorio" && closet.piezas[valor as Accesorio]) return 0;
     const req = vinculoRequerido(tipo, valor);
     return g.activo && vinculo < req ? req : 0;
   };
-  const racha = g.progreso.racha.actual;
+  const etapa = useCrecimiento(id);
+  const esRey = !g.activo || etapa === "rey";
   const combos = [...ficha.combinaciones, DORADA];
   const [nombre, setNombre] = useState(a.nombre);
   useEffect(() => {
@@ -517,6 +527,32 @@ function Propiedades({
             </button>
           ))}
         </div>
+        <p className="mb-1.5 mt-4 text-[12.5px] text-muted">
+          Crecimiento: {CRECIMIENTO_LABEL[etapa]} · {esRey ? "su trono" : "su trono llega con el vínculo 10"}
+        </p>
+        <div className="grid max-w-[300px] grid-cols-5 gap-1.5" role="group" aria-label="Momentos de rey">
+          {MOMENTOS_REY.map((m) => (
+            <button
+              key={m}
+              type="button"
+              aria-pressed={vista.momento === m}
+              aria-disabled={esRey ? undefined : true}
+              aria-label={esRey ? MOMENTO_LABEL[m] : `${MOMENTO_LABEL[m]}, bloqueado: vínculo 10 con ${a.nombre}`}
+              title={esRey ? MOMENTO_LABEL[m] : `Vínculo 10 con ${a.nombre}`}
+              onClick={() => esRey && onVista({ ...vista, momento: vista.momento === m ? null : m })}
+              className={cn(
+                "focus-ring relative grid aspect-square place-items-center overflow-hidden rounded-[14px] bg-bg",
+                vista.momento === m && "ring-2 ring-fg",
+                esRey ? "cursor-pointer" : "cursor-not-allowed",
+              )}
+            >
+              <span className={cn(!esRey && "opacity-35 grayscale")}>
+                <Asistente id={id} size={40} colores={a.colores} momento={m} mostrarProp={false} animado={false} fx={false} decorativo />
+              </span>
+              {esRey ? null : <Candado />}
+            </button>
+          ))}
+        </div>
         <div className="mt-3">
           <Select aria-label="Ángulo" value={vista.angulo} onChange={(e) => onVista({ ...vista, angulo: e.target.value as Angulo | "auto" })}>
             {[
@@ -561,11 +597,11 @@ function Propiedades({
             );
           })}
         </div>
-        <p className="mb-1.5 mt-4 text-[12.5px] text-muted">De situación</p>
-        <div className="grid max-w-[300px] grid-cols-5 gap-1.5" role="radiogroup" aria-label="Accesorio de situación">
-          {ACCESORIOS_SITUACION.map((x) => {
-            const bloqueado = g.activo && !accesorioDesbloqueado(x, { vinculo, racha });
-            const cond = condicionTexto(CONDICION_SITUACION[x]);
+        <p className="mb-1.5 mt-4 text-[12.5px] text-muted">Clóset</p>
+        <div className="grid max-w-[300px] grid-cols-5 gap-1.5" role="radiogroup" aria-label="Accesorios del clóset">
+          {DEL_CLOSET.map((x) => {
+            const bloqueado = g.activo && !enCloset(x, closet, vinculo);
+            const cond = condicionPieza(piezaDe(x)!);
             return (
               <button
                 key={x}
@@ -592,9 +628,9 @@ function Propiedades({
         </div>
         {g.activo ? (
           <ul className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[12px] text-muted">
-            {ACCESORIOS_SITUACION.filter((x) => !accesorioDesbloqueado(x, { vinculo, racha })).map((x) => (
-              <li key={x} className="truncate">
-                {ACCESORIO_LABEL[x]}: {condicionTexto(CONDICION_SITUACION[x])}
+            {CATALOGO_CLOSET.filter((p) => !enCloset(p.acc, closet, vinculo)).map((p) => (
+              <li key={p.acc} className="truncate">
+                {ACCESORIO_LABEL[p.acc]}: {condicionPieza(p)}
               </li>
             ))}
           </ul>

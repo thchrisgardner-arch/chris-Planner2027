@@ -21,6 +21,7 @@ import {
 import { RIGS, bloque, type Boca, type Ceja, type Fx, type PoseCfg, type Punto, type Rig } from "./figuras";
 import { momentoCfg, ojosDeVariante, type MomentoCfg } from "./momentos";
 import { COLORES_POR_DEFECTO } from "@/lib/asistentes/tipos";
+import { nivelCrecimiento, useCrecimiento, type EtapaCrecimiento } from "@/lib/asistentes/crecimiento";
 export { COLORES_POR_DEFECTO };
 
 const MODULO: Record<AsistenteId, string> = {
@@ -82,6 +83,9 @@ export interface AsistenteProps {
   mirarHacia?: RefObject<HTMLElement | null>;
   /** Cómo aparece: escala con rebote, asomándose desde abajo o cayendo desde arriba */
   entrada?: "pop" | "asomarse" | "caer";
+  /* ── Fase 5 ── */
+  /** Etapa de crecimiento; sin valor se toma la de la app (vínculo) y fuera de ella, "inicial" */
+  crecimiento?: EtapaCrecimiento;
 }
 
 /* ═════════ Vista según el ángulo (todo sale del rig actual: se mueven u ocultan piezas) ═════════ */
@@ -173,7 +177,10 @@ export function Asistente({
   boca: bocaProp = "auto",
   mirarHacia,
   entrada,
+  crecimiento,
 }: AsistenteProps) {
+  const etapaApp = useCrecimiento(id);
+  const etapa = nivelCrecimiento(crecimiento ?? etapaApp);
   const rig = RIGS[id];
   const col = colores ?? COLORES_POR_DEFECTO[id];
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
@@ -298,7 +305,8 @@ export function Asistente({
   const vista = vistaDe(rig, ang);
   // En perfil hacia la izquierda se espeja todo el personaje
   const espejo = vista.espejo || (ang === "perfil" && haciaIzq === true);
-  const acc: Accesorio = mcfg?.accesorio && accesorio === "ninguno" ? mcfg.accesorio : accesorio;
+  // Los momentos de rey siempre llevan la corona; el resto solo pone su accesorio si no hay uno elegido
+  const acc: Accesorio = mcfg?.accesorio && (accesorio === "ninguno" || mcfg.forzarAccesorio) ? mcfg.accesorio : accesorio;
 
   const movActivo = animado && !mcfg && mov !== "reposo" && pose !== "dormido" && pose !== "triste" ? mov : "reposo";
   const oscuro = DARK_COLORS.includes(col.primario);
@@ -330,7 +338,9 @@ export function Asistente({
   const cx = rig.cuerpo.cx;
   const figuraT = espejo ? `translate(${cx * 2} 0) scale(-1 1)` : undefined;
   const asomado = !!mcfg?.asomado;
-  const slot = acc === "gafas" || acc === "gafas-sol" ? "eyes" : acc === "bufanda" ? "neck" : acc === "patines" ? "feet" : acc === "dedo-espuma" ? "hand" : "head";
+  const slot =
+    acc === "gafas" || acc === "gafas-sol" ? "eyes" : acc === "bufanda" || acc === "capa" ? "neck" : acc === "patines" ? "feet" : acc === "dedo-espuma" || acc === "helado" ? "hand" : "head";
+  const cabezaLibre = acc === "ninguno" || slot !== "head";
 
   return (
     <span
@@ -388,9 +398,12 @@ export function Asistente({
             <g className="asis-mov">
               <g key={`${momento ?? pose}-${ang}`} className={mcfg ? "asis-entra-momento" : salto ? "asis-entra-salto" : "asis-entra"}>
                 <g transform={figuraT}>
+                {mcfg?.trono ? <Trono rig={rig} id={id} /> : null}
                 <g className="asis-cuerpo">
                   <g transform={cuerpoT}>
+                    {etapa >= 3 && !mcfg?.trono ? <circle data-capa="aura" className="f-yellow-soft" opacity="0.6" cx={rig.cuerpo.cx} cy={rig.cuerpo.top + rig.cuerpo.h / 2} r={rig.cuerpo.w * 0.66} /> : null}
                     {oscuro ? <circle className="f-halo" cx={rig.cuerpo.cx} cy={rig.cuerpo.top + rig.cuerpo.h / 2} r={rig.cuerpo.w * 0.6} /> : null}
+                    {acc === "capa" ? <CapaAtras rig={rigVista} /> : null}
                     {vista.atrasEncima ? null : <g transform={vista.atrasDx ? `translate(${vista.atrasDx} 0)` : undefined}>{rig.atras(ctx)}</g>}
                     {vista.brazos === "atras" ? <Brazos rig={rigVista} cfg={cfg} /> : null}
                     {/* Pies */}
@@ -439,6 +452,8 @@ export function Asistente({
                         <AccesorioSvg rig={rigVista} acc={acc} />
                       </g>
                     ) : null}
+                    {vista.cara && etapa >= 1 ? <Insignia rig={rigVista} etapa={etapa} /> : null}
+                    {etapa >= 3 && cabezaLibre ? <CoronitaRey rig={rigVista} /> : null}
                     {asomado ? <Manos rig={rig} /> : null}
                   </g>
                 </g>
@@ -453,6 +468,138 @@ export function Asistente({
       </svg>
     </span>
   );
+}
+
+/* ═════════ Fase 5: crecimiento, trono y capa ═════════ */
+const estrella4 = (cx: number, cy: number, k: number) =>
+  `M${cx} ${cy - k} Q${cx + k * 0.22} ${cy - k * 0.22} ${cx + k} ${cy} Q${cx + k * 0.22} ${cy + k * 0.22} ${cx} ${cy + k} Q${cx - k * 0.22} ${cy + k * 0.22} ${cx - k} ${cy} Q${cx - k * 0.22} ${cy - k * 0.22} ${cx} ${cy - k} Z`;
+
+/** Crece: insignia · Experto y Rey: medalla con cinta (del lado del pecho, sin tapar la cara) */
+function Insignia({ rig, etapa }: { rig: Rig; etapa: number }) {
+  const x = rig.cuello.x - rig.cuello.w * 0.27;
+  const y = rig.cuello.y + 4;
+  if (etapa === 1)
+    return (
+      <g data-capa="crecimiento">
+        <circle className="f-lime" cx={x} cy={y} r="7" />
+        <path className="f-white" d={estrella4(x, y, 4.6)} />
+      </g>
+    );
+  return (
+    <g data-capa="crecimiento">
+      <path className="f-lime-shade" d={`M${x - 8} ${y - 16} L${x - 2} ${y - 16} L${x + 2} ${y} L${x - 3} ${y} Z`} />
+      <path className="f-lime" d={`M${x + 8} ${y - 16} L${x + 2} ${y - 16} L${x - 2} ${y} L${x + 3} ${y} Z`} />
+      <circle className="f-yellow-shade" cx={x} cy={y + 5} r="9.5" />
+      <circle className="f-yellow" cx={x} cy={y + 4} r="8" />
+      <path className="f-white" d={estrella4(x, y + 4, 4.8)} />
+    </g>
+  );
+}
+
+/** Rey: corona pequeña ladeada (cuando la cabeza no lleva otro accesorio) */
+function CoronitaRey({ rig }: { rig: Rig }) {
+  const { x, y, w } = rig.cabeza;
+  const cx = x + w * 0.2;
+  return (
+    <g data-capa="corona-rey" transform={`rotate(14 ${cx} ${y})`}>
+      <path className="f-yellow-shade" d={`M${cx - 12} ${y + 2} L${cx - 13} ${y - 12} L${cx - 6} ${y - 5} L${cx} ${y - 15} L${cx + 6} ${y - 5} L${cx + 13} ${y - 12} L${cx + 12} ${y + 2} Z`} />
+      <path className="f-yellow" d={`M${cx - 12} ${y} L${cx - 13} ${y - 14} L${cx - 6} ${y - 7} L${cx} ${y - 17} L${cx + 6} ${y - 7} L${cx + 13} ${y - 14} L${cx + 12} ${y} Z`} />
+      <circle className="f-lime" cx={cx} cy={y - 6} r="2.4" />
+    </g>
+  );
+}
+
+/** Capa (clóset, racha de 100): cae detrás del cuerpo desde los hombros */
+function CapaAtras({ rig }: { rig: Rig }) {
+  const { cx, w } = rig.cuerpo;
+  const y0 = rig.hombros[0].y - 6;
+  return (
+    <g data-capa="capa">
+      <path className="f-accs" d={`M${cx - w * 0.36} ${y0} L${cx + w * 0.36} ${y0} L${cx + w * 0.62} 182 Q${cx + w * 0.31} 176 ${cx} 182 Q${cx - w * 0.31} 176 ${cx - w * 0.62} 182 Z`} />
+    </g>
+  );
+}
+
+/** Trono propio de cada personaje: respaldo alto en punta, asiento con cojín y un adorno de su módulo */
+const TRONOS: Record<AsistenteId, { marco: string; panel: string; cojin: string }> = {
+  centavo: { marco: "f-yellow-shade", panel: "f-cream", cojin: "f-lime" },
+  brote: { marco: "f-sand-shade", panel: "f-sand", cojin: "f-lime" },
+  tuerca: { marco: "f-sand-shade", panel: "f-cream", cojin: "f-lime" },
+  tic: { marco: "f-charcoal", panel: "f-gray", cojin: "f-lime" },
+  cima: { marco: "f-gray", panel: "f-cream-shade", cojin: "f-lime" },
+  antojo: { marco: "f-charcoal", panel: "f-cream", cojin: "f-lime" },
+};
+
+function Trono({ rig, id }: { rig: Rig; id: AsistenteId }) {
+  const { cx, w, top } = rig.cuerpo;
+  const t = TRONOS[id];
+  const ancho = w * 0.7;
+  const yTop = top - 26;
+  return (
+    <g data-capa="trono">
+      <path
+        className={t.marco}
+        d={`M${cx - ancho} 176 L${cx - ancho} ${yTop + 14} Q${cx - ancho} ${yTop} ${cx - ancho + 14} ${yTop} L${cx - 22} ${yTop} L${cx} ${top - 62} L${cx + 22} ${yTop} L${cx + ancho - 14} ${yTop} Q${cx + ancho} ${yTop} ${cx + ancho} ${yTop + 14} L${cx + ancho} 176 Z`}
+      />
+      <rect className={t.panel} x={cx - ancho + 9} y={yTop + 9} width={ancho * 2 - 18} height={176 - yTop - 18} rx="12" />
+      <rect className={t.marco} x={cx - w * 0.8} y="160" width={w * 1.6} height="24" rx="10" />
+      <rect className={t.cojin} x={cx - w * 0.74} y="156" width={w * 1.48} height="12" rx="6" />
+      <AdornoTrono id={id} x={cx} y={top - 40} />
+    </g>
+  );
+}
+
+function AdornoTrono({ id, x, y }: { id: AsistenteId; x: number; y: number }) {
+  switch (id) {
+    case "centavo":
+      return (
+        <g>
+          <circle className="f-yellow-shade" cx={x} cy={y} r="11" />
+          <circle className="f-yellow-soft" cx={x} cy={y} r="7.5" />
+          <path className="f-yellow-shade" d={estrella4(x, y, 4.5)} />
+        </g>
+      );
+    case "brote":
+      return (
+        <g>
+          <ellipse className="f-lime" cx={x - 6} cy={y} rx="8" ry="4.5" transform={`rotate(-30 ${x - 6} ${y})`} />
+          <ellipse className="f-lime-shade" cx={x + 6} cy={y} rx="8" ry="4.5" transform={`rotate(30 ${x + 6} ${y})`} />
+        </g>
+      );
+    case "tuerca":
+      return (
+        <g>
+          {[0, 45, 90, 135].map((a) => (
+            <rect key={a} className="f-gray" x={x - 2.5} y={y - 12} width="5" height="24" rx="1.5" transform={`rotate(${a} ${x} ${y})`} />
+          ))}
+          <circle className="f-gray" cx={x} cy={y} r="8.5" />
+          <circle className="f-cream" cx={x} cy={y} r="3.5" />
+        </g>
+      );
+    case "tic":
+      return (
+        <g>
+          <circle className="f-white" cx={x} cy={y} r="10.5" />
+          <rect className="f-charcoal" x={x - 1.2} y={y - 7} width="2.4" height="8" rx="1.2" />
+          <rect className="f-charcoal" x={x - 1.2} y={y - 1.2} width="6" height="2.4" rx="1.2" />
+        </g>
+      );
+    case "cima":
+      return (
+        <g>
+          <path className="f-sand-shade" d={`M${x - 12} ${y + 8} L${x} ${y - 10} L${x + 12} ${y + 8} Z`} />
+          <path className="f-white" d={`M${x - 4.6} ${y - 3} L${x} ${y - 10} L${x + 4.6} ${y - 3} Z`} />
+        </g>
+      );
+    case "antojo":
+      return (
+        <g>
+          <rect className="f-lime" x={x - 9} y={y - 7} width="18" height="15" rx="3" />
+          <rect className="f-yellow" x={x - 1.8} y={y - 7} width="3.6" height="15" />
+          <rect className="f-yellow" x={x - 9} y={y - 1.5} width="18" height="3.6" />
+        </g>
+      );
+  }
 }
 
 /* ═════════ Brazos en óvalo, en el tono de sombra (como alas) ═════════ */
@@ -907,6 +1054,39 @@ function AccesorioSvg({ rig, acc }: { rig: Rig; acc: Accesorio }) {
         <path className="f-yellow-shade" d={`M${x - half * 0.75} ${y + 2} L${x - half * 0.8} ${y - 20} L${x - half * 0.35} ${y - 8} L${x} ${y - 26} L${x + half * 0.35} ${y - 8} L${x + half * 0.8} ${y - 20} L${x + half * 0.75} ${y + 2} Z`} />
         <path className="f-yellow" d={`M${x - half * 0.75} ${y} L${x - half * 0.8} ${y - 22} L${x - half * 0.35} ${y - 10} L${x} ${y - 28} L${x + half * 0.35} ${y - 10} L${x + half * 0.8} ${y - 22} L${x + half * 0.75} ${y} Z`} />
         <circle className="f-lime" cx={x} cy={y - 8} r={3.5} />
+      </g>
+    );
+  }
+  if (acc === "helado") {
+    const [, R] = rig.hombros;
+    const x = R.x + 8;
+    const y = R.y + 2;
+    return (
+      <g transform={`rotate(10 ${x} ${y})`}>
+        <path className="f-sand-shade" d={`M${x - 8} ${y - 4} L${x + 8} ${y - 4} L${x} ${y + 20} Z`} />
+        <circle className="f-white" cx={x - 4} cy={y - 9} r="7" />
+        <circle className="f-lime" cx={x + 4} cy={y - 10} r="7" />
+        <circle className="f-yellow" cx={x} cy={y - 17} r="6.5" />
+      </g>
+    );
+  }
+  if (acc === "capa") {
+    const { x, y } = rig.cuello;
+    return (
+      <g>
+        <circle className="f-acc" cx={x - 9} cy={y - 2} r="5" />
+        <circle className="f-acc" cx={x + 9} cy={y - 2} r="5" />
+      </g>
+    );
+  }
+  if (acc === "gorro-navidad") {
+    const { x, y, w } = rig.cabeza;
+    const half = w / 2 - 4;
+    return (
+      <g>
+        <path className="f-lime" d={`M${x - half} ${y + 2} Q${x - half * 0.4} ${y - w * 0.62} ${x + half * 0.9} ${y - w * 0.42} Q${x + half * 0.5} ${y - w * 0.2} ${x + half} ${y + 2} Z`} />
+        <rect className="f-white" x={x - half - 3} y={y - 4} width={half * 2 + 6} height={13} rx={6.5} />
+        <circle className="f-white" cx={x + half * 0.92} cy={y - w * 0.42} r={7} />
       </g>
     );
   }

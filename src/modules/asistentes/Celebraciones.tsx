@@ -13,7 +13,7 @@ import { Asistente } from "@/components/asistentes/Asistente";
 import { Button } from "@/components/ui/Button";
 import { useAsistentes } from "@/lib/asistentes/estado";
 import { FICHAS, type Tono } from "@/lib/asistentes/definiciones";
-import type { Accesorio, AsistenteId, Colores } from "@/lib/asistentes/tipos";
+import { ACCESORIO_LABEL, type Accesorio, type AsistenteId, type Colores, type Momento } from "@/lib/asistentes/tipos";
 import { useGamificacion, type Celebracion } from "./Gamificacion";
 import { esSesionDeBienvenida, useTutorialActivo } from "@/modules/tutorial/Tutorial";
 import { IconoRacha } from "./Protagonismo";
@@ -184,6 +184,7 @@ export function CapaCelebraciones() {
   let probar: string | null = null;
   let confeti = true;
   let pose: "celebrando" | "triste" = "celebrando";
+  let momento: Momento | undefined = c.tipo === "nivel" ? MOMENTO_DE_LUGAR["subir-nivel"] : undefined;
   if (c.tipo === "hito") {
     etiqueta = `Hito de racha · +${c.xp} XP`;
     titulo = `${c.dias} días de racha`;
@@ -224,6 +225,21 @@ export function CapaCelebraciones() {
     titulo = c.logro.titulo;
     etiqueta = "Logro desbloqueado";
     sub = `${VOZ_LOGRO[estado.ajustes[id].tono]} ${c.logro.condicion}.`;
+  } else if (c.tipo === "coronacion") {
+    // Fase 5: vínculo 10, el asistente llega a Rey y se sienta en su trono
+    id = c.asistente;
+    const a = estado.ajustes[id];
+    momento = MOMENTO_DE_LUGAR.coronacion;
+    etiqueta = "Coronación · Vínculo 10";
+    titulo = `${a.nombre}, rey de ${FICHAS[id].modulo.toLowerCase()}`;
+    sub = `Llegaron juntos a lo más alto. ${a.nombre} ya tiene su corona y su trono.`;
+    probar = `/configuracion?seccion=asistentes&asis=${id}`;
+  } else if (c.tipo === "closet") {
+    accesorio = c.acc;
+    etiqueta = `Nuevo en el clóset · ${c.condicion}`;
+    titulo = ACCESORIO_LABEL[c.acc];
+    sub = "Ya puedes ponérselo a cualquiera de tus asistentes.";
+    probar = `/configuracion?seccion=asistentes&asis=${id}`;
   } else {
     id = c.asistente;
     const a = estado.ajustes[id];
@@ -248,13 +264,13 @@ export function CapaCelebraciones() {
         className="relative w-full max-w-[440px] overflow-hidden rounded-[28px] bg-bg px-6 pb-6 pt-4 text-center animate-in"
       >
         {confeti ? <Confeti key={`${i}-${cola.length}`} semilla={i + 1} /> : null}
-        <div className="relative mx-auto -mb-2 flex justify-center">
+        <div className={`relative mx-auto -mb-2 flex justify-center ${c.tipo === "coronacion" ? "pt-10" : ""}`}>
           <Asistente
             key={`${id}-${i}`}
             id={id}
-            size={240}
+            size={c.tipo === "coronacion" ? 210 : 240}
             pose={pose}
-            momento={c.tipo === "nivel" ? MOMENTO_DE_LUGAR["subir-nivel"] : undefined}
+            momento={momento}
             colores={colores ?? a.colores}
             accesorio={accesorio ?? a.accesorio}
             mostrarProp={a.mostrarProp}

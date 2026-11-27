@@ -4,7 +4,7 @@
  */
 import type { Animo } from "./animo";
 import type { TipoAccion } from "./progreso";
-import type { AccesorioSituacion, Expresion, Momento } from "./tipos";
+import type { Expresion, Momento } from "./tipos";
 
 /** Evento de XP → momento con el que reacciona el asistente */
 export const MOMENTO_DE_EVENTO: Record<TipoAccion, Momento> = {
@@ -63,25 +63,5 @@ export const MOMENTO_DE_LUGAR = {
   conexion: "feliz",
   despedida: "despedida",
   saludo: "saludo",
+  coronacion: "rey-coronacion",
 } as const satisfies Record<string, Momento>;
-
-/** Condición para desbloquear cada accesorio de situación */
-export type CondicionAccesorio = { tipo: "vinculo" | "racha"; valor: number };
-
-export const CONDICION_SITUACION: Record<AccesorioSituacion, CondicionAccesorio> = {
-  chef: { tipo: "vinculo", valor: 3 },
-  "gafas-sol": { tipo: "racha", valor: 7 },
-  "dedo-espuma": { tipo: "vinculo", valor: 5 },
-  patines: { tipo: "racha", valor: 15 },
-  fedora: { tipo: "vinculo", valor: 7 },
-  corona: { tipo: "vinculo", valor: 10 },
-};
-
-export function condicionTexto(c: CondicionAccesorio): string {
-  return c.tipo === "vinculo" ? (c.valor >= 10 ? "Vínculo 10 (Leyenda)" : `Vínculo ${c.valor}`) : `Racha de ${c.valor} días`;
-}
-
-export function accesorioDesbloqueado(acc: AccesorioSituacion, x: { vinculo: number; racha: number }): boolean {
-  const c = CONDICION_SITUACION[acc];
-  return c.tipo === "vinculo" ? x.vinculo >= c.valor : x.racha >= c.valor;
-}

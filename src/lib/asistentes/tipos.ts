@@ -56,8 +56,8 @@ export const EXPRESION_LABEL: Record<Expresion, string> = {
 export const EXPRESION_LEGADA: Record<string, Expresion> = { neutral: "idle", contento: "feliz", alerta: "preocupado" };
 
 export const ACCESORIOS = ["ninguno", "gafas", "gorro", "audifonos", "bufanda"] as const;
-/** Accesorios de situación: se desbloquean usando la app (vínculo o racha) */
-export const ACCESORIOS_SITUACION = ["gafas-sol", "chef", "fedora", "dedo-espuma", "patines", "corona"] as const;
+/** Accesorios de situación y del clóset: se desbloquean usando la app (racha, logros, vínculo o temporada) */
+export const ACCESORIOS_SITUACION = ["gafas-sol", "chef", "fedora", "dedo-espuma", "patines", "corona", "helado", "capa", "gorro-navidad"] as const;
 export type AccesorioSituacion = (typeof ACCESORIOS_SITUACION)[number];
 export type Accesorio = (typeof ACCESORIOS)[number] | AccesorioSituacion;
 export const TODOS_LOS_ACCESORIOS: Accesorio[] = [...ACCESORIOS, ...ACCESORIOS_SITUACION];
@@ -74,6 +74,9 @@ export const ACCESORIO_LABEL: Record<Accesorio, string> = {
   "dedo-espuma": "Dedo de espuma",
   patines: "Patines",
   corona: "Corona",
+  helado: "Helado",
+  capa: "Capa",
+  "gorro-navidad": "Gorro navideño",
 };
 
 /* ═════════ Fase 4: momentos, ángulos, ojos y bocas ═════════ */
@@ -99,7 +102,10 @@ export const MOMENTOS = [
   "trabajando",
   "despedida",
 ] as const;
-export type Momento = (typeof MOMENTOS)[number];
+/** Fase 5: momentos de rey (vínculo 10), sentados en su trono */
+export const MOMENTOS_REY = ["rey-trono", "rey-saludo", "rey-orgulloso", "rey-triste", "rey-coronacion"] as const;
+export type MomentoRey = (typeof MOMENTOS_REY)[number];
+export type Momento = (typeof MOMENTOS)[number] | MomentoRey;
 
 export const MOMENTO_LABEL: Record<Momento, string> = {
   base: "Base",
@@ -122,6 +128,11 @@ export const MOMENTO_LABEL: Record<Momento, string> = {
   "en-racha": "En racha",
   trabajando: "Trabajando",
   despedida: "Despedida",
+  "rey-trono": "En su trono",
+  "rey-saludo": "Saludo real",
+  "rey-orgulloso": "Rey orgulloso",
+  "rey-triste": "Rey triste",
+  "rey-coronacion": "Coronación",
 };
 
 export const ANGULOS = ["frente", "tres-cuartos", "tres-cuartos-espejo", "perfil", "espalda"] as const;

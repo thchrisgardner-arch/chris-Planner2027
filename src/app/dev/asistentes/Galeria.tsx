@@ -11,6 +11,7 @@
 import { useEffect, useState } from "react";
 import { Asistente } from "@/components/asistentes/Asistente";
 import { RIGS } from "@/components/asistentes/figuras";
+import { CRECIMIENTO_LABEL, ETAPAS_CRECIMIENTO } from "@/lib/asistentes/crecimiento";
 import {
   ACCESORIO_LABEL,
   ANGULOS,
@@ -20,6 +21,7 @@ import {
   EXPRESION_LABEL,
   MOMENTOS,
   MOMENTO_LABEL,
+  MOMENTOS_REY,
   ACCESORIOS,
   ACCESORIOS_SITUACION,
   type Accesorio,
@@ -106,6 +108,26 @@ export function Galeria() {
                   <figcaption className="text-[12px] text-muted">
                     {i + 1}. {MOMENTO_LABEL[m]}
                   </figcaption>
+                </figure>
+              ))}
+            </div>
+
+            <h3 className="mb-2 mt-5 text-[13px] text-muted">Crecimiento: 4 etapas (solo suma detalles)</h3>
+            <div data-seccion="crecimiento" className="grid grid-cols-4 gap-3">
+              {ETAPAS_CRECIMIENTO.map((e) => (
+                <figure key={e} className="flex flex-col items-center gap-1 rounded-[18px] bg-bg py-3">
+                  <Asistente id={id} momento="base" angulo="tres-cuartos" crecimiento={e} size={130} accesorio={acc} animado={animado} />
+                  <figcaption className="text-[12px] text-muted">{CRECIMIENTO_LABEL[e]}</figcaption>
+                </figure>
+              ))}
+            </div>
+
+            <h3 className="mb-2 mt-5 text-[13px] text-muted">Rey: su trono y sus momentos</h3>
+            <div data-seccion="rey" className="grid grid-cols-5 gap-3">
+              {MOMENTOS_REY.map((m) => (
+                <figure key={m} className="flex flex-col items-center gap-1 rounded-[18px] bg-bg pb-3 pt-6">
+                  <Asistente id={id} momento={m} crecimiento="rey" size={130} accesorio={acc} animado={animado} />
+                  <figcaption className="text-[12px] text-muted">{MOMENTO_LABEL[m]}</figcaption>
                 </figure>
               ))}
             </div>

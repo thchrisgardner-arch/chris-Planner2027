@@ -14,6 +14,9 @@ import { abrirCaptura } from "@/modules/captura/CapturaRapida";
 import { abrirChequeoAnimo } from "./ChequeoAnimo";
 import { mostrarConexionDemo } from "./ConexionDelDia";
 import { iniciarEnfoque } from "@/modules/enfoque/ModoEnfoque";
+import { CRECIMIENTO_LABEL, ETAPAS_CRECIMIENTO, type EtapaCrecimiento } from "@/lib/asistentes/crecimiento";
+import { abrirTodoElCloset } from "@/lib/asistentes/closet";
+import { useToday } from "@/hooks/useToday";
 
 const ANIMOS: { value: string; label: string; salud: number | null | undefined }[] = [
   { value: "auto", label: "Automático", salud: undefined },
@@ -31,6 +34,7 @@ export function PanelDemo() {
   const g = useGamificacion();
   const { estado } = useAsistentes();
   const [abierto, setAbierto] = useState(false);
+  const today = useToday();
   if (!g.demo) return null;
 
   const fijar = (id: AsistenteId, v: string) => {
@@ -43,6 +47,16 @@ export function PanelDemo() {
   const todos = (v: string) => {
     const a = ANIMOS.find((x) => x.value === v)!;
     g.setForzarSalud(a.salud === undefined ? {} : Object.fromEntries(ASISTENTE_IDS.map((id) => [id, a.salud])));
+  };
+  const crecer = (id: AsistenteId, v: string) => {
+    const next = { ...g.forzarCrecimiento };
+    if (v === "vinculo") delete next[id];
+    else next[id] = v as EtapaCrecimiento;
+    g.setForzarCrecimiento(next);
+  };
+  const crecerTodos = (v: string) => {
+    if (v === "auto") return;
+    g.setForzarCrecimiento(v === "vinculo" ? {} : Object.fromEntries(ASISTENTE_IDS.map((id) => [id, v as EtapaCrecimiento])));
   };
   const btn = "focus-ring h-9 cursor-pointer rounded-full bg-card px-3 text-[12.5px] font-medium hover:bg-elev";
 
@@ -213,6 +227,51 @@ export function PanelDemo() {
               }}
             >
               Modo enfoque
+            </button>
+          </div>
+          <p className="mb-2 mt-4 text-[12.5px] text-muted">Crecimiento (Fase 5)</p>
+          <div className="mb-2">
+            <Select aria-label="Crecimiento de todos" value="auto" onChange={(e) => crecerTodos(e.target.value)}>
+              <option value="auto">Todos: elegir…</option>
+              <option value="vinculo">Todos: según su vínculo</option>
+              {ETAPAS_CRECIMIENTO.map((x) => (
+                <option key={x} value={x}>
+                  Todos: {CRECIMIENTO_LABEL[x]}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <ul className="flex flex-col gap-1.5">
+            {ASISTENTE_IDS.map((id) => (
+              <li key={id} className="flex items-center gap-2">
+                <Asistente id={id} size={32} animado={false} fx={false} colores={estado.ajustes[id].colores} decorativo />
+                <span className="w-16 truncate text-[13px]">{estado.ajustes[id].nombre}</span>
+                <div className="flex-1">
+                  <Select aria-label={`Crecimiento de ${estado.ajustes[id].nombre}`} value={g.forzarCrecimiento[id] ?? "vinculo"} onChange={(e) => crecer(id, e.target.value)}>
+                    {[
+                      <option key="vinculo" value="vinculo">
+                        Según su vínculo ({CRECIMIENTO_LABEL[g.crecimientos[id]]})
+                      </option>,
+                      ...ETAPAS_CRECIMIENTO.map((x) => (
+                        <option key={x} value={x}>
+                          {CRECIMIENTO_LABEL[x]}
+                        </option>
+                      )),
+                    ]}
+                  </Select>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <button type="button" className={btn} onClick={() => g.celebrarDemo({ tipo: "coronacion", asistente: estado.principal })}>
+              Coronación
+            </button>
+            <button type="button" className={btn} onClick={() => abrirTodoElCloset(today)}>
+              Abrir todo el clóset
+            </button>
+            <button type="button" className={btn} onClick={() => g.celebrarDemo({ tipo: "closet", acc: "helado", condicion: "Racha de 15 días" })}>
+              Pieza nueva del clóset
             </button>
           </div>
           <p className="mt-3 text-[11.5px] text-dim">Modo demo: nada de esto se guarda.</p>

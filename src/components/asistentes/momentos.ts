@@ -16,7 +16,13 @@ export interface MomentoCfg extends PoseCfg {
   asomado?: boolean;
   /** Movimiento propio en reposo */
   idleMov?: "respira" | "asiente" | "rebota" | "flota";
+  /** Fase 5: el accesorio del momento va aunque haya otro elegido (la corona del rey) */
+  forzarAccesorio?: boolean;
+  /** Fase 5: su trono detrás */
+  trono?: boolean;
 }
+
+const REY = { trono: true, accesorio: "corona" as const, forzarAccesorio: true, angulo: "frente" as const };
 
 type Poses = Record<"feliz" | "celebrando" | "orgulloso" | "preocupado" | "triste" | "molesto" | "dormido", PoseCfg>;
 
@@ -64,6 +70,17 @@ export function momentoCfg(rig: Rig, m: Momento, poses: Poses): MomentoCfg {
       return { brazos: { modo: "juntas" }, ojos: { modo: "abierto", tapa: 0.38, mirada: [0.2, 0.7] }, boca: "cerrada", fx: ["herramienta"], angulo: "tres-cuartos", idleMov: "respira" };
     case "despedida":
       return { brazos: { modo: "colgar", a: [0, 158] }, ojos: { modo: "cerrado" }, boca: "cerrada", cuerpo: { sx: 0.94, sy: 0.94 }, angulo: "espalda", idleMov: "rebota" };
+    /* ── Fase 5: rey en su trono ── */
+    case "rey-trono":
+      return { brazos: { modo: "colgar", a: 24 }, ojos: { modo: "abierto", tapa: 0.34 }, boca: "sonrisa", ...REY, idleMov: "respira" };
+    case "rey-saludo":
+      return { brazos: { modo: "colgar", a: [4, 150] }, ojos: { modo: "feliz" }, boca: "sonrisa", ...REY, idleMov: "asiente" };
+    case "rey-orgulloso":
+      return { ...poses.orgulloso, ...REY, idleMov: "respira" };
+    case "rey-triste":
+      return { ...poses.triste, cuerpo: { y: 2, sy: 0.96 }, ...REY };
+    case "rey-coronacion":
+      return { ...poses.celebrando, ojos: { modo: "estrella", grande: true }, fx: ["destellos", "confeti"], ...REY, idleMov: "rebota" };
   }
 }
 
