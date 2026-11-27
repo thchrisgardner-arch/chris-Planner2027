@@ -41,6 +41,8 @@ export interface DiaAvisos {
   pagosVencidos: number;
   /** Hábitos programados ese día */
   habitos: number;
+  /** Aportes de ahorro por confirmar */
+  aportes?: number;
 }
 
 export interface SuscripcionGuardada {

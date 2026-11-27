@@ -27,6 +27,7 @@ import { ChevronDown, Plus } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { almacenCaptura, proyectosAprendidos, recordarProyecto } from "@/lib/captura/aprendizaje";
 import { palabraClave } from "@/lib/captura/interpretar";
+import { CampoImagenMeta } from "./MetasAhorro";
 
 /** Bancos que se pueden crear al vuelo desde el selector de cuenta. */
 const QUICK_BANKS = ["nequi", "nu", "morse", "plata"];
@@ -471,6 +472,7 @@ export function SavingsGoalForm({ open, onClose, record }: { open: boolean; onCl
   const [priority, setPriority] = useState<Priority>(record?.priority ?? "media");
   const [accountId, setAccountId] = useState(record?.account_id ?? "");
   const [description, setDescription] = useState(record?.description ?? "");
+  const [imagen, setImagen] = useState(record?.image ?? "");
   const [errors, setErrors] = useState<Errors>({});
 
   const submit = async () => {
@@ -490,6 +492,7 @@ export function SavingsGoalForm({ open, onClose, record }: { open: boolean; onCl
       priority,
       account_id: accountId || null,
       description: description.trim() || null,
+      image: imagen || null,
     };
     if (record) {
       await update("savings_goals", record.id, data);
@@ -539,6 +542,7 @@ export function SavingsGoalForm({ open, onClose, record }: { open: boolean; onCl
       <Field label="Descripción (opcional)">
         {(id) => <Textarea id={id} value={description} onChange={(e) => setDescription(e.target.value)} />}
       </Field>
+      <CampoImagenMeta metaId={record?.id} valor={imagen} onChange={setImagen} />
     </FormModal>
   );
 }

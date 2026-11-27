@@ -63,6 +63,16 @@ export function armarAvisos(e: EstadoAvisos | undefined, fecha: string, hora: nu
     });
   }
 
+  // Centavo · aportes de ahorro por confirmar (a la hora de la agenda)
+  if (r.agenda === hora && activa("centavo") && delDia?.aportes) {
+    out.push({
+      title: nombre("centavo"),
+      body: delDia.aportes === 1 ? "Tienes 1 aporte de ahorro por confirmar. Un toque y listo." : `Tienes ${delDia.aportes} aportes de ahorro por confirmar. Un toque y listo.`,
+      url: "/finanzas?tab=ahorros",
+      tag: "lifeos-aportes",
+    });
+  }
+
   // Tic · agenda del día y pagos fijos
   if (r.agenda === hora && activa("tic") && delDia) {
     const partes: string[] = [];

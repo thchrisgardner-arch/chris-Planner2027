@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeftRight, Download, FolderInput, Pencil, PiggyBank, Plus, Search, Trash2, Unlink, Upload } from "lucide-react";
+import { ArrowLeftRight, CalendarClock, Download, FolderInput, Pencil, PiggyBank, Plus, Search, Trash2, Unlink, Upload } from "lucide-react";
 import { Deslizable } from "@/components/ui/Deslizable";
 import { completarPendiente } from "@/lib/finanzas/pagosFijos";
 import { AsistenteModulo } from "@/modules/asistentes/Presencia";
@@ -17,7 +17,8 @@ import { useForms } from "@/components/providers/FormsProvider";
 import { useFeedback } from "@/components/providers/FeedbackProvider";
 import { useData } from "@/lib/store/DataProvider";
 import { useToday } from "@/hooks/useToday";
-import type { Transaction } from "@/types/db";
+import type { SavingsGoal, Transaction } from "@/types/db";
+import { ImagenMeta, PlanAporteForm, PlanEnTarjeta, sembrarAportesDemo } from "./MetasAhorro";
 import { endOfMonth, formatShortDate, monthKey, monthLabel, addMonths, relativeDay } from "@/utils/dates";
 import { formatCOP, formatKpiCOP, pct, sum } from "@/utils/money";
 import { cn } from "@/utils/cn";
@@ -530,6 +531,12 @@ function Savings() {
   const open = useForms();
   const del = useDeleteRecord();
   const today = useToday();
+  // Meta cuyo plan de aporte se está editando
+  const [planDe, setPlanDe] = useState<SavingsGoal | null>(null);
+  const { mode } = useData();
+  useEffect(() => {
+    if (mode === "demo" && today) sembrarAportesDemo(db.savings_goals, today);
+  }, [mode, today, db.savings_goals]);
 
   if (db.savings_goals.length === 0) {
     return (
@@ -558,7 +565,8 @@ function Savings() {
           return (
             <Card key={g.id} className="flex flex-col">
               <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
+                <ImagenMeta meta={g} />
+                <div className="mr-auto min-w-0">
                   <p className="truncate text-[16px] font-medium">{g.name}</p>
                   <p className="text-[12.5px] text-muted">
                     {g.target_date ? `Meta: ${relativeDay(g.target_date, today)}` : "Sin fecha"} · Prioridad {g.priority}
@@ -583,13 +591,22 @@ function Savings() {
               <p className="mt-2 text-[12px] text-dim">
                 Faltan {formatCOP(Math.max(0, g.target_amount - g.current_amount))} de {formatCOP(g.target_amount)}
               </p>
-              <Button size="sm" variant="secondary" className="mt-5 self-start bg-bg-2" onClick={() => open({ kind: "deposit", record: g })}>
-                <PiggyBank size={14} /> Abonar / retirar
-              </Button>
+              <PlanEnTarjeta meta={g} onPlan={() => setPlanDe(g)} />
+              <div className="mt-5 flex flex-wrap gap-2">
+                <Button size="sm" variant="secondary" className="self-start bg-bg-2" onClick={() => open({ kind: "deposit", record: g })}>
+                  <PiggyBank size={14} /> Abonar / retirar
+                </Button>
+                {!g.plan && g.current_amount < g.target_amount ? (
+                  <Button size="sm" variant="ghost" className="self-start" onClick={() => setPlanDe(g)}>
+                    <CalendarClock size={14} /> Plan de aporte
+                  </Button>
+                ) : null}
+              </div>
             </Card>
           );
         })}
       </div>
+      {planDe ? <PlanAporteForm meta={db.savings_goals.find((x) => x.id === planDe.id) ?? planDe} onClose={() => setPlanDe(null)} /> : null}
     </>
   );
 }

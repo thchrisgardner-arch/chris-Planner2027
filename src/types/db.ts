@@ -1,5 +1,6 @@
 import type { DatosReunion } from "@/lib/proyectos/reuniones";
 import type { DineroProyecto } from "@/lib/proyectos/dinero";
+import type { PlanAporte } from "@/lib/finanzas/planAporte";
 
 /** Tipos de las entidades de LIFE for LIFE. Coinciden con supabase/migrations/0001_life_os.sql */
 
@@ -57,6 +58,10 @@ export interface SavingsGoal extends BaseRow {
   priority: Priority;
   account_id: ID | null;
   description: string | null;
+  /** Plan de aporte (diario, semanal, quincenal o mensual); sin plan, como siempre */
+  plan?: PlanAporte | null;
+  /** Imagen de la meta: «archivo:<id>» (en este dispositivo) o una URL */
+  image?: string | null;
 }
 
 /* ── Deudas ── */

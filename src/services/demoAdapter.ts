@@ -79,9 +79,10 @@ function seed(): { db: Database; profile: Profile } {
     if (m === -2) add(27, (iso) => t("gasto", "Audífonos AirPods", 569_000, "Tecnología", iso, nu.id, "Tarjeta de crédito"));
   }
 
-  const fondo = { ...base(), name: "Fondo de emergencia", target_amount: 6_000_000, current_amount: 3_900_000, target_date: addMonths(cur, 7) + "-30", priority: "alta" as const, account_id: bancolombia.id, description: null };
-  const viaje = { ...base(), name: "Viaje a Cartagena", target_amount: 2_500_000, current_amount: 1_100_000, target_date: addMonths(cur, 4) + "-15", priority: "media" as const, account_id: nequi.id, description: null };
-  const monitor = { ...base(), name: "Monitor nuevo", target_amount: 729_900, current_amount: 540_000, target_date: null, priority: "baja" as const, account_id: null, description: null };
+  // Planes de aporte: el fondo va adelantado, el viaje atrasado y el monitor tiene aportes por confirmar
+  const fondo = { ...base(), name: "Fondo de emergencia", target_amount: 6_000_000, current_amount: 3_900_000, target_date: addMonths(cur, 7) + "-30", priority: "alta" as const, account_id: bancolombia.id, description: null, plan: { frecuencia: "mensual" as const, monto: 300_000, inicio: addDays(today, -95), base: 2_400_000 } };
+  const viaje = { ...base(), name: "Viaje a Cartagena", target_amount: 2_500_000, current_amount: 1_100_000, target_date: addMonths(cur, 4) + "-15", priority: "media" as const, account_id: nequi.id, description: null, plan: { frecuencia: "quincenal" as const, monto: 150_000, inicio: addDays(today, -75), base: 700_000 } };
+  const monitor = { ...base(), name: "Monitor nuevo", target_amount: 729_900, current_amount: 540_000, target_date: null, priority: "baja" as const, account_id: null, description: null, plan: { frecuencia: "semanal" as const, monto: 40_000, inicio: addDays(today, -13), base: 540_000 } };
 
   const p1 = { ...base(), name: "Portafolio 2027", description: "Rediseño del portafolio personal", category: "Diseño", color: "#c9b8ff", priority: "alta" as const, start_date: addDays(today, -20), due_date: addDays(today, 18), budget: null, status: "en_proceso" as const };
   const p2 = { ...base(), name: "Mudanza", description: null, category: "Personal", color: "#bcdcff", priority: "media" as const, start_date: null, due_date: addDays(today, 40), budget: 2_000_000, status: "en_proceso" as const };

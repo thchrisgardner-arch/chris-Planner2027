@@ -25,6 +25,8 @@ import type { DiaAvisos, EstadoAvisos } from "@/lib/avisos/almacen";
 import { horasDeRecordatorios } from "@/lib/avisos/mensajes";
 import { registrarSW } from "@/lib/pwa";
 import { isScheduled } from "@/modules/habits/selectors";
+import { aportesPendientes } from "@/lib/finanzas/planAporte";
+import { almacenAportes } from "@/lib/finanzas/aportes";
 import { useGamificacion } from "@/modules/asistentes/Gamificacion";
 import { addDays } from "@/utils/dates";
 import type { Database } from "@/types/db";
@@ -84,6 +86,7 @@ function diaAvisos(db: Database, fecha: string): DiaAvisos {
     pagosVencen: pendientes.filter((t) => t.date >= fecha && t.date <= addDays(fecha, 2)).length,
     pagosVencidos: pendientes.filter((t) => t.date < fecha).length,
     habitos: db.habits.filter((h) => isScheduled(h, fecha, db.habit_logs)).length,
+    aportes: db.savings_goals.reduce((n, g) => n + (g.plan && g.current_amount < g.target_amount ? aportesPendientes(g.plan, almacenAportes.leer().estados[g.id] ?? {}, fecha).length : 0), 0),
   };
 }
 

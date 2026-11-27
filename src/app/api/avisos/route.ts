@@ -37,6 +37,7 @@ function limpiarDia(d: unknown): DiaAvisos | undefined {
     pagosVencen: conteo(x.pagosVencen),
     pagosVencidos: conteo(x.pagosVencidos),
     habitos: conteo(x.habitos),
+    aportes: conteo(x.aportes),
   };
 }
 /** Campos de la versión 2, saneados (solo conteos, horas y nombres cortos) */

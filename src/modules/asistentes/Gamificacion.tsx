@@ -109,7 +109,9 @@ export type Celebracion =
   | { tipo: "reparada"; dias: number }
   /* Fase 5 */
   | { tipo: "coronacion"; asistente: AsistenteId }
-  | { tipo: "closet"; acc: Accesorio; condicion: string };
+  | { tipo: "closet"; acc: Accesorio; condicion: string }
+  /* Fase 4: meta de ahorro completada */
+  | { tipo: "ahorro"; xp: number };
 
 interface Valor {
   progreso: Progreso;
@@ -229,6 +231,8 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
         const mayor = hitos.reduce((a, b) => (Number(b.refId.split(":")[2]) > Number(a.refId.split(":")[2]) ? b : a));
         cola.push({ tipo: "hito", dias: Number(mayor.refId.split(":")[2]), xp: mayor.xp });
       }
+      // Meta de ahorro completada: siempre se celebra (es grande)
+      for (const e of nuevos) if (e.tipo === "meta-ahorro") cola.push({ tipo: "ahorro", xp: e.xp });
       // Meta diaria y misiones del día: celebraciones pequeñas (solo con "Todas")
       if (pref === "todas") {
         if (nuevos.some((e) => e.tipo === "meta-diaria")) cola.push({ tipo: "meta", meta: next.ajustes.metaDiaria ?? META_POR_DEFECTO });

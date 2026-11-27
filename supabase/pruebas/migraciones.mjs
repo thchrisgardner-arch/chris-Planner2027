@@ -93,6 +93,13 @@ check("0009 se ejecuta dos veces sin errores", true);
 const ord = await db.query(`select name, sort_order from public.tasks where name in ('Primera', 'Segunda') order by sort_order`);
 check("0009: las tareas existentes quedan numeradas en su orden", ord.rows.map((r) => r.name).join() === "Primera,Segunda" && ord.rows[0].sort_order < ord.rows[1].sort_order);
 await db.exec(`delete from public.tasks where name in ('Primera', 'Segunda')`);
+await db.exec(`insert into public.savings_goals (user_id, name, target_amount) values ('${A}', 'Viaje viejo', 1000000)`);
+await correr("0010_plan_aporte.sql");
+await correr("0010_plan_aporte.sql");
+check("0010 se ejecuta dos veces sin errores", true);
+const metaVieja = await db.query(`select plan, image from public.savings_goals where name = 'Viaje viejo'`);
+check("0010: las metas existentes quedan sin plan", metaVieja.rows[0].plan === null && metaVieja.rows[0].image === null);
+await db.exec(`delete from public.savings_goals where name = 'Viaje viejo'`);
 await correr("0005_archivos.sql");
 await correr("0005_archivos.sql");
 check("0005 se ejecuta dos veces sin errores", true);
@@ -248,6 +255,13 @@ await como("authenticated", A);
 const flex = await db.query(`insert into public.habits (name, days, weekly_target) values ('Entrenar', '{0,1,2,3,4,5,6}', 3) returning weekly_target`);
 check("hábito de 3 veces por semana", flex.rows[0].weekly_target === 3);
 await falla("weekly_target entre 1 y 7", `insert into public.habits (name, days, weekly_target) values ('x', '{0}', 8)`);
+
+// ── 0010: plan de aporte ──
+await como("authenticated", A);
+const conPlan = await db.query(`insert into public.savings_goals (name, target_amount, plan) values ('Viaje', 1000000, '{"frecuencia":"quincenal","monto":85000,"inicio":"2026-11-30","base":0}') returning plan`);
+check("meta con plan quincenal", conPlan.rows[0].plan.frecuencia === "quincenal");
+await falla("frecuencia válida", `insert into public.savings_goals (name, target_amount, plan) values ('x', 10, '{"frecuencia":"anual","monto":5}')`);
+await falla("aporte mayor a 0", `insert into public.savings_goals (name, target_amount, plan) values ('x', 10, '{"frecuencia":"semanal","monto":0}')`);
 
 console.log(`\n${ok} correctas, ${fallos} fallidas`);
 process.exit(fallos ? 1 : 0);

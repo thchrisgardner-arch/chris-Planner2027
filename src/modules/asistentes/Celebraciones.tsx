@@ -197,6 +197,13 @@ export function CapaCelebraciones() {
     etiqueta = "Meta diaria cumplida · +10 XP";
     titulo = `${c.meta} XP hoy`;
     sub = VOZ_META[estado.ajustes[id].tono];
+  } else if (c.tipo === "ahorro") {
+    id = "centavo";
+    momento = "euforico";
+    etiqueta = `Meta de ahorro · +${c.xp} XP`;
+    titulo = "Meta cumplida";
+    sub = "Llegaste al monto que te propusiste. Ahorrar así no es suerte, es constancia.";
+    probar = "/finanzas?tab=ahorros";
   } else if (c.tipo === "misiones") {
     etiqueta = "Misiones del día · +20 XP";
     titulo = "Las 3 misiones";
