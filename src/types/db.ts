@@ -1,4 +1,5 @@
 import type { DatosReunion } from "@/lib/proyectos/reuniones";
+import type { DineroProyecto } from "@/lib/proyectos/dinero";
 
 /** Tipos de las entidades de LIFE for LIFE. Coinciden con supabase/migrations/0001_life_os.sql */
 
@@ -39,6 +40,8 @@ export interface Transaction extends BaseRow {
   status: TxStatus;
   beneficiary: Beneficiary | null;
   notes: string | null;
+  /** Proyecto al que pertenece (el mismo movimiento se ve en Finanzas y en el proyecto) */
+  project_id?: ID | null;
 }
 
 export interface TransactionCategory extends BaseRow {
@@ -108,6 +111,8 @@ export interface Project extends BaseRow {
   due_date: string | null;
   budget: number | null;
   status: ProjectStatus;
+  /** Dinero del proyecto: presupuesto informativo, ingresos, avisos y meta de ahorro (ver lib/proyectos/dinero) */
+  money?: DineroProyecto | null;
 }
 
 export type TaskStatus = "pendiente" | "en_proceso" | "completada";
@@ -264,6 +269,8 @@ export const CASCADES: Partial<
     { table: "tasks", field: "project_id", action: "delete" },
     // Las reuniones se borran aparte (ProjectsPage); los demás eventos solo se desvinculan
     { table: "calendar_events", field: "project_id", action: "nullify" },
+    // Los movimientos nunca se borran con el proyecto: quedan en Finanzas sin proyecto
+    { table: "transactions", field: "project_id", action: "nullify" },
   ],
   tasks: [{ table: "tasks", field: "parent_task_id", action: "delete" }],
   habits: [{ table: "habit_logs", field: "habit_id", action: "delete" }],

@@ -71,6 +71,14 @@ check("0004 se ejecuta dos veces sin errores", true);
 await correr("0006_paneles.sql");
 await correr("0006_paneles.sql");
 check("0006 se ejecuta dos veces sin errores", true);
+// Proyecto con presupuesto estimado antes de 0007 (debe pasar a money)
+await db.exec(`insert into public.projects (id, user_id, name, budget) values ('22222222-0000-0000-0000-000000000001', '${A}', 'Mudanza', 2000000)`);
+await correr("0007_dinero_proyectos.sql");
+await correr("0007_dinero_proyectos.sql");
+check("0007 se ejecuta dos veces sin errores", true);
+const mig = await db.query(`select money from public.projects where name = 'Mudanza'`);
+check("0007: el presupuesto estimado pasa a money (total, alertas 80 y 100)", mig.rows[0].money.presupuesto.monto === 2000000 && mig.rows[0].money.presupuesto.periodo === "total" && mig.rows[0].money.alertas.join() === "80,100");
+await db.exec(`delete from public.projects where id = '22222222-0000-0000-0000-000000000001'`); // no cuenta en las pruebas de sincronización
 await correr("0005_archivos.sql");
 await correr("0005_archivos.sql");
 check("0005 se ejecuta dos veces sin errores", true);
@@ -201,6 +209,25 @@ await como("authenticated", A);
 await db.query(`delete from public.projects where id = $1`, [pid]);
 const huerfano = await db.query(`select project_id from public.calendar_events where title = 'Reunión: Kickoff'`);
 check("al borrar el proyecto, el evento queda sin proyecto (no se pierde)", huerfano.rows.length === 1 && huerfano.rows[0].project_id === null);
+
+// ── 0007: dinero del proyecto ──
+await como("authenticated", A);
+const proyM = await db.query(`insert into public.projects (name, money) values ('Monni', '{"presupuesto":{"monto":500000,"periodo":"mensual"},"generaIngresos":true,"alertas":[80,100]}') returning id`);
+const mid = proyM.rows[0].id;
+const cuentaA = (await db.query(`select id from public.accounts where name = 'Nequi'`)).rows[0].id;
+const gasto = await db.query(`insert into public.transactions (type, description, amount, account_id, date, project_id) values ('gasto', 'Hosting', 80000, $1, '2026-11-26', $2) returning project_id`, [cuentaA, mid]);
+check("un gasto (el mismo movimiento de Finanzas) queda en el proyecto", gasto.rows[0].project_id === mid);
+await falla("money tiene que ser un objeto", `insert into public.projects (name, money) values ('x', '[1]')`);
+await falla("el presupuesto no puede ser negativo", `insert into public.projects (name, money) values ('x', '{"presupuesto":{"monto":-5,"periodo":"total"}}')`);
+await falla("el periodo es total o mensual", `insert into public.projects (name, money) values ('x', '{"presupuesto":{"monto":5,"periodo":"anual"}}')`);
+await db.query(`insert into public.projects (name, money) values ('Sin presupuesto', '{"presupuesto":null,"generaIngresos":false}')`);
+check("money admite proyectos sin presupuesto", true);
+await como("authenticated", B);
+await falla("B no puede poner un movimiento en el proyecto de A", `insert into public.transactions (type, description, amount, account_id, date, project_id) values ('gasto', 'x', 10, $1, '2026-11-26', $2)`, [cuentaB.rows[0].id, mid]);
+await como("authenticated", A);
+await db.query(`delete from public.projects where id = $1`, [mid]);
+const suelto = await db.query(`select project_id, amount from public.transactions where description = 'Hosting'`);
+check("al borrar el proyecto, el movimiento sigue en Finanzas sin proyecto", suelto.rows.length === 1 && suelto.rows[0].project_id === null && Number(suelto.rows[0].amount) === 80000);
 
 console.log(`\n${ok} correctas, ${fallos} fallidas`);
 process.exit(fallos ? 1 : 0);

@@ -3,13 +3,13 @@
 /**
  * Espacio de trabajo de un proyecto (tipo Notion): portada, encabezado con estado y progreso, y
  * pestañas que abren un panel a la vez, cada uno con su dirección (/proyectos/<id>/<panel>):
- * Tareas, Notas de voz, Reuniones, Notas, Imágenes y Calendario. Cada panel es una vista filtrada
+ * Tareas, Dinero, Notas de voz, Reuniones, Notas, Imágenes y Calendario. Cada panel es una vista filtrada
  * por proyecto de los datos de toda la app (tareas, eventos, notas de voz…), no una copia.
  */
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "@/components/Enlace";
-import { ArrowLeft, CalendarDays, CalendarClock, CheckSquare, FolderDown, Image as ImageIcon, ImagePlus, Mic, NotebookPen, Pencil, type LucideIcon } from "lucide-react";
+import { ArrowLeft, CalendarDays, CalendarClock, CheckSquare, FolderDown, Image as ImageIcon, ImagePlus, Mic, NotebookPen, Pencil, Wallet, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Field";
 import { EmptyState } from "@/components/ui/misc";
@@ -23,7 +23,6 @@ import { cuenta, esReunion, ordenarReuniones, tituloReunion } from "@/lib/proyec
 import { PANELES, recordarPanel, rutaProyecto, type Panel } from "@/lib/proyectos/vistas";
 import type { Project, ProjectStatus } from "@/types/db";
 import { relativeDay } from "@/utils/dates";
-import { formatCOP } from "@/utils/money";
 import { cn } from "@/utils/cn";
 import { PROJECT_STATUSES, priorityLabel, projectProgress, projectStatusLabel } from "@/modules/projects/constants";
 import { PanelCalendario } from "./PanelCalendario";
@@ -31,6 +30,10 @@ import { Imagenes, crearImagenesEjemplo, useArchivoUrl, useSubirImagenes } from 
 import { Grabadora, TarjetaVoz, crearNotaEjemplo } from "./NotasVoz";
 import { PanelReuniones } from "./Reuniones";
 import { PanelTareas } from "./PanelTareas";
+import { PanelDinero } from "./PanelDinero";
+import { CierreProyecto } from "./CierreProyecto";
+import { lineaPresupuesto, resumenDinero } from "@/lib/proyectos/dinero";
+import { almacenEnfoque } from "@/modules/enfoque/ModoEnfoque";
 import { Seccion } from "./Seccion";
 
 // El editor de notas (Tiptap) solo se descarga al abrir el panel Notas
@@ -38,6 +41,7 @@ const PanelNotas = lazy(() => import("./PanelNotas").then((m) => ({ default: m.P
 
 const PESTANAS: Record<Panel, { label: string; icon: LucideIcon }> = {
   tareas: { label: "Tareas", icon: CheckSquare },
+  dinero: { label: "Dinero", icon: Wallet },
   "notas-de-voz": { label: "Notas de voz", icon: Mic },
   reuniones: { label: "Reuniones", icon: CalendarClock },
   notas: { label: "Notas", icon: NotebookPen },
@@ -128,6 +132,8 @@ function Espacio({ proyecto: p, panel }: { proyecto: Project; panel: Panel }) {
   const today = useToday();
   const e = useEspacio();
   const [exportando, setExportando] = useState(false);
+  // Al marcarlo como terminado: resumen de cierre con Tuerca y Centavo
+  const [cierre, setCierre] = useState(false);
   const subir = useSubirImagenes(p.id);
   const inputPortada = useRef<HTMLInputElement>(null);
 
@@ -139,8 +145,18 @@ function Espacio({ proyecto: p, panel }: { proyecto: Project; panel: Panel }) {
     if (!leerEspacio().imagenes.some((i) => i.proyectoId === p.id)) void crearImagenesEjemplo(p.id, db.tasks.find((t) => t.project_id === p.id && t.name === "Seleccionar casos de estudio")?.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- una vez por sesión
   }, [mode, p.id, p.name]);
+  useEffect(() => {
+    // Demo: el proyecto con ingresos trae 10 h de enfoque (alcanza para el valor por hora), una vez por sesión
+    if (mode !== "demo" || !p.money?.generaIngresos || sembrados.has(`enfoque:${p.id}`) || !today) return;
+    sembrados.add(`enfoque:${p.id}`);
+    if (almacenEnfoque.leer().sesiones.some((x) => x.proyectoId === p.id)) return;
+    const sesiones = Array.from({ length: 12 }, (_, i) => ({ id: `ef-demo-${i}`, tareaId: null, proyectoId: p.id, fecha: today, minutos: 50 }));
+    almacenEnfoque.cambiar((d) => ({ ...d, sesiones: [...d.sesiones, ...sesiones] }));
+  }, [mode, p.id, p.money?.generaIngresos, today]);
 
   const prog = projectProgress(p, db.tasks);
+  // "$320.000 de $500.000 · 64 %" (si tiene presupuesto)
+  const linea = today ? lineaPresupuesto(resumenDinero(p, db.transactions, today)) : null;
   const voces = e.voz.filter((v) => v.proyectoId === p.id);
   const reuniones = db.calendar_events.filter((x) => x.project_id === p.id).filter(esReunion).sort(ordenarReuniones);
   const imagenes = e.imagenes.filter((i) => i.proyectoId === p.id);
@@ -213,7 +229,7 @@ function Espacio({ proyecto: p, panel }: { proyecto: Project; panel: Panel }) {
             {p.category ? <span>{p.category}</span> : null}
             <span>Prioridad {priorityLabel(p.priority).toLowerCase()}</span>
             {p.due_date ? <span className={cn(p.status !== "completado" && p.due_date < today && "text-warn")}>Entrega {relativeDay(p.due_date, today).toLowerCase()}</span> : null}
-            {p.budget ? <span>Presupuesto {formatCOP(p.budget)}</span> : null}
+            {linea ? <span>{linea}</span> : null}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -222,8 +238,10 @@ function Espacio({ proyecto: p, panel }: { proyecto: Project; panel: Panel }) {
             aria-label={`Estado de ${p.name}`}
             className="h-11 w-[170px] rounded-full bg-card text-[13.5px]"
             onChange={async (ev) => {
+              const antes = p.status;
               await update("projects", p.id, { status: ev.target.value as ProjectStatus });
               toast(`${p.name}: ${projectStatusLabel(ev.target.value as ProjectStatus)}`);
+              if (ev.target.value === "completado" && antes !== "completado") setCierre(true);
             }}
           >
             {PROJECT_STATUSES.map((s) => (
@@ -268,6 +286,8 @@ function Espacio({ proyecto: p, panel }: { proyecto: Project; panel: Panel }) {
       <div role="tabpanel" id="panel-proyecto" aria-labelledby={`pestana-${panel}`} className="mt-4 min-w-0">
         {panel === "tareas" ? (
           <PanelTareas proyecto={p} />
+        ) : panel === "dinero" ? (
+          <PanelDinero proyecto={p} />
         ) : panel === "reuniones" ? (
           <PanelReuniones proyecto={p} />
         ) : panel === "notas-de-voz" ? (
@@ -322,6 +342,7 @@ function Espacio({ proyecto: p, panel }: { proyecto: Project; panel: Panel }) {
           <PanelCalendario proyecto={p} />
         )}
       </div>
+      {cierre ? <CierreProyecto proyecto={p} onClose={() => setCierre(false)} /> : null}
     </div>
   );
 }

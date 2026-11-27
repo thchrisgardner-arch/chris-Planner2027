@@ -47,9 +47,11 @@ function redondeado(ctx: CanvasRenderingContext2D, x: number, y: number, w: numb
   ctx.closePath();
 }
 
-export async function descargarResumen({ titulo, filas, svg, archivo }: { titulo: string; filas: FilaResumen[]; svg: SVGSVGElement | null; archivo: string }) {
+/** `svg2`: un segundo personaje (p. ej. el cierre de un proyecto, que lo dicen Tuerca y Centavo juntos) */
+export async function descargarResumen({ titulo, filas, svg, svg2, archivo }: { titulo: string; filas: FilaResumen[]; svg: SVGSVGElement | null; svg2?: SVGSVGElement | null; archivo: string }) {
   const W = 1080;
-  const H = 1350;
+  // Con más filas la tarjeta crece hacia abajo (la marca nunca queda encima de la lista)
+  const H = Math.max(1350, 560 + filas.length * 120 + 40 + 150);
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
@@ -69,6 +71,14 @@ export async function descargarResumen({ titulo, filas, svg, archivo }: { titulo
       /* si falla el personaje, la tarjeta sale igual */
     }
   }
+  if (svg2) {
+    try {
+      const img = await svgComoImagen(svg2);
+      ctx.drawImage(img, W - 700, 150, 320, 320);
+    } catch {
+      /* igual que arriba */
+    }
+  }
   // Título en la voz del asistente
   ctx.fillStyle = "#0a0a0a";
   ctx.font = `700 76px ${fuente}`;
@@ -77,7 +87,7 @@ export async function descargarResumen({ titulo, filas, svg, archivo }: { titulo
   let y = 250;
   for (const p of palabras) {
     const prueba = linea ? `${linea} ${p}` : p;
-    if (ctx.measureText(prueba).width > 560 && linea) {
+    if (ctx.measureText(prueba).width > (svg2 ? 420 : 560) && linea) {
       ctx.fillText(linea, 80, y);
       linea = p;
       y += 88;

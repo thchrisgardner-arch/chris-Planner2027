@@ -197,7 +197,11 @@ function ListView({ projects, loose }: { projects: Project[]; loose: Task[] }) {
       r.imagenes ? plural(r.imagenes, "imagen", "imágenes") : "",
       reuniones.length ? `${plural(reuniones.length, "reunión", "reuniones")} (también del calendario)` : "",
     ].filter(Boolean);
-    const ok = await del("projects", p.id, `¿Eliminar el proyecto ${p.name}?`, partes.length ? `También se eliminarán: ${partes.join(", ")}.` : undefined);
+    // Los movimientos nunca se borran: quedan en Finanzas sin proyecto (se dice claro antes de confirmar)
+    const movs = db.transactions.filter((t) => t.project_id === p.id).length;
+    const conservan = movs ? `${movs === 1 ? "Su movimiento queda" : `Sus ${movs} movimientos quedan`} en Finanzas sin proyecto; ninguno se borra.` : "";
+    const aviso = [partes.length ? `También se eliminarán: ${partes.join(", ")}.` : "", conservan].filter(Boolean).join(" ");
+    const ok = await del("projects", p.id, `¿Eliminar el proyecto ${p.name}?`, aviso || undefined);
     if (!ok) return;
     await espacio.borrarProyecto(p.id);
     documentos.borrarProyecto(p.id);

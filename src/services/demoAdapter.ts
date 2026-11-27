@@ -211,6 +211,49 @@ function seed(): { db: Database; profile: Profile } {
       { ...base(), title: "Vence SOAT", date: addDays(today, 5), start_time: null, end_time: null, type: "vencimiento", notes: null },
     ],
   };
+
+  // Dinero del proyecto: un proyecto de cliente con presupuesto, gastos e ingresos (los mismos
+  // movimientos de Finanzas, con project_id). Va al final para no mover los ids de lo anterior.
+  const monni = {
+    ...base(),
+    name: "Monni",
+    description: "Tienda en línea para la marca de Monni",
+    category: "Cliente",
+    color: "#ffd84d",
+    priority: "alta" as const,
+    start_date: addDays(today, -40),
+    due_date: addDays(today, 25),
+    budget: 3_000_000,
+    status: "en_proceso" as const,
+    money: { presupuesto: { monto: 3_000_000, periodo: "total" as const }, generaIngresos: true, alertas: [80, 100] },
+  };
+  const deMonni = (type: "ingreso" | "gasto", description: string, amount: number, category: string, dias: number, account = bancolombia.id) =>
+    db.transactions.push({ ...base(), type, description, amount, category, account_id: account, to_account_id: null, date: addDays(today, -dias), payment_method: null, status: "completado", beneficiary: type === "gasto" ? "para_mi" : null, notes: null, project_id: monni.id });
+  deMonni("ingreso", "Anticipo de Monni", 2_500_000, "Diseño y proyectos", 38);
+  deMonni("gasto", "Plantilla de la tienda", 420_000, "Tecnología", 36, nu.id);
+  deMonni("gasto", "Dominio monni.co", 89_000, "Tecnología", 35, nu.id);
+  deMonni("gasto", "Hosting anual", 280_000, "Tecnología", 33, nu.id);
+  deMonni("gasto", "Fotos de producto", 650_000, "Compras personales", 21, nequi.id);
+  deMonni("gasto", "Licencias de fuentes", 310_000, "Tecnología", 12, nu.id);
+  deMonni("ingreso", "Segundo pago de Monni", 1_800_000, "Diseño y proyectos", 6);
+  deMonni("gasto", "Publicidad de lanzamiento", 180_000, "Entretenimiento", 3, nu.id);
+  // Mudanza (presupuesto estimado de $2.000.000): ya se pasó, para ver el panel por encima del presupuesto
+  const deMudanza = (description: string, amount: number, category: string, dias: number) =>
+    db.transactions.push({ ...base(), type: "gasto", description, amount, category, account_id: bancolombia.id, to_account_id: null, date: addDays(today, -dias), payment_method: null, status: "completado", beneficiary: "para_mi", notes: null, project_id: p2.id });
+  deMudanza("Depósito del apartamento", 1_400_000, "Vivienda", 20);
+  deMudanza("Trasteo", 520_000, "Transporte", 9);
+  deMudanza("Pintura y arreglos", 230_000, "Vivienda", 4);
+  const tareaMonni =(name: string, status: "pendiente" | "en_proceso" | "completada", due: number) => task(name, monni.id, addDays(today, due), status, "media");
+  db.projects.push(monni);
+  db.tasks.push(
+    tareaMonni("Definir catálogo", "completada", -30),
+    tareaMonni("Montar la plantilla", "completada", -20),
+    tareaMonni("Fotos de producto", "completada", -15),
+    tareaMonni("Pasarela de pagos", "completada", -4),
+    tareaMonni("Textos de las fichas", "en_proceso", 4),
+    tareaMonni("Pruebas de compra", "pendiente", 12),
+    tareaMonni("Lanzamiento", "pendiente", 25),
+  );
   return { db, profile: { id: USER, full_name: "Alex Demo", email: "demo@lifeos.app", currency: "COP", timezone: TIMEZONE } };
 }
 

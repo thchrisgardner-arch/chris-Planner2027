@@ -15,6 +15,7 @@ const ctx: ContextoCaptura = {
   proyectos: [
     { id: "monni", name: "Monni" },
     { id: "porta", name: "Portafolio 2027" },
+    { id: "mudanza", name: "Mudanza" },
   ],
   categoriasGasto: EXPENSE_CATEGORIES,
   categoriasIngreso: INCOME_CATEGORIES,
@@ -92,6 +93,47 @@ describe("interpretarLocal: frases reales en es-CO", () => {
   }
 });
 
+/* ═════════ Dinero del proyecto: el gasto o ingreso queda en el proyecto que nombra la frase ═════════ */
+const CASOS_PROYECTO: [string, Esperado][] = [
+  ["hosting 80 mil para Monni", { tipo: "gasto", monto: 80000, fecha: "2026-11-26", proyectoId: "monni", descripcion: "Hosting" }],
+  ["pagué el dominio de Monni 50k", { tipo: "gasto", monto: 50000, fecha: "2026-11-26", proyectoId: "monni", descripcion: "Dominio" }],
+  ["#monni plantilla 120 mil", { tipo: "gasto", monto: 120000, fecha: "2026-11-26", proyectoId: "monni", descripcion: "Plantilla" }],
+  ["me pagaron 2 millones del proyecto Monni", { tipo: "ingreso", monto: 2000000, fecha: "2026-11-26", proyectoId: "monni" }],
+  ["trasteo 450 mil para la mudanza", { tipo: "gasto", monto: 450000, fecha: "2026-11-26", proyectoId: "mudanza", descripcion: "Trasteo" }],
+  ["cajas 35.000 mudanza nequi", { tipo: "gasto", monto: 35000, fecha: "2026-11-26", proyectoId: "mudanza", cuentaId: "nequi", descripcion: "Cajas" }],
+  ["fotos para el portafolio 300 mil", { tipo: "gasto", monto: 300000, fecha: "2026-11-26", proyectoId: "porta", descripcion: "Fotos" }],
+  ["licencia de figma 60 mil #portafolio", { tipo: "gasto", monto: 60000, fecha: "2026-11-26", proyectoId: "porta", descripcion: "Licencia de figma" }],
+  ["almuerzo con el equipo de Monni 90 mil ayer", { tipo: "gasto", monto: 90000, fecha: "2026-11-25", proyectoId: "monni", descripcion: "Almuerzo con el equipo" }],
+  ["dominio 45 mil para Portafolio 2027", { tipo: "gasto", monto: 45000, fecha: "2026-11-26", proyectoId: "porta", descripcion: "Dominio" }],
+  ["cobré 1,5 millones a Monni", { tipo: "ingreso", monto: 1500000, fecha: "2026-11-26", proyectoId: "monni" }],
+  ["materiales mudanza 220 mil en efectivo", { tipo: "gasto", monto: 220000, fecha: "2026-11-26", proyectoId: "mudanza", cuentaId: "efe", descripcion: "Materiales" }],
+];
+const filasProyecto: string[] = [];
+const nombreProyecto = (id: string | null) => ctx.proyectos?.find((p) => p.id === id)?.name ?? "—";
+
+describe("interpretarLocal: proyecto de un gasto o ingreso", () => {
+  for (const [texto, esperado] of CASOS_PROYECTO) {
+    it(texto, () => {
+      const p = interpretarLocal(texto, ctx);
+      filasProyecto.push(`| ${texto} | ${nombreProyecto(esperado.proyectoId ?? null)} | ${nombreProyecto(p.proyectoId)} | ${p.tipo} · ${p.monto ?? "—"} · ${p.descripcion} | ${p.proyectoId === esperado.proyectoId ? "Sí" : "No"} |`);
+      for (const [k, v] of Object.entries(esperado)) expect(p[k as keyof Propuesta], k).toEqual(v);
+    });
+  }
+  it("sin proyecto en la frase no se asigna ninguno", () => {
+    expect(interpretarLocal("almuerzo 25 mil", ctx).proyectoId).toBeNull();
+    expect(interpretarLocal("cena 120 mil con tarjeta", ctx).proyectoId).toBeNull();
+  });
+  it("lo aprendido se sugiere, nunca se asigna solo", () => {
+    const p = interpretarLocal("hosting 80 mil", { ...ctx, proyectosAprendidos: { hosting: "monni" } });
+    expect(p.proyectoId).toBeNull();
+    expect(p.proyectoSugerido).toBe("monni");
+    expect(interpretarLocal("hosting 80 mil para Mudanza", { ...ctx, proyectosAprendidos: { hosting: "monni" } }).proyectoSugerido).toBeNull();
+  });
+  it("las tareas conservan el nombre del proyecto en la descripción", () => {
+    expect(interpretarLocal("terminar landing de Monni para el viernes", ctx).descripcion).toBe("Terminar landing de Monni");
+  });
+});
+
 describe("aprendizaje y entrada", () => {
   it("usa la categoría aprendida antes que las palabras clave", () => {
     const p = interpretarLocal("almuerzo 25 mil", { ...ctx, aprendidas: { almuerzo: "Familia" } });
@@ -116,6 +158,11 @@ describe("aprendizaje y entrada", () => {
 afterAll(() => {
   if (!process.env.REPORTE) return;
   mkdirSync("docs/captura", { recursive: true });
+  const okP = filasProyecto.filter((f) => f.endsWith("| Sí |")).length;
+  writeFileSync(
+    "docs/captura/resultados-proyectos.md",
+    `# Proyecto de un gasto o ingreso en la captura rápida\n\nHoy de prueba: jueves 26 de noviembre de 2026. Proyectos: Monni, Portafolio 2027 y Mudanza. Proyecto detectado: **${okP} de ${filasProyecto.length}** (${Math.round((okP / filasProyecto.length) * 100)} %).\n\n| Frase | Proyecto esperado | Proyecto detectado | Tipo · monto · descripción | Acierta |\n|---|---|---|---|---|\n${filasProyecto.join("\n")}\n`,
+  );
   const ok = filas.filter((f) => f.endsWith("| Sí |")).length;
   writeFileSync(
     "docs/captura/resultados-parser.md",

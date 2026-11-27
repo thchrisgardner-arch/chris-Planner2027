@@ -25,6 +25,8 @@ import { useForms } from "@/components/providers/FormsProvider";
 import { Button } from "@/components/ui/Button";
 import { ChevronDown, Plus } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { almacenCaptura, proyectosAprendidos, recordarProyecto } from "@/lib/captura/aprendizaje";
+import { palabraClave } from "@/lib/captura/interpretar";
 
 /** Bancos que se pueden crear al vuelo desde el selector de cuenta. */
 const QUICK_BANKS = ["nequi", "nu", "morse", "plata"];
@@ -62,6 +64,13 @@ export function TransactionForm({
   const [notes, setNotes] = useState(init.notes ?? "");
   const [masDetalles, setMasDetalles] = useState(!!init.notes || (!!init.beneficiary && init.beneficiary !== "para_mi"));
   const [errors, setErrors] = useState<Errors>({});
+  // Proyecto (opcional, al final): el mismo movimiento se ve en Finanzas y en el proyecto
+  const [projectId, setProjectId] = useState(init.project_id ?? "");
+  const aprendidos = proyectosAprendidos(almacenCaptura.useValor());
+  const sugerido = !projectId && type !== "transferencia" ? (() => {
+    const id = aprendidos[palabraClave(description) ?? ""];
+    return db.projects.find((p) => p.id === id) ?? null;
+  })() : null;
 
   const categories = useMemo(() => {
     const kind = type === "ingreso" ? "ingreso" : "gasto";
@@ -86,6 +95,7 @@ export function TransactionForm({
       status,
       beneficiary,
       notes: notes || null,
+      project_id: projectId || null,
     };
     openForm({
       kind: "account",
@@ -156,7 +166,10 @@ export function TransactionForm({
       status,
       beneficiary: type === "gasto" ? beneficiary : null,
       notes: notes.trim() || null,
+      project_id: type === "transferencia" ? null : projectId || null,
     };
+    // Aprendizaje: con dos asignaciones de la misma descripción, la captura y este formulario lo sugieren
+    if (data.project_id && data.project_id !== (record?.project_id ?? null)) recordarProyecto(palabraClave(desc), data.project_id);
     if (record) {
       await update("transactions", record.id, data);
       return "Movimiento actualizado.";
@@ -307,6 +320,31 @@ export function TransactionForm({
             {(id) => <Textarea id={id} value={notes} onChange={(e) => setNotes(e.target.value)} />}
           </Field>
         </>
+      ) : null}
+      {type !== "transferencia" && db.projects.length ? (
+        <Field label="Proyecto (opcional)" hint={sugerido ? undefined : "Cuenta en el dinero del proyecto. Los saldos no cambian."}>
+          {(id) => (
+            <>
+              <Select id={id} value={projectId} onChange={(e) => setProjectId(e.target.value)}>
+                <option value="">Sin proyecto</option>
+                {db.projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </Select>
+              {sugerido ? (
+                <button
+                  type="button"
+                  onClick={() => setProjectId(sugerido.id)}
+                  className="focus-ring mt-1.5 cursor-pointer self-start rounded-full bg-bg-2 px-3 py-1.5 text-[12.5px] font-medium text-muted hover:text-fg"
+                >
+                  ¿Es de {sugerido.name}? Asignar
+                </button>
+              ) : null}
+            </>
+          )}
+        </Field>
       ) : null}
       {record ? <AdjuntosRegistro tabla="transactions" id={record.id} /> : null}
     </FormModal>

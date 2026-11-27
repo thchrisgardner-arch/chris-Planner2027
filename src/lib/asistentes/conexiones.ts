@@ -9,6 +9,7 @@ import { accountBalance, totalBalance } from "../../modules/finance/selectors";
 import { completion } from "../../modules/habits/selectors";
 import { addDays, addMonths, diffDays, monthKey, monthLabel, parseISO, startOfWeek, weekdayMon } from "../../utils/dates";
 import { formatCOP } from "../../utils/money";
+import { resumenDinero } from "../proyectos/dinero";
 
 export interface Conexion {
   id: string;
@@ -191,7 +192,28 @@ function cocinaDomicilios({ db, hoy }: EntradaConexiones): Conexion | null {
   };
 }
 
-const REGLAS = [pagoSinSaldo, agendaLlena, deseoEsperar, metaRitmo, habitosTareas, cocinaDomicilios];
+/** Centavo + Tuerca: un proyecto gasta su presupuesto más rápido de lo que avanza en tareas */
+function presupuestoTareas({ db, hoy }: EntradaConexiones): Conexion | null {
+  for (const p of db.projects) {
+    if (p.status === "completado" || p.status === "ideas") continue;
+    const r = resumenDinero(p, db.transactions, hoy);
+    if (r.pct === null || r.pct < 50 || r.pct >= 100) continue;
+    const tareas = db.tasks.filter((t) => t.project_id === p.id);
+    if (tareas.length < 3) continue;
+    const pctTareas = (tareas.filter((t) => t.status === "completada").length / tareas.length) * 100;
+    if (r.pct - pctTareas < 25) continue;
+    return {
+      id: `presupuesto-tareas:${p.id}:${r.clave}`,
+      asistentes: ["centavo", "tuerca"],
+      texto: `${p.name} lleva ${Math.round(r.pct)} % del presupuesto y ${Math.round(pctTareas)} % de las tareas. Vale la pena revisar.`,
+      accion: { label: "Ver dinero", href: `/proyectos/panel/dinero?id=${encodeURIComponent(p.id)}` },
+      prioridad: 70,
+    };
+  }
+  return null;
+}
+
+const REGLAS = [pagoSinSaldo, agendaLlena, deseoEsperar, metaRitmo, habitosTareas, cocinaDomicilios, presupuestoTareas];
 
 /** Todas las conexiones válidas hoy, de mayor a menor prioridad */
 export function calcularConexiones(e: EntradaConexiones): Conexion[] {
@@ -207,5 +229,6 @@ export const CONEXIONES_DEMO: Conexion[] = [
   { id: "demo:3", asistentes: ["brote", "tuerca"], texto: "Las semanas que cumples el gym terminas un 30 % más de tareas.", accion: { label: "Ver hábitos", href: "/salud" }, prioridad: 40 },
   { id: "demo:4", asistentes: ["cima", "centavo"], texto: "Al ritmo actual, tu meta de viaje llega en marzo. Con $50.000 más al mes, en enero.", accion: { label: "Ver ahorros", href: "/finanzas?tab=ahorros" }, prioridad: 50 },
   { id: "demo:5", asistentes: ["tuerca", "tic"], texto: "Tienes 3 tareas para el viernes y el viernes ya está lleno de eventos.", accion: { label: "Ver tareas", href: "/proyectos" }, prioridad: 80 },
+  { id: "demo:7", asistentes: ["centavo", "tuerca"], texto: "Monni lleva 60 % del presupuesto y 30 % de las tareas. Vale la pena revisar.", accion: { label: "Ver dinero", href: "/proyectos" }, prioridad: 70 },
   { id: "demo:6", asistentes: ["brote", "centavo"], texto: "Este mes gastaste 40 % menos en domicilios desde que cocinas 3 veces por semana.", accion: { label: "Ver gastos", href: "/finanzas" }, prioridad: 30 },
 ];

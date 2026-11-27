@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeftRight, Download, Pencil, PiggyBank, Plus, Search, Trash2, Upload } from "lucide-react";
+import { ArrowLeftRight, Download, FolderInput, Pencil, PiggyBank, Plus, Search, Trash2, Unlink, Upload } from "lucide-react";
 import { Deslizable } from "@/components/ui/Deslizable";
 import { completarPendiente } from "@/lib/finanzas/pagosFijos";
 import { AsistenteModulo } from "@/modules/asistentes/Presencia";
@@ -28,6 +28,7 @@ import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, accountTypeLabel } from "./const
 import { Deudas } from "./DeudasTab";
 import { PagosFijos } from "./PagosFijosTab";
 import { ImportarExtracto } from "./ImportarExtracto";
+import { AsignarProyecto } from "./AsignarProyecto";
 import { accountBalance, avisoBorrarCuenta, expensesByBeneficiary, expensesByCategory, monthTotals, totalBalance } from "./selectors";
 
 type Tab = "resumen" | "movimientos" | "cuentas" | "ahorros" | "deudas" | "fijos";
@@ -71,7 +72,7 @@ export function FinancePage() {
 }
 
 /* ───────── Resumen ───────── */
-function Kpi({ label, value, hint, inverse }: { label: string; value: number; hint?: string; inverse?: boolean }) {
+export function Kpi({ label, value, hint, inverse }: { label: string; value: number; hint?: string; inverse?: boolean }) {
   return (
     <Card variant={inverse ? "inverse" : "default"} className="flex min-h-[140px] flex-col">
       <h2 className={cn("text-[14px]", inverse ? "text-on-fg" : "text-fg")}>{label}</h2>
@@ -111,34 +112,7 @@ function Summary() {
       </div>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-12">
         <ActivityWidget className="md:col-span-2 xl:col-span-7" />
-        <Card className="xl:col-span-5">
-          <CardHeader title="Gastos por categoría" subtitle={monthLabel(key)} />
-          {byCat.length === 0 ? (
-            <div>
-              <GhostBars />
-              <p className="mt-4 text-[13px] text-muted">Aquí verás en qué se va tu plata cuando registres gastos.</p>
-            </div>
-          ) : (
-            <ul className="flex flex-col gap-3">
-              {byCat.slice(0, 7).map((c, i) => (
-                <li key={c.name}>
-                  <div className="mb-1.5 flex items-baseline justify-between gap-3 text-[13.5px]">
-                    <span className="truncate text-fg">{c.name}</span>
-                    <span className="num shrink-0 text-muted">
-                      {formatCOP(c.value)} <span className="text-dim">· {Math.round(pct(c.value, m.expense))} %</span>
-                    </span>
-                  </div>
-                  <div className="h-3 overflow-hidden rounded-full bg-elev">
-                    <div
-                      className={cn("h-full rounded-full transition-[width] duration-500", i === 0 ? "bg-brand" : "bg-line-strong")}
-                      style={{ width: `${Math.max(4, pct(c.value, byCat[0].value))}%` }}
-                    />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
+        <TarjetaGastosCategoria className="xl:col-span-5" items={byCat} total={m.expense} subtitle={monthLabel(key)} />
         <Card className="md:col-span-2 xl:col-span-12">
           <CardHeader title="¿Para quién fue el gasto?" subtitle="Distribución del mes, solo informativa" />
           {benTotal === 0 ? (
@@ -179,6 +153,52 @@ function Summary() {
   );
 }
 
+/** Gastos por categoría en barras: el resumen de Finanzas y el panel Dinero de cada proyecto */
+export function TarjetaGastosCategoria({
+  items,
+  total,
+  subtitle,
+  className,
+  vacio = "Aquí verás en qué se va tu plata cuando registres gastos.",
+}: {
+  items: { name: string; value: number }[];
+  total: number;
+  subtitle: string;
+  className?: string;
+  vacio?: string;
+}) {
+  return (
+    <Card className={className}>
+      <CardHeader title="Gastos por categoría" subtitle={subtitle} />
+      {items.length === 0 ? (
+        <div>
+          <GhostBars />
+          <p className="mt-4 text-[13px] text-muted">{vacio}</p>
+        </div>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {items.slice(0, 7).map((c, i) => (
+            <li key={c.name}>
+              <div className="mb-1.5 flex items-baseline justify-between gap-3 text-[13.5px]">
+                <span className="truncate text-fg">{c.name}</span>
+                <span className="num shrink-0 text-muted">
+                  {formatCOP(c.value)} <span className="text-dim">· {Math.round(pct(c.value, total))} %</span>
+                </span>
+              </div>
+              <div className="h-3 overflow-hidden rounded-full bg-elev">
+                <div
+                  className={cn("h-full rounded-full transition-[width] duration-500", i === 0 ? "bg-brand" : "bg-line-strong")}
+                  style={{ width: `${Math.max(4, pct(c.value, items[0].value))}%` }}
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
 /* ───────── Movimientos ───────── */
 type SortKey = "recientes" | "antiguos" | "menor" | "mayor";
 
@@ -210,9 +230,8 @@ function toCSV(rows: Transaction[], accountName: (id: string | null) => string) 
 }
 
 function Movements() {
-  const { db, insert, remove } = useData();
+  const { db } = useData();
   const open = useForms();
-  const del = useDeleteRecord();
   const { toast } = useFeedback();
   const today = useToday();
   const [q, setQ] = useState("");
@@ -221,6 +240,8 @@ function Movements() {
   const [month, setMonth] = useState("");
   const [sort, setSort] = useState<SortKey>("recientes");
   const [importar, setImportar] = useState(false);
+  // Movimientos elegidos para «Asignar a proyecto» (null = cerrado)
+  const [asignar, setAsignar] = useState<string[] | null>(null);
   const months = useMemo(() => Array.from({ length: 12 }, (_, i) => addMonths(monthKey(today), -i)), [today]);
   const importador = importar ? <ImportarExtracto onClose={() => setImportar(false)} /> : null;
   const accountName = (id: string | null) => (id ? db.accounts.find((a) => a.id === id)?.name ?? "—" : "");
@@ -315,84 +336,114 @@ function Movements() {
         </div>
       </div>
       {importador}
-      <p className="mb-2 text-[12px] text-dim">{rows.length} movimientos</p>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <p className="text-[12px] text-dim">{rows.length} movimientos</p>
+        {db.projects.length ? (
+          <button type="button" onClick={() => setAsignar([])} className="focus-ring cursor-pointer rounded-full px-1 text-[12.5px] font-medium text-muted hover:text-fg">
+            Asignar a proyecto
+          </button>
+        ) : null}
+      </div>
+      {asignar ? <AsignarProyecto filas={rows} preseleccion={asignar} onClose={() => setAsignar(null)} /> : null}
       {rows.length === 0 ? (
         <EmptyState compact icon={<Search size={20} />} title="Sin resultados" description="Prueba con otros filtros." />
       ) : (
-        <ul className="divide-y divide-line">
-          {rows.map((t) => {
-            const sign = t.type === "ingreso" ? "+" : t.type === "gasto" ? "−" : "";
-            const shop = t.type === "transferencia" ? undefined : detectStoreInText(t.description);
-            return (
-              <li key={t.id}>
-                <Deslizable
-                  acciones={[
-                    { label: "Editar", icono: <Pencil size={18} />, onAccion: () => open({ kind: "transaction", record: t }) },
-                    {
-                      label: "Borrar",
-                      icono: <Trash2 size={18} />,
-                      tono: "peligro",
-                      onAccion: () => del("transactions", t.id, "¿Eliminar este movimiento?", `${t.description} · ${formatCOP(t.amount)}`),
-                    },
-                  ]}
-                >
-                <div className="flex items-center gap-3 py-3">
-                {shop ? (
-                  <StoreLogo store={shop} size={40} />
-                ) : (
-                <span
-                  className={cn(
-                    "grid h-10 w-10 shrink-0 place-items-center rounded-[12px] border border-line",
-                    t.type === "ingreso" ? "text-brand-soft" : t.type === "gasto" ? "text-warn" : "text-info",
-                  )}
-                >
-                  <ArrowLeftRight size={18} />
-                </span>
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[14px]">{t.description}</p>
-                  <p className="truncate text-[12px] text-muted">
-                    {t.type === "transferencia" ? `${accountName(t.account_id)} → ${accountName(t.to_account_id)}` : `${t.category ?? "—"} · ${accountName(t.account_id)}`}
-                    <span className="text-dim"> · {relativeDay(t.date, today) === formatShortDate(t.date) ? formatShortDate(t.date) : relativeDay(t.date, today)}</span>
-                  </p>
-                </div>
-                {t.status === "pendiente" ? (
-                  // Los pendientes no suman al saldo: se dice y se pueden completar con un toque
-                  <button
-                    type="button"
-                    title="Aún no suma a tus saldos. Toca para marcarlo como completado."
-                    aria-label={`${t.description}: pendiente, aún no suma a tus saldos. Marcar como completado`}
-                    onClick={async () => {
-                      await completarPendiente(t, { insert, remove });
-                      toast("Movimiento completado: ya suma a tus saldos.");
-                    }}
-                    className="focus-ring shrink-0 cursor-pointer rounded-full"
-                  >
-                    <Badge tone="warn">Pendiente · completar</Badge>
-                  </button>
-                ) : null}
-                <p
-                  className={cn(
-                    "num shrink-0 text-right text-[14.5px] font-medium",
-                    t.type === "ingreso" ? "text-brand-soft" : t.type === "gasto" ? "text-fg" : "text-info",
-                  )}
-                >
-                  {sign}
-                  {formatCOP(t.amount)}
-                </p>
-                <RowActions
-                  label={t.description}
-                  onEdit={() => open({ kind: "transaction", record: t })}
-                  onDelete={() => del("transactions", t.id, "¿Eliminar este movimiento?", `${t.description} · ${formatCOP(t.amount)}`)}
-                />
-                </div>
-                </Deslizable>
-              </li>
-            );
-          })}
-        </ul>
+        <ListaMovimientos rows={rows} onAsignar={db.projects.length ? (t) => setAsignar([t.id]) : undefined} />
       )}
     </Card>
+  );
+}
+
+/**
+ * Lista de movimientos (la de Finanzas). El panel Dinero de un proyecto la usa filtrada y con
+ * «Quitar del proyecto»; en Finanzas, deslizar ofrece «Proyecto» para asignarlo.
+ */
+export function ListaMovimientos({ rows, onQuitar, onAsignar }: { rows: Transaction[]; onQuitar?: (t: Transaction) => void; onAsignar?: (t: Transaction) => void }) {
+  const { db, insert, remove } = useData();
+  const open = useForms();
+  const del = useDeleteRecord();
+  const { toast } = useFeedback();
+  const today = useToday();
+  const accountName = (id: string | null) => (id ? db.accounts.find((a) => a.id === id)?.name ?? "—" : "");
+  return (
+    <ul className="divide-y divide-line">
+      {rows.map((t) => {
+        const sign = t.type === "ingreso" ? "+" : t.type === "gasto" ? "−" : "";
+        const shop = t.type === "transferencia" ? undefined : detectStoreInText(t.description);
+        return (
+          <li key={t.id}>
+            <Deslizable
+              acciones={[
+                { label: "Editar", icono: <Pencil size={18} />, onAccion: () => open({ kind: "transaction", record: t }) },
+                ...(onQuitar ? [{ label: "Quitar", icono: <Unlink size={18} />, onAccion: () => onQuitar(t) }] : onAsignar ? [{ label: "Proyecto", icono: <FolderInput size={18} />, onAccion: () => onAsignar(t) }] : []),
+                {
+                  label: "Borrar",
+                  icono: <Trash2 size={18} />,
+                  tono: "peligro",
+                  onAccion: () => del("transactions", t.id, "¿Eliminar este movimiento?", `${t.description} · ${formatCOP(t.amount)}`),
+                },
+              ]}
+            >
+            <div className="flex items-center gap-3 py-3">
+            {shop ? (
+              <StoreLogo store={shop} size={40} />
+            ) : (
+            <span
+              className={cn(
+                "grid h-10 w-10 shrink-0 place-items-center rounded-[12px] border border-line",
+                t.type === "ingreso" ? "text-brand-soft" : t.type === "gasto" ? "text-warn" : "text-info",
+              )}
+            >
+              <ArrowLeftRight size={18} />
+            </span>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[14px]">{t.description}</p>
+              <p className="truncate text-[12px] text-muted">
+                {t.type === "transferencia" ? `${accountName(t.account_id)} → ${accountName(t.to_account_id)}` : `${t.category ?? "—"} · ${accountName(t.account_id)}`}
+                <span className="text-dim"> · {relativeDay(t.date, today) === formatShortDate(t.date) ? formatShortDate(t.date) : relativeDay(t.date, today)}</span>
+              </p>
+            </div>
+            {t.status === "pendiente" ? (
+              // Los pendientes no suman al saldo: se dice y se pueden completar con un toque
+              <button
+                type="button"
+                title="Aún no suma a tus saldos. Toca para marcarlo como completado."
+                aria-label={`${t.description}: pendiente, aún no suma a tus saldos. Marcar como completado`}
+                onClick={async () => {
+                  await completarPendiente(t, { insert, remove });
+                  toast("Movimiento completado: ya suma a tus saldos.");
+                }}
+                className="focus-ring shrink-0 cursor-pointer rounded-full"
+              >
+                <Badge tone="warn">Pendiente · completar</Badge>
+              </button>
+            ) : null}
+            <p
+              className={cn(
+                "num shrink-0 text-right text-[14.5px] font-medium",
+                t.type === "ingreso" ? "text-brand-soft" : t.type === "gasto" ? "text-fg" : "text-info",
+              )}
+            >
+              {sign}
+              {formatCOP(t.amount)}
+            </p>
+            {onQuitar ? (
+              <Button size="icon-sm" variant="ghost" onClick={() => onQuitar(t)} aria-label={`Quitar ${t.description} del proyecto`} title="Quitar del proyecto">
+                <Unlink size={16} />
+              </Button>
+            ) : null}
+            <RowActions
+              label={t.description}
+              onEdit={() => open({ kind: "transaction", record: t })}
+              onDelete={() => del("transactions", t.id, "¿Eliminar este movimiento?", `${t.description} · ${formatCOP(t.amount)}`)}
+            />
+            </div>
+            </Deslizable>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 

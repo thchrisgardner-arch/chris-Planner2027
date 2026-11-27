@@ -65,6 +65,19 @@ describe("conexiones entre módulos", () => {
     expect(c[0].texto).toMatch(/^Al ritmo actual, tu meta Viaje llega en \w+\. Con \$ 50\.000 más al mes, en \w+\.$/);
   });
 
+  it("Centavo + Tuerca: el presupuesto avanza más rápido que las tareas", () => {
+    const proyecto = { ...base, id: "monni", name: "Monni", description: null, category: null, color: "#000", priority: "media" as const, start_date: null, due_date: null, budget: 500_000, status: "en_proceso" as const };
+    const tarea = (status: "pendiente" | "completada") => ({ ...base, id: id(), project_id: "monni", parent_task_id: null, name: "t", description: null, due_date: null, priority: "media" as const, status });
+    const tareas = [tarea("completada"), tarea("completada"), tarea("completada"), ...Array.from({ length: 7 }, () => tarea("pendiente"))];
+    const c = calcularConexiones({ db: db({ accounts: [cuenta], projects: [proyecto], tasks: tareas, transactions: [tx({ amount: 300_000, project_id: "monni" })] }), hoy: HOY, tareasCompletadas: [] });
+    const x = c.find((k) => k.id.startsWith("presupuesto-tareas"));
+    expect(x?.asistentes).toEqual(["centavo", "tuerca"]);
+    expect(x?.texto).toBe("Monni lleva 60 % del presupuesto y 30 % de las tareas. Vale la pena revisar.");
+    // Si las tareas van al ritmo del gasto, no hay nada que decir
+    const parejo = calcularConexiones({ db: db({ accounts: [cuenta], projects: [proyecto], tasks: tareas.map((t, i) => (i < 6 ? { ...t, status: "completada" as const } : t)), transactions: [tx({ amount: 300_000, project_id: "monni" })] }), hoy: HOY, tareasCompletadas: [] });
+    expect(parejo.some((k) => k.id.startsWith("presupuesto-tareas"))).toBe(false);
+  });
+
   it("sin datos no inventa conexiones", () => {
     expect(calcularConexiones({ db: emptyDatabase(), hoy: HOY, tareasCompletadas: [] })).toEqual([]);
   });

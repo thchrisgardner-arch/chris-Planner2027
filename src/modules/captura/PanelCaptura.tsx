@@ -24,7 +24,7 @@ import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "@/modules/finance/constan
 import { WISH_CATEGORIES } from "@/modules/other/constants";
 import { HABIT_COLORS } from "@/modules/habits/selectors";
 import { BANK_PRESETS } from "@/modules/other/stores";
-import { almacenCaptura, recordarCategoria } from "@/lib/captura/aprendizaje";
+import { almacenCaptura, proyectosAprendidos, recordarCategoria, recordarProyecto } from "@/lib/captura/aprendizaje";
 import { interpretarCaptura, palabraClave, TIPO_CAPTURA_LABEL, type Propuesta, type TipoCaptura } from "@/lib/captura/interpretar";
 import { almacenPagosFijos, nuevoIdPago, TIPOS_PAGO_FIJO } from "@/lib/finanzas/pagosFijos";
 import { formatAmountInput, formatCOP, parseCOP } from "@/utils/money";
@@ -85,7 +85,7 @@ function forzar(p: Propuesta, o: OpcionesCaptura, hoy: string): Propuesta {
       fecha: p.fecha ?? (t === "gasto" || t === "ingreso" || t === "evento" ? hoy : null),
     };
   }
-  if (o.proyectoId !== undefined && r.tipo === "tarea") r = { ...r, proyectoId: o.proyectoId };
+  if (o.proyectoId !== undefined && (r.tipo === "tarea" || ((r.tipo === "gasto" || r.tipo === "ingreso") && !r.proyectoId))) r = { ...r, proyectoId: o.proyectoId };
   return r;
 }
 
@@ -97,7 +97,9 @@ export function Panel() {
   const { toast } = useFeedback();
   const { estado } = useAsistentes();
   const today = useToday();
-  const aprendidas = almacenCaptura.useValor().categorias;
+  const datosCaptura = almacenCaptura.useValor();
+  const aprendidas = datosCaptura.categorias;
+  const aprendidosProyecto = useMemo(() => proyectosAprendidos(datosCaptura), [datosCaptura]);
   const input = useRef<HTMLInputElement>(null);
   // Abierta desde otra parte (comando de una nota): texto, tipo y proyecto ya vienen
   const [origen] = useState(opcionesCaptura);
@@ -147,6 +149,7 @@ export function Panel() {
       categoriasIngreso,
       aprendidas,
       cuentaPorDefecto,
+      proyectosAprendidos: aprendidosProyecto,
     }).then((leida) => {
       if (!vigente) return;
       const p = forzar(leida, origen, today);
@@ -157,7 +160,7 @@ export function Panel() {
     return () => {
       vigente = false;
     };
-  }, [texto, today, db.accounts, db.projects, categoriasGasto, categoriasIngreso, aprendidas, cuentaPorDefecto, origen]);
+  }, [texto, today, db.accounts, db.projects, categoriasGasto, categoriasIngreso, aprendidas, aprendidosProyecto, cuentaPorDefecto, origen]);
 
   const p: Propuesta | null = base ? { ...base, ...ed, monto: ed.montoTxt !== undefined ? parseCOP(ed.montoTxt) : base.monto } : null;
   const tipo = p?.tipo ?? "gasto";
@@ -237,9 +240,12 @@ export function Panel() {
           status: "completado",
           beneficiary: p.tipo === "gasto" ? "para_mi" : null,
           notes: null,
+          project_id: p.proyectoId,
         });
         // Aprendizaje: si se corrigió la categoría, se recuerda para la próxima
         if (ed.categoria && base && ed.categoria !== base.categoria) recordarCategoria(palabraClave(desc), ed.categoria);
+        // y el proyecto: con dos veces la misma descripción, la próxima se sugiere
+        recordarProyecto(palabraClave(desc), p.proyectoId);
       } else if (p.tipo === "pago-fijo") {
         const cuenta = await resolverCuenta(cuentaSel);
         const tipoPago = TIPOS_PAGO_FIJO.find((t) => t.categoria === p.categoria)?.value ?? "otro";
@@ -463,7 +469,7 @@ export function Panel() {
                   )}
                 </Field>
               ) : null}
-              {tipo === "tarea" ? (
+              {tipo === "tarea" || ((tipo === "gasto" || tipo === "ingreso") && db.projects.length) ? (
                 <Field label="Proyecto">
                   {(id) => (
                     <Select id={id} value={p.proyectoId ?? ""} onChange={(e) => cambiar({ proyectoId: e.target.value || null })}>
@@ -476,6 +482,17 @@ export function Panel() {
                     </Select>
                   )}
                 </Field>
+              ) : null}
+              {(tipo === "gasto" || tipo === "ingreso") && !p.proyectoId && p.proyectoSugerido && db.projects.some((pr) => pr.id === p.proyectoSugerido) ? (
+                <div className="col-span-2 -mt-1">
+                  <button
+                    type="button"
+                    onClick={() => cambiar({ proyectoId: p.proyectoSugerido })}
+                    className="focus-ring min-h-9 cursor-pointer rounded-full bg-bg-2 px-3 py-1.5 text-[12.5px] font-medium text-muted hover:text-fg"
+                  >
+                    ¿Es de {db.projects.find((pr) => pr.id === p.proyectoSugerido)?.name}? Asignar
+                  </button>
+                </div>
               ) : null}
               {tipo === "habito" ? (
                 <div className="col-span-2 flex flex-col gap-1.5">

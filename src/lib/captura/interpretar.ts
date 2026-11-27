@@ -34,6 +34,8 @@ export interface ContextoCaptura {
   aprendidas?: Record<string, string>;
   /** Cuenta que se usa si la frase no nombra ninguna */
   cuentaPorDefecto?: string | null;
+  /** Palabra (normalizada) → proyecto al que la persona ya asignó dos veces esa descripción */
+  proyectosAprendidos?: Record<string, string>;
 }
 
 export interface Propuesta {
@@ -51,7 +53,10 @@ export interface Propuesta {
   dias: number[] | null;
   /** Pagos fijos: día del mes en que se paga */
   diaDelMes: number | null;
+  /** Tareas, gastos e ingresos: proyecto nombrado en la frase ("para Monni", "#monni") */
   proyectoId: string | null;
+  /** Gastos e ingresos sin proyecto en la frase: el que se aprendió para esa descripción (solo se sugiere) */
+  proyectoSugerido: string | null;
 }
 
 /* ═════════ Texto ═════════ */
@@ -463,6 +468,34 @@ export function interpretarLocal(texto: string, ctx: ContextoCaptura): Propuesta
   else if (RE_EVENTO.test(n0) || hora) tipo = "evento";
   else tipo = "tarea";
 
+  // 7b) Proyecto de un gasto o ingreso: "para Monni", "de Monni", "del proyecto Monni", "#monni".
+  //     Se quita de la descripción ("hosting 80 mil para Monni" → "Hosting").
+  let proyectoMov: string | null = null;
+  if (tipo === "gasto" || tipo === "ingreso" || tipo === "pago-fijo") {
+    const v = t.vista();
+    const prefijo = "(?:(?:para|de|del|en|a|al|por)\\s+(?:el\\s+|la\\s+|mi\\s+)?(?:proyecto\\s+)?)";
+    let mejor: { id: string; desde: number; hasta: number; largo: number } | null = null;
+    for (const pr of ctx.proyectos ?? []) {
+      const np = normalizar(pr.name).trim().replace(/\s+/g, " ");
+      if (!np) continue;
+      const primera = np.split(" ")[0];
+      const formas: { re: RegExp; largo: number }[] = [
+        { re: new RegExp(`(?:^|\\s)#(?:${esc(np.replace(/\s+/g, ""))}|${esc(primera)})(?![a-z0-9])`), largo: np.length + 1 },
+        { re: new RegExp(`\\b${prefijo}?${esc(np)}\\b`), largo: np.length },
+      ];
+      // La primera palabra sola ("para el portafolio") solo con preposición, para no confundirla con lo comprado
+      if (primera !== np && primera.length >= 4 && !CONECTORES.has(primera)) formas.push({ re: new RegExp(`\\b${prefijo}${esc(primera)}\\b`), largo: primera.length });
+      for (const f of formas) {
+        const m = f.re.exec(v);
+        if (m && (!mejor || f.largo > mejor.largo)) mejor = { id: pr.id, desde: m.index, hasta: m.index + m[0].length, largo: f.largo };
+      }
+    }
+    if (mejor) {
+      proyectoMov = mejor.id;
+      t.tapar(mejor.desde, mejor.hasta);
+    }
+  }
+
   // 8) Palabras de intención que no van en la descripción
   t.buscar(/\b(?:tengo\s+que|hay\s+que|recordar(?:me)?|recuerdame|no\s+olvidar|no\s+olvides|anotar|anota|registrar|registra)\b/g);
   if (tipo === "gasto" || tipo === "pago-fijo") t.buscar(/\b(?:me\s+gaste|pague|gaste|compre|pagamos|compramos|gasto(?:\s+de|\s+en)?|costo|valio|pago\s+fijo)\b/g);
@@ -535,13 +568,25 @@ export function interpretarLocal(texto: string, ctx: ContextoCaptura): Propuesta
     else if (tipo === "gasto" || tipo === "pago-fijo") descripcion = categoria && categoria !== "Otros" ? categoria : "Gasto";
   }
 
-  // 12) Proyecto de una tarea
-  let proyectoId: string | null = null;
+  // 12) Proyecto de una tarea (el nombre se queda en la descripción: "Terminar landing de Monni")
+  let proyectoId: string | null = tipo === "gasto" || tipo === "ingreso" ? proyectoMov : null;
   if (tipo === "tarea") {
     for (const p of ctx.proyectos ?? []) {
       const np = normalizar(p.name).trim();
       if (np && new RegExp(`\\b${esc(np)}\\b`).test(n0)) {
         proyectoId = p.id;
+        break;
+      }
+    }
+  }
+
+  // 13) Sin proyecto en la frase: el aprendido para esa descripción se sugiere (nunca se asigna solo)
+  let proyectoSugerido: string | null = null;
+  if (!proyectoId && !proyectoMov && (tipo === "gasto" || tipo === "ingreso")) {
+    for (const w of normalizar(descripcion).split(/[^a-z0-9]+/)) {
+      const id = w ? ctx.proyectosAprendidos?.[w] : undefined;
+      if (id && (ctx.proyectos ?? []).some((p) => p.id === id)) {
+        proyectoSugerido = id;
         break;
       }
     }
@@ -561,6 +606,7 @@ export function interpretarLocal(texto: string, ctx: ContextoCaptura): Propuesta
     dias: tipo === "habito" ? (dias ?? [0, 1, 2, 3, 4, 5, 6]) : null,
     diaDelMes: tipo === "pago-fijo" ? diaDelMes : null,
     proyectoId,
+    proyectoSugerido,
   };
 }
 

@@ -13,6 +13,10 @@ import { iniciarTutorial } from "@/modules/tutorial/Tutorial";
 import { abrirCaptura } from "@/modules/captura/CapturaRapida";
 import { abrirChequeoAnimo } from "./ChequeoAnimo";
 import { mostrarConexionDemo } from "./ConexionDelDia";
+import { forzarAvisoDinero } from "@/modules/proyectos/AvisosDinero";
+import { avisoDeEjemplo } from "@/lib/proyectos/avisosDinero";
+import { almacenAnimo, diaDificil } from "@/lib/animoUsuario";
+import { useData } from "@/lib/store/DataProvider";
 import { iniciarEnfoque } from "@/modules/enfoque/ModoEnfoque";
 import { CRECIMIENTO_LABEL, ETAPAS_CRECIMIENTO, type EtapaCrecimiento } from "@/lib/asistentes/crecimiento";
 import { abrirTodoElCloset } from "@/lib/asistentes/closet";
@@ -35,6 +39,7 @@ export function PanelDemo() {
   const { estado } = useAsistentes();
   const [abierto, setAbierto] = useState(false);
   const today = useToday();
+  const { db } = useData();
   if (!g.demo) return null;
 
   const fijar = (id: AsistenteId, v: string) => {
@@ -218,6 +223,22 @@ export function PanelDemo() {
             <button type="button" className={btn} onClick={mostrarConexionDemo}>
               Conexión del día (siguiente)
             </button>
+            {([80, 100] as const).map((u) => (
+              <button
+                key={u}
+                type="button"
+                className={btn}
+                onClick={() => {
+                  // El proyecto de ejemplo con presupuesto (o el primero que tenga)
+                  const p = db.projects.find((x) => x.money?.presupuesto) ?? db.projects.find((x) => x.budget) ?? db.projects[0];
+                  if (!p) return;
+                  setAbierto(false);
+                  forzarAvisoDinero(avisoDeEjemplo(p, u, diaDificil(almacenAnimo.leer())));
+                }}
+              >
+                Aviso de presupuesto {u} %
+              </button>
+            ))}
             <button
               type="button"
               className={btn}

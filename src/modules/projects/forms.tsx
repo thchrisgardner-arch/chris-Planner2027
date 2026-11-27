@@ -10,6 +10,7 @@ import type { Priority, Project, ProjectStatus, Task, TaskStatus } from "@/types
 import { formatAmountInput, parseCOP } from "@/utils/money";
 import { ColorPicker } from "@/components/ui/ColorPicker";
 import { PRIORITIES, PROJECT_COLORS, PROJECT_STATUSES, TASK_STATUSES } from "./constants";
+import { cambioDinero, dineroDe } from "@/lib/proyectos/dinero";
 
 type Errors = Record<string, string>;
 
@@ -46,7 +47,10 @@ export function ProjectForm({ open, onClose, record }: { open: boolean; onClose:
       status,
     };
     if (record) {
-      await update("projects", record.id, data);
+      // El presupuesto estimado es el mismo del panel Dinero: si cambia aquí, cambia allá (conserva el periodo)
+      const din = dineroDe(record);
+      const cambio = (b ?? null) !== (din.presupuesto?.monto ?? null) ? cambioDinero(din, { presupuesto: b ? { monto: b, periodo: din.presupuesto?.periodo ?? "total" } : null }) : null;
+      await update("projects", record.id, cambio ? { ...data, ...cambio } : data);
       return "Proyecto actualizado.";
     }
     await insert("projects", data);
