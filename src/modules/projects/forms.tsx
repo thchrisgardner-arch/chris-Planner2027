@@ -1,5 +1,6 @@
 "use client";
 
+import { AdjuntosRegistro } from "@/modules/proyectos/Imagenes";
 import { useState } from "react";
 import { AmountInput, FormModal } from "@/components/ui/FormModal";
 import { DatePicker } from "@/components/ui/DatePicker";
@@ -185,6 +186,7 @@ export function TaskForm({
       <Field label="Descripción (opcional)">
         {(id) => <Textarea id={id} value={description} onChange={(e) => setDescription(e.target.value)} />}
       </Field>
+      {record ? <AdjuntosRegistro tabla="tasks" id={record.id} /> : null}
     </FormModal>
   );
 }

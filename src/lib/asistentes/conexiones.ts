@@ -59,13 +59,16 @@ function pagoSinSaldo({ db, hoy }: EntradaConexiones): Conexion | null {
   return null;
 }
 
+/** Un día con esta cantidad de eventos ya está «lleno» (regla Tuerca + Tic; también la usa el calendario de cada proyecto) */
+export const EVENTOS_DIA_LLENO = 2;
+
 /** Tuerca + Tic: un día con muchas tareas y la agenda llena */
 function agendaLlena({ db, hoy }: EntradaConexiones): Conexion | null {
   for (let k = 1; k <= 6; k++) {
     const d = addDays(hoy, k);
     const tareas = db.tasks.filter((t) => t.status !== "completada" && t.due_date === d).length;
     const eventos = db.calendar_events.filter((e) => e.date === d).length;
-    if (tareas >= 3 && eventos >= 2) {
+    if (tareas >= 3 && eventos >= EVENTOS_DIA_LLENO) {
       const cuando = cuandoTexto(d, hoy);
       return {
         id: `agenda-llena:${d}`,

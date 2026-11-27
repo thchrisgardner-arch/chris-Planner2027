@@ -9,7 +9,7 @@ import { Segmented } from "@/components/ui/misc";
 import { useForms, type FormRequest } from "@/components/providers/FormsProvider";
 import { useData } from "@/lib/store/DataProvider";
 import { useToday } from "@/hooks/useToday";
-import type { Database, EventType } from "@/types/db";
+import type { CalendarEvent, Database, EventType } from "@/types/db";
 import {
   TIMEZONE,
   WEEKDAYS_MED,
@@ -123,14 +123,43 @@ const FILTERS: { value: Filter; label: string; dot?: string }[] = [
   { value: "tareas", label: "Tareas", dot: CALENDAR_EXTRA.tarea.color },
 ];
 
+/** Estado de una vista de calendario (vista, día de referencia y filtro) */
+export function useVistaCalendario(inicial?: View) {
+  const today = useToday();
+  const [view, setView] = useState<View>(() => inicial ?? (typeof window !== "undefined" && window.innerWidth < 768 ? "dia" : "semana"));
+  const [cursor, setCursor] = useState(today);
+  const [filter, setFilter] = useState<Filter>("todos");
+  return { view, setView, cursor, setCursor, filter, setFilter };
+}
+export type EstadoCalendario = ReturnType<typeof useVistaCalendario>;
+
 export function CalendarPage() {
   const { db } = useData();
   const open = useForms();
-
   const today = useToday();
-  const [view, setView] = useState<View>(() => (typeof window !== "undefined" && window.innerWidth < 768 ? "dia" : "semana"));
-  const [cursor, setCursor] = useState(today);
-  const [filter, setFilter] = useState<Filter>("todos");
+  const estado = useVistaCalendario();
+  const { view, cursor } = estado;
+
+  return (
+    <>
+      <PageHeader title="Calendario" subtitle="Eventos, entrenamientos, pagos, vencimientos, tareas y metas." asistente={<AsistenteModulo id="tic" />}>
+        <Button variant="primary" className="max-md:hidden" onClick={() => open({ kind: "event", defaults: { date: view === "mes" ? today : cursor } })}>
+          <Plus size={18} /> Nuevo evento
+        </Button>
+      </PageHeader>
+      <VistaCalendario db={db} estado={estado} />
+    </>
+  );
+}
+
+/**
+ * Tarjeta del calendario: barra (periodo, Hoy, Día/Semana/Mes, filtros) y la vista por horas o del mes.
+ * La usa el calendario general y el de cada proyecto (con sus datos ya filtrados y `extra` para lo
+ * que se cree desde ahí, p. ej. project_id).
+ */
+export function VistaCalendario({ db, estado, extra }: { db: Database; estado: EstadoCalendario; extra?: Partial<CalendarEvent> }) {
+  const today = useToday();
+  const { view, setView, cursor, setCursor, filter, setFilter } = estado;
 
   const move = (dir: number) => {
     if (view === "mes") setCursor(`${addMonths(monthKey(cursor), dir)}-01`);
@@ -154,12 +183,6 @@ export function CalendarPage() {
 
   return (
     <>
-      <PageHeader title="Calendario" subtitle="Eventos, entrenamientos, pagos, vencimientos, tareas y metas." asistente={<AsistenteModulo id="tic" />}>
-        <Button variant="primary" className="max-md:hidden" onClick={() => open({ kind: "event", defaults: { date: view === "mes" ? today : cursor } })}>
-          <Plus size={18} /> Nuevo evento
-        </Button>
-      </PageHeader>
-
       <div className="card overflow-hidden">
         {/* Barra de herramientas */}
         <div className="flex flex-col gap-4 border-b border-line p-4 sm:p-5">
@@ -244,7 +267,7 @@ export function CalendarPage() {
             }}
           />
         ) : (
-          <TimeGrid db={db} days={days} today={today} filter={filter} />
+          <TimeGrid db={db} days={days} today={today} filter={filter} extra={extra} />
         )}
       </div>
     </>
@@ -252,7 +275,7 @@ export function CalendarPage() {
 }
 
 /* ───────── Vista por horas (semana o día) ───────── */
-function TimeGrid({ db, days, today, filter }: { db: Database; days: string[]; today: string; filter: Filter }) {
+function TimeGrid({ db, days, today, filter, extra }: { db: Database; days: string[]; today: string; filter: Filter; extra?: Partial<CalendarEvent> }) {
   const open = useForms();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [now, setNow] = useState(() => bogotaNowMinutes());
@@ -276,7 +299,7 @@ function TimeGrid({ db, days, today, filter }: { db: Database; days: string[]; t
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top;
     const minutes = START_HOUR * 60 + Math.floor((y / HOUR_H) * 2) * 30; // a la media hora
-    open({ kind: "event", defaults: { date: day, start_time: minToTime(minutes), end_time: minToTime(Math.min(minutes + 60, 23 * 60 + 45)) } });
+    open({ kind: "event", defaults: { ...extra, date: day, start_time: minToTime(minutes), end_time: minToTime(Math.min(minutes + 60, 23 * 60 + 45)) } });
   };
 
   return (

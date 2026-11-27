@@ -26,8 +26,8 @@ import { relativeDay } from "@/utils/dates";
 import { formatCOP } from "@/utils/money";
 import { cn } from "@/utils/cn";
 import { PROJECT_STATUSES, priorityLabel, projectProgress, projectStatusLabel } from "@/modules/projects/constants";
-import { CalendarioProyecto } from "./CalendarioProyecto";
-import { Imagenes, useArchivoUrl, useSubirImagenes } from "./Imagenes";
+import { PanelCalendario } from "./PanelCalendario";
+import { Imagenes, crearImagenesEjemplo, useArchivoUrl, useSubirImagenes } from "./Imagenes";
 import { Grabadora, TarjetaVoz, crearNotaEjemplo } from "./NotasVoz";
 import { PanelReuniones } from "./Reuniones";
 import { PanelTareas } from "./PanelTareas";
@@ -136,6 +136,8 @@ function Espacio({ proyecto: p, panel }: { proyecto: Project; panel: Panel }) {
     if (mode !== "demo" || p.name !== "Portafolio 2027" || sembrados.has(p.id)) return;
     sembrados.add(p.id);
     if (!leerEspacio().voz.some((v) => v.proyectoId === p.id)) void crearNotaEjemplo(p.id);
+    if (!leerEspacio().imagenes.some((i) => i.proyectoId === p.id)) void crearImagenesEjemplo(p.id, db.tasks.find((t) => t.project_id === p.id && t.name === "Seleccionar casos de estudio")?.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- una vez por sesión
   }, [mode, p.id, p.name]);
 
   const prog = projectProgress(p, db.tasks);
@@ -317,9 +319,7 @@ function Espacio({ proyecto: p, panel }: { proyecto: Project; panel: Panel }) {
             <Imagenes proyectoId={p.id} />
           </Seccion>
         ) : (
-          <Seccion id="calendario" titulo="Calendario del proyecto" icon={CalendarDays}>
-            <CalendarioProyecto proyecto={p} />
-          </Seccion>
+          <PanelCalendario proyecto={p} />
         )}
       </div>
     </div>

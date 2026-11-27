@@ -46,6 +46,9 @@ export interface Reunion {
   eventoId?: string;
   creada: string;
 }
+/** Registro al que se adjuntó una imagen (p. ej. la factura de un gasto) */
+export type VinculoImagen = { tabla: "tasks" | "transactions"; id: string };
+
 export interface ImagenProyecto {
   id: string;
   proyectoId: string;
@@ -53,6 +56,13 @@ export interface ImagenProyecto {
   ancho: number;
   alto: number;
   creada: string;
+  /** Descripción opcional (también sirve de texto alternativo) */
+  descripcion?: string;
+  /** Tareas o gastos a los que está adjunta: se ve en los dos lados */
+  vinculos?: VinculoImagen[];
+  /** Peso guardado (comprimida) y peso original, en bytes */
+  bytes?: number;
+  original?: number;
 }
 
 interface Espacio {
@@ -181,6 +191,29 @@ export const espacio = {
   cerrarMigracionReuniones(mapa: Record<string, string>) {
     const e = leer();
     guardar({ ...e, version: 3, reuniones: [], voz: e.voz.map((v) => (v.reunionId && mapa[v.reunionId] ? { ...v, reunionId: mapa[v.reunionId] } : v)) });
+  },
+  actualizarImagen(id: string, cambios: Partial<Omit<ImagenProyecto, "id" | "proyectoId">>) {
+    const e = leer();
+    guardar({ ...e, imagenes: e.imagenes.map((i) => (i.id === id ? { ...i, ...cambios } : i)) });
+  },
+  /** Orden manual: las imágenes del proyecto quedan en el orden de `ids` (las demás no se mueven) */
+  ordenarImagenes(proyectoId: string, ids: string[]) {
+    const e = leer();
+    const propias = new Map(e.imagenes.filter((i) => i.proyectoId === proyectoId).map((i) => [i.id, i]));
+    const ordenadas = [...ids.map((id) => propias.get(id)!).filter(Boolean), ...[...propias.values()].filter((i) => !ids.includes(i.id))];
+    let k = 0;
+    guardar({ ...e, imagenes: e.imagenes.map((i) => (i.proyectoId === proyectoId ? ordenadas[k++] : i)) });
+  },
+  vincularImagen(id: string, v: VinculoImagen) {
+    const e = leer();
+    guardar({
+      ...e,
+      imagenes: e.imagenes.map((i) => (i.id === id && !(i.vinculos ?? []).some((x) => x.tabla === v.tabla && x.id === v.id) ? { ...i, vinculos: [...(i.vinculos ?? []), v] } : i)),
+    });
+  },
+  desvincularImagen(id: string, v: VinculoImagen) {
+    const e = leer();
+    guardar({ ...e, imagenes: e.imagenes.map((i) => (i.id === id ? { ...i, vinculos: (i.vinculos ?? []).filter((x) => !(x.tabla === v.tabla && x.id === v.id)) } : i)) });
   },
   agregarImagen(img: ImagenProyecto) {
     const e = leer();

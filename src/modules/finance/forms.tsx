@@ -1,5 +1,6 @@
 "use client";
 
+import { AdjuntosRegistro } from "@/modules/proyectos/Imagenes";
 import { useMemo, useState } from "react";
 import { AmountInput, FormModal } from "@/components/ui/FormModal";
 import { DatePicker } from "@/components/ui/DatePicker";
@@ -307,6 +308,7 @@ export function TransactionForm({
           </Field>
         </>
       ) : null}
+      {record ? <AdjuntosRegistro tabla="transactions" id={record.id} /> : null}
     </FormModal>
   );
 }

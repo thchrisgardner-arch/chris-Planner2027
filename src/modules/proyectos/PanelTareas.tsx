@@ -7,8 +7,9 @@
  * y siempre el menú «Mover a…» para teclado y lector de pantalla.
  * Crear: escribe y Enter (o la tecla N). Entiende fecha y responsable: «Ana: enviar la propuesta el viernes».
  */
+import { useEspacio } from "@/lib/proyectos/espacio";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, CheckSquare, MoreHorizontal, Pencil, Plus, Timer, Trash2, UserRound } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckSquare, MoreHorizontal, Paperclip, Pencil, Plus, Timer, Trash2, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge, Segmented } from "@/components/ui/misc";
 import { Popover } from "@/components/ui/Popover";
@@ -203,6 +204,7 @@ function TarjetaTarea({ tarea: t, mover }: { tarea: Task; mover: (t: Task, s: Ta
   const del = useDeleteRecord();
   const today = useToday();
   const subs = db.tasks.filter((s) => s.parent_task_id === t.id);
+  const adjuntos = useEspacio().imagenes.filter((i) => i.vinculos?.some((v) => v.tabla === "tasks" && v.id === t.id)).length;
   const done = t.status === "completada";
   const vencida = !done && t.due_date && t.due_date < today;
   const i = COLUMNAS.findIndex((c) => c.status === t.status);
@@ -273,6 +275,12 @@ function TarjetaTarea({ tarea: t, mover }: { tarea: Task; mover: (t: Task, s: Ta
         <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[12px] text-muted">
           <span className={cn(vencida && "text-danger")}>{t.due_date ? relativeDay(t.due_date, today) : "Sin fecha"}</span>
           <Badge tone={priorityTone(t.priority)}>{priorityLabel(t.priority)}</Badge>
+          {adjuntos ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-bg-2 px-2 py-0.5" title="Imágenes adjuntas">
+              <Paperclip size={12} aria-hidden /> {adjuntos}
+              <span className="sr-only">{adjuntos === 1 ? "imagen adjunta" : "imágenes adjuntas"}</span>
+            </span>
+          ) : null}
           {t.assignee ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-bg-2 px-2 py-0.5">
               <UserRound size={12} aria-hidden /> {t.assignee}

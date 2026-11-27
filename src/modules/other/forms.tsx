@@ -376,7 +376,8 @@ export function EventForm({
       await update("calendar_events", record.id, data);
       return "Evento actualizado.";
     }
-    await insert("calendar_events", data);
+    // Creado desde el calendario de un proyecto: queda en ese proyecto
+    await insert("calendar_events", init.project_id ? { ...data, project_id: init.project_id } : data);
     return "Evento agregado al calendario.";
   };
 
