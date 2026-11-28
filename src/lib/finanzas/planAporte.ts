@@ -108,14 +108,25 @@ export function ritmo(meta: Pick<SavingsGoal, "current_amount" | "target_amount"
 
 const fechaLarga = (iso: string) => new Intl.DateTimeFormat("es-CO", { day: "numeric", month: "long", timeZone: "UTC" }).format(parseISO(iso));
 
+/** "15 de junio", o "15 de junio de 2030" si no es este año */
+const fechaConAnio = (iso: string, hoy: string) => (iso.slice(0, 4) === hoy.slice(0, 4) ? fechaLarga(iso) : `${fechaLarga(iso)} de ${iso.slice(0, 4)}`);
+
 /** "Ahorra $85.000 cada quincena para llegar el 15 de junio" */
 export function textoPlan(meta: Pick<SavingsGoal, "target_amount" | "current_amount" | "target_date">, plan: PlanAporte, hoy: string): string {
   const cada = FRECUENCIAS.find((f) => f.value === plan.frecuencia)!.cada;
   if (meta.current_amount >= meta.target_amount) return "Llegaste a la meta.";
-  // Con fecha: el aporte del plan (se recalcula al aportar de más o de menos, no en cada visita)
-  if (meta.target_date) return `Ahorra ${formatCOP(plan.monto)} ${cada} para llegar el ${fechaLarga(meta.target_date)}.`;
   const f = fechaEstimada(meta, plan, hoy);
-  return f ? `Con ${formatCOP(plan.monto)} ${cada} llegas el ${fechaLarga(f)}.` : `Ahorra ${formatCOP(plan.monto)} ${cada}.`;
+  if (meta.target_date) {
+    // Con fecha: el aporte del plan (se recalcula al aportar de más o de menos, no en cada visita).
+    // Si con ese aporte no se alcanza la fecha (p. ej. una cuota fija de una compra), se dice claro.
+    const necesario = meta.target_date > hoy ? aporteNecesario(meta, plan, hoy) : null;
+    if (necesario !== null && plan.monto < necesario * 0.95) {
+      const llega = f ? `llegas el ${fechaConAnio(f, hoy)}` : "tardarías más de 30 años";
+      return `Con ${formatCOP(plan.monto)} ${cada} ${llega}. Para el ${fechaConAnio(meta.target_date, hoy)} necesitas ${formatCOP(necesario)} ${cada}.`;
+    }
+    return `Ahorra ${formatCOP(plan.monto)} ${cada} para llegar el ${fechaConAnio(meta.target_date, hoy)}.`;
+  }
+  return f ? `Con ${formatCOP(plan.monto)} ${cada} llegas el ${fechaConAnio(f, hoy)}.` : `Ahorra ${formatCOP(plan.monto)} ${cada}.`;
 }
 
 /**

@@ -20,13 +20,13 @@ describe("plan con fecha y sin fecha", () => {
     // Del 30 nov al 15 jun hay 14 quincenas: 850.000 / 14 ≈ 60.715 → 61.000
     const n = aporteNecesario(meta, { frecuencia: "quincenal", inicio: HOY }, HOY);
     expect(n).toBe(61_000);
-    expect(textoPlan(meta, { frecuencia: "quincenal", inicio: HOY, monto: 61_000, base: 150_000 }, HOY)).toBe(c("Ahorra $61.000 cada quincena para llegar el 15 de junio."));
+    expect(textoPlan(meta, { frecuencia: "quincenal", inicio: HOY, monto: 61_000, base: 150_000 }, HOY)).toBe(c("Ahorra $61.000 cada quincena para llegar el 15 de junio de 2027."));
   });
   it("sin fecha calcula cuándo se llega", () => {
     const plan: PlanAporte = { frecuencia: "mensual", inicio: "2026-12-01", monto: 100_000, base: 150_000 };
     // 850.000 / 100.000 = 9 aportes: dic … ago
     expect(fechaEstimada({ ...meta, target_date: null }, plan, HOY)).toBe("2027-08-01");
-    expect(textoPlan({ ...meta, target_date: null }, plan, HOY)).toBe(c("Con $100.000 cada mes llegas el 1 de agosto."));
+    expect(textoPlan({ ...meta, target_date: null }, plan, HOY)).toBe(c("Con $100.000 cada mes llegas el 1 de agosto de 2027."));
   });
 });
 
@@ -50,5 +50,14 @@ describe("pendientes y ritmo", () => {
     expect(r.monto).toBe(100_000);
     expect(r.base).toBe(500_000);
     expect(recalcularPlan(meta, p, 100_000, HOY)).toBe(p);
+  });
+});
+
+describe("texto del plan cuando la cuota no alcanza la fecha", () => {
+  it("dice cuándo se llega de verdad y cuánto haría falta", () => {
+    const meta = { target_amount: 60_000_000, current_amount: 4_000_000, target_date: "2026-12-24" };
+    const plan: PlanAporte = { frecuencia: "mensual", monto: 500_000, inicio: "2026-11-27", base: 4_000_000 };
+    const t = textoPlan(meta, plan, "2026-11-28").replace(/ /g, " ");
+    expect(t).toMatch(/^Con \$ ?500\.000 cada mes llegas el \d+ de \w+ de 20\d\d\. Para el 24 de diciembre necesitas \$ ?56\.000\.000 cada mes\.$/);
   });
 });

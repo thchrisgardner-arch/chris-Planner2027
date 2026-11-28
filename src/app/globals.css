@@ -57,11 +57,24 @@
 
 :root {
   color-scheme: light;
+  /* Series de gráficos (orden fijo, validado para daltonismo); «Otras» en gris */
+  --serie-1: #2a78d6;
+  --serie-2: #eb6834;
+  --serie-3: #1baf7a;
+  --serie-4: #eda100;
+  --serie-5: #e87ba4;
+  --serie-otras: #a3a3a3;
 }
 
 /* ── Modo oscuro (Configuración → Apariencia) ── */
 :root[data-theme="dark"] {
   color-scheme: dark;
+  --serie-1: #3987e5;
+  --serie-2: #d95926;
+  --serie-3: #199e70;
+  --serie-4: #c98500;
+  --serie-5: #d55181;
+  --serie-otras: #5c5c5c;
   --color-canvas: #000000;
   --color-bg: #0e0e0e;
   --color-card: #1a1a1a;

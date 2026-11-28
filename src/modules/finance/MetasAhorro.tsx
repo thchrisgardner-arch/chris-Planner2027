@@ -50,7 +50,14 @@ export function sembrarAportesDemo(metas: SavingsGoal[], hoy: string) {
 }
 
 /* ═════════ En la tarjeta de la meta ═════════ */
-export function PlanEnTarjeta({ meta, onPlan }: { meta: SavingsGoal; onPlan: () => void }) {
+/** Recuadro de información de la meta (proyección o plan): el mismo en todas las tarjetas */
+export const CAJA_META = "mt-3 grid gap-1 rounded-[16px] bg-bg-2 px-3.5 py-3 text-[13px] leading-snug";
+
+/**
+ * Plan de aporte en la tarjeta: el recuadro con el plan y el ritmo, y debajo los aportes por confirmar
+ * (cada uno en su fila: fecha y monto arriba, botones abajo). «Editar plan» va en los botones de la tarjeta.
+ */
+export function PlanEnTarjeta({ meta }: { meta: SavingsGoal }) {
   const { update } = useData();
   const { toast } = useFeedback();
   const today = useToday();
@@ -69,42 +76,46 @@ export function PlanEnTarjeta({ meta, onPlan }: { meta: SavingsGoal; onPlan: () 
     if (!silencio) toast(`Aporte de ${formatCOP(monto)} a ${meta.name}.`);
   };
 
+  const r = ritmo(meta, plan, today);
   return (
-    <div className="mt-3 flex flex-col gap-1.5">
-      <p className="text-[12.5px] text-muted">{textoPlan(meta, plan, today)}</p>
-      <p className="text-[12px] text-dim" aria-live="polite">
-        {ritmo(meta, plan, today).texto}
-      </p>
+    <>
+      <div className={CAJA_META}>
+        <p>{textoPlan(meta, plan, today)}</p>
+        <p className={r.diferencia < 0 ? "text-warn" : "text-muted"} aria-live="polite">
+          {r.texto}
+        </p>
+      </div>
       {pendientes.length ? (
-        <ul className="mt-1.5 flex flex-col gap-1.5" aria-label={`Aportes por confirmar de ${meta.name}`}>
+        <ul className="mt-2 grid gap-2" aria-label={`Aportes por confirmar de ${meta.name}`}>
           {pendientes.map((f) => (
-            <li key={f} className="flex flex-wrap items-center gap-2 rounded-[14px] bg-bg-2 px-3 py-2">
-              <span className="min-w-0 flex-1 text-[13px]">
-                Aporte del {formatShortDate(f)} · <span className="num font-medium">{formatCOP(plan.monto)}</span>
-              </span>
-              <Button size="sm" variant="primary" onClick={() => void confirmar(f, plan.monto)} aria-label={`Ahorrado: aporte del ${formatShortDate(f)} a ${meta.name}`}>
-                <Check size={15} /> Ahorrado
-              </Button>
-              <Button size="icon-sm" variant="ghost" onClick={() => (setEditar(f), setMontoEdit(formatAmountInput(String(plan.monto))))} aria-label={`Cambiar el monto del aporte del ${formatShortDate(f)}`} title="Cambiar monto">
-                <Pencil size={15} />
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  marcarAporte(meta.id, f, "saltado", 0);
-                  toast("Listo, ese aporte queda para otra vez.");
-                }}
-              >
-                Esta vez no
-              </Button>
+            <li key={f} className="rounded-[16px] border border-line px-3.5 py-3">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-[13px] text-muted">Aporte del {formatShortDate(f)}</span>
+                <span className="num text-[14.5px] font-medium">{formatCOP(plan.monto)}</span>
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <Button size="sm" variant="primary" onClick={() => void confirmar(f, plan.monto)} aria-label={`Ahorrado: aporte del ${formatShortDate(f)} a ${meta.name}`}>
+                  <Check size={15} /> Ahorrado
+                </Button>
+                <Button size="icon-sm" variant="ghost" onClick={() => (setEditar(f), setMontoEdit(formatAmountInput(String(plan.monto))))} aria-label={`Cambiar el monto del aporte del ${formatShortDate(f)}`} title="Cambiar monto">
+                  <Pencil size={15} />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="ml-auto"
+                  onClick={() => {
+                    marcarAporte(meta.id, f, "saltado", 0);
+                    toast("Listo, ese aporte queda para otra vez.");
+                  }}
+                >
+                  Esta vez no
+                </Button>
+              </div>
             </li>
           ))}
         </ul>
       ) : null}
-      <button type="button" onClick={onPlan} className="focus-ring mt-0.5 cursor-pointer self-start rounded-full text-[12.5px] font-medium text-muted underline-offset-2 hover:text-fg hover:underline">
-        Editar plan de aporte
-      </button>
       {editar ? (
         <FormModal
           open
@@ -123,7 +134,7 @@ export function PlanEnTarjeta({ meta, onPlan }: { meta: SavingsGoal; onPlan: () 
           <Field label="Monto">{(id) => <AmountInput id={id} value={montoEdit} onChange={setMontoEdit} />}</Field>
         </FormModal>
       ) : null}
-    </div>
+    </>
   );
 }
 

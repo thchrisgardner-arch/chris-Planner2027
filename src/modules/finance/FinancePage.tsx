@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeftRight, CalendarClock, FolderInput, Pencil, PiggyBank, Plus, Search, Trash2, Unlink, Upload } from "lucide-react";
+import { ArrowLeftRight, CalendarClock, Car, Clapperboard, CreditCard, Dices, Dumbbell, FolderInput, HandHeart, HeartPulse, House, Laptop, Pencil, PiggyBank, Plus, Repeat, Search, Shapes, ShoppingBag, Tag, Trash2, Unlink, Upload, Users, UtensilsCrossed, Zap, type LucideIcon } from "lucide-react";
 import { Deslizable } from "@/components/ui/Deslizable";
 import { completarPendiente } from "@/lib/finanzas/pagosFijos";
 import { AsistenteModulo } from "@/modules/asistentes/Presencia";
@@ -18,7 +18,7 @@ import { useFeedback } from "@/components/providers/FeedbackProvider";
 import { useData } from "@/lib/store/DataProvider";
 import { useToday } from "@/hooks/useToday";
 import type { SavingsGoal, Transaction } from "@/types/db";
-import { ImagenMeta, PlanAporteForm, PlanEnTarjeta, sembrarAportesDemo } from "./MetasAhorro";
+import { CAJA_META, ImagenMeta, PlanAporteForm, PlanEnTarjeta, sembrarAportesDemo } from "./MetasAhorro";
 import { endOfMonth, formatShortDate, monthKey, monthLabel, addMonths, relativeDay } from "@/utils/dates";
 import { formatCOP, formatKpiCOP, pct, sum } from "@/utils/money";
 import { cn } from "@/utils/cn";
@@ -168,7 +168,55 @@ function Summary() {
   );
 }
 
-/** Gastos por categoría en barras: el resumen de Finanzas y el panel Dinero de cada proyecto */
+/** Ícono de cada categoría de gasto (las nuevas usan la etiqueta) */
+const ICONO_CATEGORIA: Record<string, LucideIcon> = {
+  Vivienda: House,
+  Servicios: Zap,
+  Alimentación: UtensilsCrossed,
+  Transporte: Car,
+  Salud: HeartPulse,
+  Gimnasio: Dumbbell,
+  Entretenimiento: Clapperboard,
+  Apuestas: Dices,
+  "Compras personales": ShoppingBag,
+  Tecnología: Laptop,
+  Suscripciones: Repeat,
+  Familia: Users,
+  "Ayuda a otras personas": HandHeart,
+  Deudas: CreditCard,
+  Otros: Shapes,
+};
+
+/** Colores fijos de las 5 primeras partes; el resto se agrupa en «Otras categorías» (gris) */
+const SERIES = ["var(--serie-1)", "var(--serie-2)", "var(--serie-3)", "var(--serie-4)", "var(--serie-5)"];
+
+interface Parte {
+  name: string;
+  value: number;
+  color: string;
+  icono: LucideIcon;
+  /** Categorías que agrupa (una sola si no es «Otras categorías») */
+  categorias: string[];
+}
+
+function partesDona(items: { name: string; value: number }[]): Parte[] {
+  const conValor = items.filter((c) => c.value > 0);
+  const visibles = conValor.slice(0, 5);
+  const partes: Parte[] = visibles.map((c, i) => ({
+    name: c.name,
+    value: c.value,
+    color: SERIES[i],
+    icono: ICONO_CATEGORIA[c.name] ?? Tag,
+    categorias: [c.name],
+  }));
+  const resto = conValor.slice(visibles.length);
+  if (resto.length === 1) partes.push({ name: resto[0].name, value: resto[0].value, color: "var(--serie-otras)", icono: ICONO_CATEGORIA[resto[0].name] ?? Tag, categorias: [resto[0].name] });
+  else if (resto.length > 1)
+    partes.push({ name: "Otras categorías", value: sum(resto.map((c) => c.value)), color: "var(--serie-otras)", icono: Shapes, categorias: resto.map((c) => c.name) });
+  return partes;
+}
+
+/** Gastos por categoría en dona: el resumen de Finanzas y el panel Dinero de cada proyecto */
 export function TarjetaGastosCategoria({
   items,
   total,
@@ -187,55 +235,145 @@ export function TarjetaGastosCategoria({
   onElegir?: (categoria: string | null) => void;
   elegida?: string | null;
 }) {
+  const partes = useMemo(() => partesDona(items), [items]);
+  const [activa, setActiva] = useState<number | null>(null);
+  const base = total > 0 ? total : sum(partes.map((p) => p.value));
+  const indiceElegida = elegida ? partes.findIndex((p) => p.categorias.includes(elegida)) : -1;
+  // Al pasar el mouse manda la parte señalada; si no, la elegida (filtro); si no, el total
+  const foco = activa ?? (indiceElegida >= 0 ? indiceElegida : null);
+  const elegir = (p: Parte) => {
+    if (!onElegir || p.categorias.length !== 1) return;
+    onElegir(elegida === p.name ? null : p.name);
+  };
+
   return (
     <Card className={className}>
       <CardHeader title="Gastos por categoría" subtitle={subtitle} />
-      {items.length === 0 ? (
+      {partes.length === 0 ? (
         <div>
           <GhostBars />
           <p className="mt-4 text-[13px] text-muted">{vacio}</p>
         </div>
       ) : (
-        <ul className="flex flex-col gap-3">
-          {items.slice(0, 7).map((c, i) => (
-            <li key={c.name} className={cn(elegida && elegida !== c.name && "opacity-50")}>
-              {onElegir ? (
-                <button
-                  type="button"
-                  aria-pressed={elegida === c.name}
-                  aria-label={`${c.name}: ver en qué se va`}
-                  onClick={() => onElegir(elegida === c.name ? null : c.name)}
-                  className="focus-ring block w-full cursor-pointer rounded-[10px] text-left"
-                >
-                  <FilaCategoria c={c} i={i} items={items} total={total} />
-                </button>
-              ) : (
-                <FilaCategoria c={c} i={i} items={items} total={total} />
-              )}
-            </li>
-          ))}
-        </ul>
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-5">
+          <Dona partes={partes} base={base} foco={foco} elegida={indiceElegida} clicable={!!onElegir} onActiva={setActiva} onElegir={elegir} />
+          <ul className="flex min-w-[220px] flex-1 flex-col gap-0.5" aria-label="Categorías">
+            {partes.map((p, i) => {
+              const Icono = p.icono;
+              const clicable = !!onElegir && p.categorias.length === 1;
+              const porcentaje = Math.round(pct(p.value, base));
+              const contenido = (
+                <>
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[12px] text-white" style={{ background: p.color }} aria-hidden>
+                    <Icono size={17} strokeWidth={2} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13.5px] text-fg">{p.name}</span>
+                    <span className="num block text-[12px] text-muted">{formatCOP(p.value)}</span>
+                  </span>
+                  <span className="num shrink-0 text-[14px] text-fg">{porcentaje} %</span>
+                </>
+              );
+              const fila = cn(
+                "flex w-full items-center gap-3 rounded-[14px] px-2 py-1.5 text-left transition-[opacity,background-color] duration-200",
+                foco === i && "bg-bg-2",
+                indiceElegida >= 0 && indiceElegida !== i && "opacity-50",
+              );
+              return (
+                <li key={p.name} onMouseEnter={() => setActiva(i)} onMouseLeave={() => setActiva(null)}>
+                  {clicable ? (
+                    <button
+                      type="button"
+                      aria-pressed={elegida === p.name}
+                      aria-label={`${p.name}: ${formatCOP(p.value)}, ${porcentaje} %. Ver en qué se va`}
+                      onClick={() => elegir(p)}
+                      onFocus={() => setActiva(i)}
+                      onBlur={() => setActiva(null)}
+                      className={cn(fila, "focus-ring cursor-pointer")}
+                    >
+                      {contenido}
+                    </button>
+                  ) : (
+                    <div className={fila} title={p.categorias.length > 1 ? p.categorias.join(", ") : undefined}>
+                      {contenido}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       )}
     </Card>
   );
 }
 
-function FilaCategoria({ c, i, items, total }: { c: { name: string; value: number }; i: number; items: { name: string; value: number }[]; total: number }) {
+/** Dona en SVG: segmentos separados ≈2px; en el centro, el total o la parte señalada */
+function Dona({
+  partes,
+  base,
+  foco,
+  elegida,
+  clicable,
+  onActiva,
+  onElegir,
+}: {
+  partes: Parte[];
+  base: number;
+  foco: number | null;
+  elegida: number;
+  clicable: boolean;
+  onActiva: (i: number | null) => void;
+  onElegir: (p: Parte) => void;
+}) {
+  const R = 78;
+  const GROSOR = 24;
+  const C = 2 * Math.PI * R;
+  const HUECO = partes.length > 1 ? 2.4 : 0; // ≈2px con la dona a 176px
+  const totalPartes = sum(partes.map((p) => p.value)) || 1;
+  const largos = partes.map((p) => (p.value / totalPartes) * C);
+  const segmentos = partes.map((p, i) => ({
+    p,
+    desde: sum(largos.slice(0, i)),
+    largo: Math.max(0.5, largos[i] - HUECO),
+  }));
+  const enFoco = foco !== null ? partes[foco] : null;
+
   return (
-            <>
-              <div className="mb-1.5 flex items-baseline justify-between gap-3 text-[13.5px]">
-                <span className="truncate text-fg">{c.name}</span>
-                <span className="num shrink-0 text-muted">
-                  {formatCOP(c.value)} <span className="text-dim">· {Math.round(pct(c.value, total))} %</span>
-                </span>
-              </div>
-              <div className="h-3 overflow-hidden rounded-full bg-elev">
-                <div
-                  className={cn("h-full rounded-full transition-[width] duration-500", i === 0 ? "bg-brand" : "bg-line-strong")}
-                  style={{ width: `${Math.max(4, pct(c.value, items[0].value))}%` }}
-                />
-              </div>
-            </>
+    <div className="relative h-[176px] w-[176px] shrink-0">
+      <svg viewBox="0 0 200 200" className="h-full w-full -rotate-90 overflow-visible" role="img" aria-label={`Gastos por categoría, total ${formatCOP(base)}`}>
+        {segmentos.map(({ p, desde, largo }, i) => (
+          <circle
+            key={p.name}
+            cx="100"
+            cy="100"
+            r={R}
+            fill="none"
+            stroke={p.color}
+            strokeWidth={foco === i ? GROSOR + 6 : GROSOR}
+            strokeDasharray={`${largo} ${C - largo}`}
+            strokeDashoffset={-desde}
+            className={cn(
+              "transition-[stroke-width,opacity] duration-200",
+              clicable && p.categorias.length === 1 && "cursor-pointer",
+              elegida >= 0 && elegida !== i && foco !== i && "opacity-35",
+            )}
+            onMouseEnter={() => onActiva(i)}
+            onMouseLeave={() => onActiva(null)}
+            onClick={() => onElegir(p)}
+          >
+            <title>{`${p.name}: ${formatCOP(p.value)} (${Math.round(pct(p.value, base))} %)`}</title>
+          </circle>
+        ))}
+      </svg>
+      <div className="pointer-events-none absolute inset-0 grid place-items-center text-center">
+        <div className="max-w-[116px]">
+          <p className="truncate text-[12px] text-muted">{enFoco ? enFoco.name : "Total"}</p>
+          <p className="figure text-[22px] leading-tight text-fg">{formatKpiCOP(enFoco ? enFoco.value : base)}</p>
+          <p className="num text-[11.5px] text-muted">{enFoco ? `${Math.round(pct(enFoco.value, base))} %` : formatCOP(base)}</p>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -552,7 +690,7 @@ function ProyeccionEnTarjeta({ meta, hoy }: { meta: SavingsGoal; hoy: string }) 
   const p = proyeccionMeta(meta, hoy);
   if (!p) return null;
   return (
-    <div className="mt-3 rounded-[14px] bg-bg-2 px-3 py-2.5 text-[12.5px] leading-snug">
+    <div className={CAJA_META}>
       {p.llega ? (
         <p>
           A tu ritmo (~{formatCOP(Math.round(p.ritmo / 1000) * 1000)} al mes) llega en <span className="font-medium">{mesTexto(p.llega)}</span>
@@ -568,12 +706,12 @@ function ProyeccionEnTarjeta({ meta, hoy }: { meta: SavingsGoal; hoy: string }) 
         </p>
       )}
       {p.llegaConExtra ? (
-        <p className="mt-1 text-muted">
+        <p className="text-muted">
           Con {formatCOP(p.extra)} más al mes, en {mesTexto(p.llegaConExtra)}.
         </p>
       ) : null}
       {p.necesarioAlMes !== null && p.aTiempo !== true ? (
-        <p className="mt-1 text-muted">
+        <p className="text-muted">
           Para llegar en {mesTexto(monthKey(meta.target_date!))} necesitas {formatCOP(p.necesarioAlMes)} al mes.
         </p>
       ) : null}
@@ -646,15 +784,16 @@ function Savings() {
               <p className="mt-2 text-[12px] text-dim">
                 Faltan {formatCOP(Math.max(0, g.target_amount - g.current_amount))} de {formatCOP(g.target_amount)}
               </p>
+              {/* Un solo recuadro de información (proyección o plan) y, abajo, los botones alineados entre tarjetas */}
               {!g.plan && today ? <ProyeccionEnTarjeta meta={g} hoy={today} /> : null}
-              <PlanEnTarjeta meta={g} onPlan={() => setPlanDe(g)} />
-              <div className="mt-5 flex flex-wrap gap-2">
-                <Button size="sm" variant="secondary" className="self-start bg-bg-2" onClick={() => open({ kind: "deposit", record: g })}>
+              <PlanEnTarjeta meta={g} />
+              <div className="mt-auto flex flex-wrap gap-2 pt-4">
+                <Button size="sm" variant="secondary" className="bg-bg-2" onClick={() => open({ kind: "deposit", record: g })}>
                   <PiggyBank size={14} /> Abonar / retirar
                 </Button>
-                {!g.plan && g.current_amount < g.target_amount ? (
-                  <Button size="sm" variant="ghost" className="self-start" onClick={() => setPlanDe(g)}>
-                    <CalendarClock size={14} /> Plan de aporte
+                {g.current_amount < g.target_amount ? (
+                  <Button size="sm" variant="ghost" onClick={() => setPlanDe(g)}>
+                    <CalendarClock size={14} /> {g.plan ? "Editar plan" : "Plan de aporte"}
                   </Button>
                 ) : null}
               </div>
