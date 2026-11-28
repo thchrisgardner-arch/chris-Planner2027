@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Habit, HabitLog } from "../../types/db";
 import { completion, isScheduled, streak } from "../../modules/habits/selectors";
-import { diasDeSemana, etiquetaDia, resumenSemana } from "./semanaEntreno";
+import { diasDeSemana, estadoDia, etiquetaDia, reaccionEntreno, resumenSemana, semanaCompleta } from "./semanaEntreno";
 
 const HOY = "2026-11-26"; // jueves
 const LUNES = "2026-11-23";
@@ -76,5 +76,50 @@ describe("frecuencia flexible sin romper lo de siempre", () => {
   it("una semana incompleta corta la racha", () => {
     const logs = ["2026-11-10", "2026-11-11", "2026-11-12", "2026-11-17", "2026-11-23"].map((d) => log("f", d));
     expect(streak(flexible, logs, HOY)).toBe(1);
+  });
+});
+
+describe("realizado, no realizado y reacción de la mascota", () => {
+  // Plan: lunes, miércoles y viernes. Hoy es jueves 26.
+  const semana = (fechas: string[], habit = entrenar) => diasDeSemana(habit, fechas.map((d) => log(habit.id, d)), LUNES, HOY);
+
+  it("estado de cada día", () => {
+    const d = semana(["2026-11-23"]);
+    expect(estadoDia(d[0])).toBe("realizado"); // lunes marcado
+    expect(estadoDia(d[1])).toBe("descanso"); // martes no planeado
+    expect(estadoDia(d[2])).toBe("no-realizado"); // miércoles pasó sin marcar
+    expect(estadoDia(d[4])).toBe("proximo"); // viernes todavía no
+    const hoyPlaneado = diasDeSemana({ ...entrenar, days: [3] }, [], LUNES, HOY);
+    expect(estadoDia(hoyPlaneado[3])).toBe("pendiente");
+  });
+
+  it("al día: la mascota no dice nada", () => {
+    expect(reaccionEntreno(entrenar, semana(["2026-11-23", "2026-11-25"]))).toBeNull();
+  });
+
+  it("faltó un día: preocupada, y aún alcanza con viernes y fin de semana", () => {
+    const r = reaccionEntreno(entrenar, semana(["2026-11-23"]))!;
+    expect(r.clave).toBe("gymFalta");
+    expect(r.expresion).toBe("preocupado");
+    expect(r.datos).toMatchObject({ dia: "miércoles", alcanza: "si" });
+  });
+
+  it("faltó dos días: triste", () => {
+    const r = reaccionEntreno(entrenar, semana([]))!;
+    expect(r.clave).toBe("gymFaltas");
+    expect(r.expresion).toBe("triste");
+    expect(r.datos.n).toBe(2);
+  });
+
+  it("semana completa: celebra (un día extra cuenta)", () => {
+    const completa = diasDeSemana(entrenar, ["2026-11-23", "2026-11-24", "2026-11-25"].map((d) => log("h", d)), LUNES, HOY);
+    expect(semanaCompleta(entrenar, completa)).toBe(true);
+    expect(reaccionEntreno(entrenar, completa)?.clave).toBe("gymSemana");
+    expect(semanaCompleta(entrenar, semana(["2026-11-23"]))).toBe(false);
+  });
+
+  it("«X veces por semana»: solo se preocupa cuando ya no alcanzan los días", () => {
+    expect(reaccionEntreno(flexible, semana([], flexible))).toBeNull(); // 0 de 3, quedan jueves a domingo
+    expect(semanaCompleta(flexible, semana(["2026-11-23", "2026-11-24", "2026-11-25"], flexible))).toBe(true);
   });
 });

@@ -54,6 +54,56 @@ export function resumenSemana(habit: Habit, dias: DiaSemana[], hoy: string): str
   return base;
 }
 
+/**
+ * Semana cumplida: en «X veces por semana», llegar a X; con días fijos, tantos entrenamientos como días
+ * planeados (un día extra cuenta igual, como en `resumenSemana`). Da el bono de XP de la semana.
+ */
+export function semanaCompleta(habit: Habit, dias: DiaSemana[]): boolean {
+  const hechos = dias.filter((d) => d.hecho).length;
+  const meta = esFlexible(habit) ? habit.weekly_target! : dias.filter((d) => d.planeado).length;
+  return meta > 0 && hechos >= meta;
+}
+
+/** Estado de un día en la lista de la rutina */
+export type EstadoDia = "realizado" | "no-realizado" | "pendiente" | "proximo" | "descanso";
+export function estadoDia(d: DiaSemana): EstadoDia {
+  if (d.hecho) return "realizado";
+  if (!d.planeado) return "descanso";
+  if (d.futuro) return "proximo";
+  return d.hoy ? "pendiente" : "no-realizado";
+}
+
+/**
+ * Cómo reacciona la mascota a la semana de entrenamiento (solo la semana actual):
+ *  - semana cumplida → celebra;
+ *  - días planeados que ya pasaron sin marcar → preocupada (1) o triste (2 o más), y dice si aún
+ *    alcanza a cumplir la semana con los días que quedan;
+ *  - si no, nada (no molesta cuando vas al día).
+ * Devuelve la clave de la frase (plantillas de Brote) y sus datos.
+ */
+export type ReaccionEntreno = { clave: "gymSemana" | "gymFalta" | "gymFaltas"; expresion: "celebrando" | "preocupado" | "triste"; datos: Record<string, string | number> };
+export function reaccionEntreno(habit: Habit, dias: DiaSemana[]): ReaccionEntreno | null {
+  if (semanaCompleta(habit, dias)) return { clave: "gymSemana", expresion: "celebrando", datos: { xp: XP_SEMANA_ENTRENO } };
+  const hechos = dias.filter((d) => d.hecho).length;
+  // Días que aún se pueden entrenar esta semana (hoy sin marcar y los que vienen)
+  const quedan = dias.filter((d) => d.futuro || (d.hoy && !d.hecho)).length;
+  if (esFlexible(habit)) {
+    // Sin días fijos solo se «falta» cuando ya no alcanzan los días que quedan
+    const faltan = habit.weekly_target! - hechos;
+    if (faltan > quedan) return { clave: "gymFaltas", expresion: "triste", datos: { n: faltan - quedan, alcanza: "no" } };
+    return null;
+  }
+  const perdidos = dias.filter((d) => d.planeado && !d.hecho && !d.futuro && !d.hoy);
+  if (!perdidos.length) return null;
+  const meta = dias.filter((d) => d.planeado).length;
+  const alcanza = hechos + quedan >= meta ? "si" : "no";
+  if (perdidos.length === 1) return { clave: "gymFalta", expresion: "preocupado", datos: { dia: NOMBRES[perdidos[0].dia], n: 1, alcanza } };
+  return { clave: "gymFaltas", expresion: "triste", datos: { n: perdidos.length, alcanza } };
+}
+
+/** XP del bono por completar la semana de entrenamiento (ver TABLA_XP «semana-entreno») */
+export const XP_SEMANA_ENTRENO = 50;
+
 /** "Martes 24, planeado, realizado" */
 export function etiquetaDia(d: DiaSemana): string {
   const partes = [`${DIAS_LARGOS[d.dia]} ${parseISO(d.fecha).getUTCDate()}`];

@@ -12,7 +12,9 @@
 import { enPesosOInfinito } from "@/lib/monedas";
 import type { Database } from "@/types/db";
 import { isScheduled } from "@/modules/habits/selectors";
-import { addDays, addMonths, fechaLocal, monthKey, weekdayMon } from "@/utils/dates";
+import { addDays, addMonths, fechaLocal, monthKey, startOfWeek, weekdayMon } from "@/utils/dates";
+import { habitoDeEntreno } from "@/lib/salud/entrenamiento";
+import { diasDeSemana, semanaCompleta, XP_SEMANA_ENTRENO } from "@/lib/salud/semanaEntreno";
 import { sum } from "@/utils/money";
 import { ASISTENTE_IDS, type AsistenteId } from "./tipos";
 
@@ -38,7 +40,8 @@ export type TipoAccion =
   | "meta-diaria"
   | "hito-racha"
   | "reparar-racha"
-  | "enfoque";
+  | "enfoque"
+  | "semana-entreno";
 
 export const TABLA_XP: Record<TipoAccion, { xp: number; label: string; asistente: AsistenteId | "principal"; grupo: string; tope?: number }> = {
   movimiento: { xp: 5, label: "Registrar un gasto o una transferencia", asistente: "centavo", grupo: "movimiento", tope: 30 },
@@ -62,6 +65,7 @@ export const TABLA_XP: Record<TipoAccion, { xp: number; label: string; asistente
   "hito-racha": { xp: 0, label: "Llegar a un hito de racha (3, 7, 14, 30… días): de +10 a +500 XP", asistente: "brote", grupo: "racha" },
   "reparar-racha": { xp: -100, label: "Reparar la racha (por cada día perdido)", asistente: "principal", grupo: "racha" },
   enfoque: { xp: 10, label: "Completar un bloque de enfoque (máx. 4 al día)", asistente: "tuerca", grupo: "enfoque", tope: 40 },
+  "semana-entreno": { xp: XP_SEMANA_ENTRENO, label: "Completar tu semana de entrenamiento", asistente: "brote", grupo: "semana-entreno" },
 };
 
 /** Tipos que salen de las misiones y la meta: no cuentan para la meta diaria (evita el círculo) */
@@ -350,6 +354,15 @@ function candidatos(db: Database, prev: Progreso, today: string): { lista: Candi
       const gas = sum(delMes.filter((t) => t.type === "gasto").map((t) => t.amount));
       if (gas > 0 && ing > gas) lista.push({ refId: `bmv:${k}`, tipo: "mes-verde", fecha: yaVisto(`bmv:${k}`) ?? today });
       else if (gas > ing) lista.push({ refId: `bmr:${k}`, tipo: "mes-rojo", fecha: yaVisto(`bmr:${k}`) ?? today });
+    }
+    // Semana de entrenamiento completa (hábito «Entrenar»): una vez por semana, desde la semana en que empezó
+    // la gamificación. Si desmarcas un día y la semana deja de estar completa, el bono se revierte.
+    const entreno = habitoDeEntreno(db.habits);
+    if (entreno) {
+      for (let lunes = startOfWeek(prev.ui.iniciado); lunes <= today; lunes = addDays(lunes, 7)) {
+        if (semanaCompleta(entreno, diasDeSemana(entreno, db.habit_logs, lunes, today)))
+          lista.push({ refId: `se:${entreno.id}:${lunes}`, tipo: "semana-entreno", fecha: yaVisto(`se:${entreno.id}:${lunes}`) ?? today });
+      }
     }
   }
   for (const t of db.tasks) {

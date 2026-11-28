@@ -6,7 +6,12 @@
  * abajo, plegada. Hoy queda abierto y se puede marcar como hecho (marca el hábito y suma XP).
  */
 import { useState } from "react";
-import { Check, ChevronDown, Clock, Dumbbell, Plus } from "lucide-react";
+import { Check, ChevronDown, Clock, Dumbbell, Plus, X } from "lucide-react";
+import { Asistente } from "@/components/asistentes/Asistente";
+import { useAsistentes } from "@/lib/asistentes/estado";
+import { FICHAS } from "@/lib/asistentes/definiciones";
+import { diasDeSemana, estadoDia, reaccionEntreno, XP_SEMANA_ENTRENO } from "@/lib/salud/semanaEntreno";
+import { esFlexible } from "@/modules/habits/selectors";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ChoiceGroup, Field } from "@/components/ui/Field";
@@ -39,6 +44,7 @@ export function EntrenamientoPanel() {
   const { toast } = useFeedback();
   const today = useToday();
   const p = usePerfilFisico();
+  const brote = useAsistentes().estado.ajustes.brote;
   const habito = habitoDeEntreno(db.habits);
   const hoy = today ? weekdayMon(today) : 0;
   const [abierto, setAbierto] = useState<number | null>(null);
@@ -103,18 +109,23 @@ export function EntrenamientoPanel() {
   const semana = rutinaSemanal(habito.days, p.lugar, p.nivel, p.objetivo);
   const lunes = today ? startOfWeek(today) : "";
   const fechaDe = (d: number) => (lunes ? addDays(lunes, d) : "");
-  const hechoHoy = today ? !!logFor(db.habit_logs, habito.id, today) : false;
   const diasEntreno = semana.filter((d) => d.entrena).length;
+  // Mismos registros que la tarjeta «Esta semana» (hábito «Entrenar»)
+  const dias = today ? diasDeSemana(habito, db.habit_logs, lunes, today) : [];
+  const hechos = dias.filter((d) => d.hecho).length;
+  const meta = esFlexible(habito) ? habito.weekly_target! : dias.filter((d) => d.planeado).length;
+  const reaccion = today ? reaccionEntreno(habito, dias) : null;
 
-  const marcarHoy = async () => {
-    if (!today) return;
+  /** Marca o desmarca un día de esta semana (hoy o un día que ya pasó) */
+  const marcar = async (fecha: string) => {
+    if (!today || fecha > today) return;
     setOcupado(true);
     try {
-      const log = logFor(db.habit_logs, habito.id, today);
+      const log = logFor(db.habit_logs, habito.id, fecha);
       if (log) await remove("habit_logs", log.id);
       else {
-        await insert("habit_logs", { habit_id: habito.id, date: today });
-        toast("Entrenamiento de hoy cumplido.");
+        await insert("habit_logs", { habit_id: habito.id, date: fecha });
+        toast(fecha === today ? "Entrenamiento de hoy cumplido." : "Entrenamiento marcado como realizado.");
       }
     } finally {
       setOcupado(false);
@@ -148,20 +159,52 @@ export function EntrenamientoPanel() {
         {editarRutina ? <div className="mt-3">{preferencias}</div> : null}
       </Card>
 
+      {/* Brote reacciona a la semana: celebra si está completa, se preocupa o se pone triste si faltaste */}
+      {reaccion ? (
+        <div
+          role="status"
+          className={cn(
+            "card flex items-center gap-3 p-4",
+            reaccion.clave === "gymSemana" ? "bg-brand/25" : reaccion.clave === "gymFalta" ? "bg-warn/10" : "bg-danger/10",
+          )}
+        >
+          {brote.activo ? <Asistente id="brote" size={64} pose={reaccion.expresion} colores={brote.colores} accesorio={brote.accesorio} decorativo /> : null}
+          <p className="min-w-0 flex-1 text-[14px] leading-snug">
+            <span className="font-medium">{brote.nombre}:</span> {FICHAS.brote.plantillas[reaccion.clave][brote.tono](reaccion.datos)}
+          </p>
+        </div>
+      ) : null}
+
+      <div className="flex items-baseline justify-between gap-3 px-1">
+        <h3 className="text-[15px] font-bold">Rutina de la semana</h3>
+        <p className="num text-[13px] text-muted">
+          {Math.min(hechos, meta)} de {meta} realizados{hechos >= meta && meta > 0 ? ` · +${XP_SEMANA_ENTRENO} XP` : ""}
+        </p>
+      </div>
+
       <ol className="grid grid-cols-1 gap-2">
         {semana.map((d) => {
           const esHoy = d.dia === hoy;
           const desplegado = abierto === null ? esHoy : abierto === d.dia;
+          const info = dias[d.dia];
+          const estado = info ? estadoDia(info) : d.entrena ? "proximo" : "descanso";
+          const realizado = estado === "realizado";
           return (
             <li key={d.dia} className={cn("card overflow-hidden p-0", esHoy && "ring-2 ring-[var(--color-brand)]")}>
               <button
                 type="button"
                 onClick={() => setAbierto(desplegado ? -1 : d.dia)}
                 aria-expanded={desplegado}
+                aria-label={`${DIAS_LARGOS[d.dia]}: ${d.titulo}${estado === "realizado" ? ", realizado" : estado === "no-realizado" ? ", no realizado" : estado === "pendiente" ? ", pendiente" : ""}`}
                 className="focus-ring flex w-full cursor-pointer items-center gap-3 p-4 text-left"
               >
-                <span className={cn("grid h-11 w-11 shrink-0 place-items-center rounded-full", d.entrena ? "bg-fg text-on-fg" : "bg-elev text-muted")}>
-                  {d.entrena ? <Dumbbell size={19} /> : <span className="text-[12px] font-bold">{WEEKDAYS_MED[d.dia]}</span>}
+                <span
+                  className={cn(
+                    "grid h-11 w-11 shrink-0 place-items-center rounded-full",
+                    realizado ? "bg-brand text-[#0a0a0a]" : estado === "no-realizado" ? "bg-danger/12 text-danger" : d.entrena ? "bg-fg text-on-fg" : "bg-elev text-muted",
+                  )}
+                >
+                  {realizado ? <Check size={20} strokeWidth={2.5} /> : estado === "no-realizado" ? <X size={20} strokeWidth={2.5} /> : d.entrena ? <Dumbbell size={19} /> : <span className="text-[12px] font-bold">{WEEKDAYS_MED[d.dia]}</span>}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-center gap-x-2 text-[13px] text-muted">
@@ -172,6 +215,18 @@ export function EntrenamientoPanel() {
                   <span className="block truncate text-[15.5px] font-bold">{d.titulo}</span>
                   <span className="block truncate text-[12.5px] text-muted">{d.enfoque}</span>
                 </span>
+                {/* Realizado / No realizado / Pendiente (en celular también); la duración, desde tablet */}
+                {estado === "realizado" || estado === "no-realizado" || estado === "pendiente" ? (
+                  <span
+                    className={cn(
+                      "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-medium",
+                      estado === "realizado" ? "bg-brand text-[#0a0a0a]" : estado === "no-realizado" ? "bg-danger/12 text-danger" : "bg-bg text-muted",
+                    )}
+                  >
+                    {estado === "realizado" ? <Check size={13} strokeWidth={2.5} /> : estado === "no-realizado" ? <X size={13} strokeWidth={2.5} /> : null}
+                    {estado === "realizado" ? "Realizado" : estado === "no-realizado" ? "No realizado" : "Pendiente"}
+                  </span>
+                ) : null}
                 <span className="num hidden shrink-0 items-center gap-1 text-[12.5px] text-muted sm:flex">
                   <Clock size={14} /> {d.minutos} min
                 </span>
@@ -192,10 +247,16 @@ export function EntrenamientoPanel() {
                     </ul>
                   ) : null}
                   {d.extra ? <p className={cn("text-[13px] text-muted", d.ejercicios.length && "mt-3")}>{d.extra}</p> : null}
-                  {esHoy && d.entrena ? (
-                    <Button variant={hechoHoy ? "secondary" : "primary"} className={cn("mt-3", hechoHoy && "bg-bg")} onClick={marcarHoy} disabled={ocupado}>
-                      <Check size={17} /> {hechoHoy ? "Entrenamiento hecho (deshacer)" : "Marcar entrenamiento de hoy"}
+                  {/* Hoy y los días que ya pasaron se pueden marcar (o desmarcar); los que vienen, no */}
+                  {info && !info.futuro && (d.entrena || realizado) ? (
+                    <Button variant={realizado ? "secondary" : "primary"} className={cn("mt-3", realizado && "bg-bg")} onClick={() => void marcar(info.fecha)} disabled={ocupado}>
+                      <Check size={17} />{" "}
+                      {realizado ? "Realizado (deshacer)" : esHoy ? "Marcar entrenamiento de hoy" : "Marcar como realizado"}
                     </Button>
+                  ) : info && !info.futuro && !d.entrena ? (
+                    <button type="button" onClick={() => void marcar(info.fecha)} disabled={ocupado} className="focus-ring mt-3 cursor-pointer rounded-full px-1 text-[13px] font-medium text-muted hover:text-fg">
+                      Entrené este día igual (cuenta como extra)
+                    </button>
                   ) : null}
                 </div>
               ) : null}

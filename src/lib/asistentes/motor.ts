@@ -8,7 +8,9 @@ import { enPesos, enPesosOInfinito } from "@/lib/monedas";
 import type { Database } from "@/types/db";
 import { accountBalance } from "@/modules/finance/selectors";
 import { isScheduled, logFor, streak } from "@/modules/habits/selectors";
-import { addDays, addMonths, bogotaHour, formatTime, monthKey, monthLabel, relativeDay } from "@/utils/dates";
+import { addDays, addMonths, bogotaHour, formatTime, monthKey, monthLabel, relativeDay, startOfWeek } from "@/utils/dates";
+import { habitoDeEntreno } from "@/lib/salud/entrenamiento";
+import { diasDeSemana, reaccionEntreno } from "@/lib/salud/semanaEntreno";
 import { formatKpiCOP, sum } from "@/utils/money";
 import { FICHAS, type Datos, type Tono } from "./definiciones";
 import type { AsistenteId, Expresion } from "./tipos";
@@ -104,9 +106,16 @@ function brote({ db, today, tono }: ContextoAsistente): Mensaje {
   const faltan = deHoy.filter((h) => !logFor(db.habit_logs, h.id, today));
   const rachas = db.habits.map((h) => ({ h, r: streak(h, db.habit_logs, today) })).sort((a, b) => b.r - a.r);
 
+  // Entrenamiento: faltar al gym esta semana va primero; la semana completa se celebra cuando no queda nada de hoy
+  const entreno = habitoDeEntreno(db.habits);
+  const gym = entreno ? reaccionEntreno(entreno, diasDeSemana(entreno, db.habit_logs, startOfWeek(today), today)) : null;
+  const verEntreno = { label: "Ver entrenamiento", href: "/salud?vista=entrenamiento" };
+  if (gym && gym.clave !== "gymSemana") return m(t("brote", gym.clave, tono, gym.datos), gym.expresion, 3, verEntreno);
+
   const riesgo = faltan.map((h) => ({ h, r: streak(h, db.habit_logs, addDays(today, -1)) })).filter((x) => x.r >= 3).sort((a, b) => b.r - a.r)[0];
   if (riesgo && bogotaHour() >= 17) return m(t("brote", "rachaRiesgo", tono, { habito: riesgo.h.name, racha: riesgo.r }), "preocupado", 3, accion);
   if (faltan.length) return m(t("brote", "pendientes", tono, { n: faltan.length === 1 ? "1 hábito" : `${faltan.length} hábitos` }), "idle", 1, accion);
+  if (gym?.clave === "gymSemana") return m(t("brote", "gymSemana", tono, gym.datos), "celebrando", 1, verEntreno);
   if (deHoy.length) {
     if (rachas[0]?.r >= 5) return m(t("brote", "racha", tono, { racha: rachas[0].r, habito: rachas[0].h.name }), "feliz", 1, accion);
     return m(t("brote", "todoListo", tono), "feliz", 1, accion);

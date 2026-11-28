@@ -29,6 +29,7 @@ export const MOMENTO_DE_EVENTO: Record<TipoAccion, Momento> = {
   "hito-racha": "en-racha",
   "reparar-racha": "feliz",
   enfoque: "trabajando",
+  "semana-entreno": "celebrando",
 };
 
 /** Ánimo del asistente (salud de su módulo) → momento en reposo */

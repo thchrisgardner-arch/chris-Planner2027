@@ -140,6 +140,22 @@ export const FICHAS: Record<AsistenteId, Ficha> = {
         motivador: () => "Día libre de hábitos. Recarga energía.",
         tranquilo: () => "Hoy no tienes hábitos programados.",
       },
+      // Entrenamiento (Salud → Entrenamiento y encabezado de Salud); ver lib/salud/semanaEntreno
+      gymSemana: {
+        seco: (d) => `Semana de gym completa. +${d.xp} XP. Ni yo corro tanto.`,
+        motivador: (d) => `¡Semana de entrenamiento completa! +${d.xp} XP. Así se construye.`,
+        tranquilo: (d) => `Completaste tu semana de entrenamiento. +${d.xp} XP.`,
+      },
+      gymFalta: {
+        seco: (d) => `Faltaste al gym el ${d.dia}. ${d.alcanza === "si" ? "Aún alcanzas a cumplir la semana." : "Esta semana ya no se completa."}`,
+        motivador: (d) => `El ${d.dia} no fuiste al gym. ${d.alcanza === "si" ? "Todavía puedes cerrar la semana completa, ¡vamos!" : "Esta semana no se completa, pero la próxima sí."}`,
+        tranquilo: (d) => `El ${d.dia} quedó sin entrenar. Si fuiste, márcalo.${d.alcanza === "si" ? " Aún puedes completar la semana." : ""}`,
+      },
+      gymFaltas: {
+        seco: (d) => `${d.n} entrenamientos perdidos esta semana. Me estoy marchitando.`,
+        motivador: (d) => `Ya van ${d.n} entrenamientos sin hacer. ${d.alcanza === "si" ? "Aún estás a tiempo de cerrar la semana." : "Volvamos con todo la próxima."}`,
+        tranquilo: (d) => `Esta semana van ${d.n} entrenamientos sin marcar. Si los hiciste, márcalos.`,
+      },
     },
   },
   tuerca: {

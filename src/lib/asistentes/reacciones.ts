@@ -25,4 +25,5 @@ export const REACCION: Record<TipoAccion, { pose: Pose; plural: [string, string]
   "hito-racha": { pose: "celebrando", plural: ["hito de racha", "hitos de racha"], frase: { seco: "Hito de racha. Sigue así.", motivador: "¡Nuevo hito de racha! Imparable.", tranquilo: "Llegaste a un hito de racha." } },
   "reparar-racha": { pose: "orgulloso", plural: ["reparación", "reparaciones"], frase: { seco: "Racha reparada. Que no se repita.", motivador: "¡Racha de vuelta! A cuidarla.", tranquilo: "Reparaste tu racha." } },
   enfoque: { pose: "orgulloso", plural: ["bloque de enfoque", "bloques de enfoque"], frase: { seco: "Bloque hecho. Así se construye.", motivador: "¡Bloque de enfoque completo! Imparable.", tranquilo: "Completaste un bloque de enfoque." } },
+  "semana-entreno": { pose: "celebrando", plural: ["semana de entrenamiento", "semanas de entrenamiento"], frase: { seco: "Semana de gym completa. Respeto.", motivador: "¡Semana de entrenamiento completa! Imparable.", tranquilo: "Completaste tu semana de entrenamiento." } },
 };
