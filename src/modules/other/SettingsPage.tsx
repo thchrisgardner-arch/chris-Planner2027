@@ -42,6 +42,8 @@ import { AjustesProgreso } from "@/modules/asistentes/AjustesProgreso";
 import { iniciarTutorial } from "@/modules/tutorial/Tutorial";
 import { TarjetaSincronizacion } from "@/modules/sync/TarjetaSincronizacion";
 import { almacenSync } from "@/lib/sync/almacenes";
+import { MenuExportar } from "@/components/ui/MenuExportar";
+import { documentoDatos } from "@/lib/exportar/datos";
 
 type Seccion = "perfil" | "apariencia" | "asistentes" | "progreso" | "datos";
 const SECCIONES: { value: Seccion; label: string }[] = [
@@ -471,8 +473,9 @@ function TarjetaRespaldoYSync() {
 }
 
 function StorageCard() {
-  const { db, mode, clearAll, importAll } = useData();
+  const { db, profile, mode, clearAll, importAll } = useData();
   const { confirm, toast } = useFeedback();
+  const today = useToday();
   const total = TABLES.reduce((n, t) => n + db[t].length, 0);
   const archivo = useRef<HTMLInputElement>(null);
   const [importando, setImportando] = useState(false);
@@ -564,8 +567,9 @@ function StorageCard() {
     toast("Datos borrados.");
   };
 
+  // z-10: encima de la tarjeta siguiente, porque el menú «Exportar datos» se abre hacia abajo
   return (
-    <Card id="datos">
+    <Card id="datos" className="relative z-10">
       <CardHeader title="Tus datos" subtitle={`${total} registros guardados`} />
       <div className="flex items-start gap-3 rounded-[20px] bg-bg-2 p-4">
         {mode === "local" ? <HardDrive size={20} className="mt-0.5 shrink-0" /> : mode === "demo" ? <FlaskConical size={20} className="mt-0.5 shrink-0" /> : <Cloud size={20} className="mt-0.5 shrink-0" />}
@@ -583,10 +587,16 @@ function StorageCard() {
         </div>
       </div>
       <p className="mt-4 text-[12.5px] leading-relaxed text-muted">
-        El respaldo incluye tus registros, perfil, progreso, las notas y reuniones de tus proyectos y tus notas de voz con su audio. Las imágenes no
-        viajan en el respaldo: al restaurarlo en otro equipo aparecerán sin archivo.
+        <span className="font-medium text-fg">Exportar datos</span> crea un archivo para leer, imprimir o compartir, en Word, Excel, PDF o texto: tus movimientos,
+        cuentas, metas, deudas, proyectos, tareas, hábitos, wishlist, objetivos y calendario.
+      </p>
+      <p className="mt-2 text-[12.5px] leading-relaxed text-muted">
+        <span className="font-medium text-fg">Exportar respaldo</span> guarda una copia completa (.json) para restaurarla después con «Importar respaldo»: tus
+        registros, perfil, progreso, las notas y reuniones de tus proyectos y tus notas de voz con su audio. Las imágenes no viajan en el respaldo: al
+        restaurarlo en otro equipo aparecerán sin archivo.
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
+        <MenuExportar className="bg-bg-2" etiqueta="Exportar datos" archivo="mis-datos" vacio="Aún no tienes datos para exportar." crear={() => documentoDatos(db, profile, today)} />
         <Button variant="secondary" className="bg-bg-2" onClick={() => void exportJSON()}>
           <Download size={18} /> Exportar respaldo
         </Button>

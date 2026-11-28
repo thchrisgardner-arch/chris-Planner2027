@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeftRight, CalendarClock, Download, FolderInput, Pencil, PiggyBank, Plus, Search, Trash2, Unlink, Upload } from "lucide-react";
+import { ArrowLeftRight, CalendarClock, FolderInput, Pencil, PiggyBank, Plus, Search, Trash2, Unlink, Upload } from "lucide-react";
 import { Deslizable } from "@/components/ui/Deslizable";
 import { completarPendiente } from "@/lib/finanzas/pagosFijos";
 import { AsistenteModulo } from "@/modules/asistentes/Presencia";
@@ -29,6 +29,8 @@ import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, accountTypeLabel } from "./const
 import { Deudas } from "./DeudasTab";
 import { PagosFijos } from "./PagosFijosTab";
 import { ImportarExtracto } from "./ImportarExtracto";
+import { MenuExportar } from "@/components/ui/MenuExportar";
+import { documentoMovimientos } from "@/lib/exportar/datos";
 import { EnQueSeVa } from "./EnQueSeVa";
 import { PreguntaCentavo } from "./PreguntaCentavo";
 import { AsignarProyecto } from "./AsignarProyecto";
@@ -254,21 +256,9 @@ const SORTERS: Record<SortKey, (a: Transaction, b: Transaction) => number> = {
   menor: (a, b) => a.amount - b.amount || byDateDesc(a, b),
   mayor: (a, b) => b.amount - a.amount || byDateDesc(a, b),
 };
-function toCSV(rows: Transaction[], accountName: (id: string | null) => string) {
-  const head = ["Fecha", "Tipo", "Descripción", "Categoría", "Cuenta", "Cuenta destino", "Valor", "Estado", "Para quién", "Método", "Notas"];
-  const esc = (v: string | number | null) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-  const lines = rows.map((t) =>
-    [t.date, t.type, t.description, t.category, accountName(t.account_id), accountName(t.to_account_id), t.amount, t.status, t.beneficiary, t.payment_method, t.notes]
-      .map(esc)
-      .join(";"),
-  );
-  return "﻿" + [head.map(esc).join(";"), ...lines].join("\n");
-}
-
 function Movements() {
   const { db } = useData();
   const open = useForms();
-  const { toast } = useFeedback();
   const today = useToday();
   const [q, setQ] = useState("");
   const [type, setType] = useState("");
@@ -280,7 +270,6 @@ function Movements() {
   const [asignar, setAsignar] = useState<string[] | null>(null);
   const months = useMemo(() => Array.from({ length: 12 }, (_, i) => addMonths(monthKey(today), -i)), [today]);
   const importador = importar ? <ImportarExtracto onClose={() => setImportar(false)} /> : null;
-  const accountName = (id: string | null) => (id ? db.accounts.find((a) => a.id === id)?.name ?? "—" : "");
 
   const rows = useMemo(
     () =>
@@ -290,17 +279,8 @@ function Movements() {
     [db.transactions, q, type, category, month, sort],
   );
 
-  const exportCSV = () => {
-    if (!rows.length) return toast("No hay movimientos para exportar con estos filtros.", "error");
-    const blob = new Blob([toCSV(rows, accountName)], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `lifeos-movimientos-${today}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast(`Exportados ${rows.length} movimientos.`);
-  };
+  // Lo que se exporta es lo que se ve: con los filtros y el orden puestos
+  const filtrosTexto = [q && `búsqueda «${q}»`, type && { ingreso: "ingresos", gasto: "gastos", transferencia: "transferencias" }[type], category, month && monthLabel(month)].filter(Boolean).join(", ");
 
   const customCats = db.transaction_categories.map((c) => c.name);
   const allCats = [...new Set([...INCOME_CATEGORIES, ...EXPENSE_CATEGORIES, ...customCats])];
@@ -366,9 +346,15 @@ function Movements() {
           <Button onClick={() => setImportar(true)} className="flex-1 lg:flex-none">
             <Upload size={18} /> Importar
           </Button>
-          <Button onClick={exportCSV} className="flex-1 lg:flex-none">
-            <Download size={18} /> Exportar
-          </Button>
+          <div className="flex-1 lg:flex-none [&>div]:w-full">
+            <MenuExportar
+              className="w-full"
+              alinear="end"
+              archivo="movimientos"
+              vacio="No hay movimientos para exportar con estos filtros."
+              crear={() => documentoMovimientos(rows, db, today, filtrosTexto)}
+            />
+          </div>
         </div>
       </div>
       {importador}
