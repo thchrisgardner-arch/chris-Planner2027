@@ -22,9 +22,9 @@ import { retro, type Retro } from "@/lib/asistentes/sonido";
 const DORADA: Colores = { primario: "yellow", secundario: "yellow-soft", detalle: "ink" };
 
 const VOZ_NIVEL: Record<Tono, (etapa: string, cambio: boolean) => string> = {
-  seco: (e, c) => (c ? `Etapa ${e}. Esto ya es otra cosa.` : "Subiste de nivel. No está mal."),
+  seco: (e, c) => (c ? `Etapa ${e}. Esto ya es otra cosa.` : "Un nivel más. No está mal."),
   motivador: (e, c) => (c ? `Bienvenido a ${e}. Vas con todo.` : "Un nivel más. Sigue así."),
-  tranquilo: (e, c) => (c ? `Llegaste a la etapa ${e}.` : "Subiste de nivel."),
+  tranquilo: (e, c) => (c ? `Llegaste a la etapa ${e}.` : "Un paso más, a tu ritmo."),
 };
 const VOZ_LOGRO: Record<Tono, string> = {
   seco: "Lo conseguiste. Lo anoto.",
@@ -106,6 +106,32 @@ function Confeti({ semilla }: { semilla: number }) {
     </div>
   );
 }
+
+/** Subir de nivel: estrella de cinco puntas (se redondea con un trazo grueso de esquinas redondas) */
+function puntosEstrella(ext: number, int: number): string {
+  return Array.from({ length: 10 }, (_, k) => {
+    const ang = -Math.PI / 2 + (k * Math.PI) / 5;
+    const r = k % 2 ? int : ext;
+    return `${(Math.cos(ang) * r).toFixed(1)},${(Math.sin(ang) * r).toFixed(1)}`;
+  }).join(" ");
+}
+const ESTRELLA = puntosEstrella(88, 44);
+
+/** Estrellas grandes y translúcidas que flotan en el fondo verde */
+const ESTRELLAS_FONDO = [
+  { x: "-6%", y: "4%", tam: 150, giro: -14, retraso: 0.25 },
+  { x: "74%", y: "-4%", tam: 120, giro: 18, retraso: 0.4 },
+  { x: "-4%", y: "56%", tam: 130, giro: 10, retraso: 0.55 },
+  { x: "72%", y: "52%", tam: 170, giro: -8, retraso: 0.35 },
+];
+
+/** Destellos de cuatro puntas que titilan */
+const DESTELLOS = [
+  { x: "22%", y: "28%", tam: 22, retraso: 0.6 },
+  { x: "72%", y: "70%", tam: 26, retraso: 0.8 },
+  { x: "64%", y: "22%", tam: 16, retraso: 1 },
+  { x: "30%", y: "74%", tam: 18, retraso: 1.2 },
+];
 
 export function CapaCelebraciones() {
   const g = useGamificacion();
@@ -258,6 +284,83 @@ export function CapaCelebraciones() {
     probar = `/configuracion?seccion=asistentes&asis=${id}`;
   }
   const a = estado.ajustes[id];
+
+  // Subir de nivel: pantalla completa. Arriba, escena verde con estrellas y la mascota;
+  // abajo, el número que rueda del nivel anterior al nuevo.
+  if (c.tipo === "nivel") {
+    return createPortal(
+      <div
+        ref={panel}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="celebracion-titulo"
+        aria-describedby="celebracion-sub"
+        className="nivel-fondo fixed inset-0 z-[95] flex flex-col overflow-hidden bg-bg text-center"
+      >
+        {/* Arriba: fondo verde con rayos de sol, estrellas que flotan, la estrella grande y la mascota */}
+        <div className="nivel-escena relative flex h-[56%] min-h-[330px] items-center justify-center overflow-hidden" key={`e-${i}`}>
+          <span className="nivel-sol" aria-hidden />
+          {ESTRELLAS_FONDO.map((s, k) => (
+            <svg key={k} className="nivel-estrella-fondo absolute" viewBox="-100 -100 200 200" width={s.tam} height={s.tam} style={{ left: s.x, top: s.y, "--retraso": `${s.retraso}s`, "--giro": `${s.giro}deg` } as React.CSSProperties} aria-hidden>
+              <polygon points={ESTRELLA} fill="rgb(255 255 255 / 0.2)" stroke="rgb(255 255 255 / 0.2)" strokeWidth="26" strokeLinejoin="round" />
+            </svg>
+          ))}
+          {/* Estrella grande y redondeada detrás de la mascota: borde blanco y relleno verde claro (la mascota resalta) */}
+          <svg className="nivel-boom absolute" viewBox="-120 -120 240 240" width="350" height="350" aria-hidden>
+            <polygon points={ESTRELLA} fill="#ffffff" stroke="#ffffff" strokeWidth="52" strokeLinejoin="round" />
+            <polygon points={ESTRELLA} fill="color-mix(in srgb, var(--color-brand) 45%, #ffffff)" stroke="color-mix(in srgb, var(--color-brand) 45%, #ffffff)" strokeWidth="26" strokeLinejoin="round" />
+            <polygon points={ESTRELLA} transform="scale(0.72)" fill="rgb(255 255 255 / 0.35)" stroke="rgb(255 255 255 / 0.35)" strokeWidth="20" strokeLinejoin="round" />
+          </svg>
+          {DESTELLOS.map((d, k) => (
+            <span key={k} className="nivel-destello absolute" style={{ left: d.x, top: d.y, "--retraso": `${d.retraso}s` } as React.CSSProperties} aria-hidden>
+              <svg viewBox="-10 -10 20 20" width={d.tam} height={d.tam}>
+                <path d="M0-10C1 -2 2-1 10 0 2 1 1 2 0 10-1 2-2 1-10 0-2-1-1-2 0-10z" fill="#ffffff" />
+              </svg>
+            </span>
+          ))}
+          <div className="nivel-mascota relative mt-6">
+            <Asistente id={id} size={200} pose="celebrando" momento={momento} colores={a.colores} accesorio={a.accesorio} mostrarProp={a.mostrarProp} nombre={a.nombre} celebrar={i + 1} />
+          </div>
+          {/* Borde de abajo en zigzag, como una grieta que da paso al blanco */}
+          <svg className="nivel-grieta absolute inset-x-0 bottom-[-1px] w-full" viewBox="0 0 400 60" preserveAspectRatio="none" height="64" aria-hidden>
+            <polygon points="0,60 0,30 30,44 58,14 84,40 120,22 150,48 182,10 214,38 246,20 272,46 306,16 338,40 368,24 400,36 400,60" fill="var(--color-bg)" />
+          </svg>
+        </div>
+
+        {/* Abajo: el número grande en verde y el cierre */}
+        <div className="flex flex-1 flex-col items-center px-6 pb-8">
+          <h2 id="celebracion-titulo" className="sr-only">
+            Nivel {c.nivel}
+          </h2>
+          <div className="num relative h-[120px] overflow-hidden text-[120px] font-bold leading-[120px] tracking-[-0.04em]" aria-hidden key={`n-${i}`}>
+            <div className="nivel-numero" style={{ color: "var(--color-brand)" }}>
+              <div className="nivel-rodillo flex flex-col">
+                <span>{c.anterior ?? c.nivel - 1}</span>
+                <span>{c.nivel}</span>
+              </div>
+            </div>
+          </div>
+          <p className="nivel-aparece mt-2 text-[20px] font-bold leading-snug" style={{ color: "var(--color-brand)" }}>
+            {c.cambioEtapa ? `Nueva etapa: ${c.etapa}` : `Subiste al nivel ${c.nivel}`}
+          </p>
+          <p id="celebracion-sub" className="nivel-aparece mx-auto mt-1 max-w-[320px] text-[15px] text-muted" style={{ "--retraso": "1.85s" } as React.CSSProperties}>
+            {sub}
+          </p>
+          {cola.length > 1 ? (
+            <p className="nivel-aparece mt-2 text-[12px] text-dim" aria-live="polite" style={{ "--retraso": "1.9s" } as React.CSSProperties}>
+              {i + 1} de {cola.length}
+            </p>
+          ) : null}
+          <div className="nivel-aparece mt-auto w-full max-w-[340px] pt-5" style={{ "--retraso": "2s" } as React.CSSProperties}>
+            <Button variant="primary" data-autofocus onClick={siguiente} className="w-full">
+              {i + 1 < cola.length ? "Siguiente" : "Continuar"}
+            </Button>
+          </div>
+        </div>
+      </div>,
+      document.body,
+    );
+  }
 
   return createPortal(
     <div className="fixed inset-0 z-[95] flex items-center justify-center p-4">

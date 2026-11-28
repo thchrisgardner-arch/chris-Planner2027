@@ -101,7 +101,7 @@ export function borrarProgreso() {
 /* ═════════ Tipos de la interfaz ═════════ */
 export type Reaccion = { id: number; asistente: AsistenteId; xp: number; cantidad: number; tipo: EventoXP["tipo"]; x?: number; y?: number };
 export type Celebracion =
-  | { tipo: "nivel"; nivel: number; etapa: string; cambioEtapa: boolean }
+  | { tipo: "nivel"; nivel: number; etapa: string; cambioEtapa: boolean; /** Nivel de donde se sube (para el contador) */ anterior?: number }
   | { tipo: "logro"; logro: LogroDef }
   | { tipo: "desbloqueo"; asistente: AsistenteId; item: Desbloqueo }
   | { tipo: "balance"; mes: string; verde: boolean; xp: number }
@@ -226,7 +226,7 @@ export function GamificacionProvider({ children }: { children: React.ReactNode }
       const cola: Celebracion[] = [];
       const nA = nivelConPiso(xpTotal(prev), prev.ui.nivelMax);
       const nB = nivelConPiso(xpTotal(next), next.ui.nivelMax);
-      if (nB.nivel > nA.nivel) cola.push({ tipo: "nivel", nivel: nB.nivel, etapa: nB.etapa, cambioEtapa: nB.etapa !== nA.etapa });
+      if (nB.nivel > nA.nivel) cola.push({ tipo: "nivel", nivel: nB.nivel, anterior: nA.nivel, etapa: nB.etapa, cambioEtapa: nB.etapa !== nA.etapa });
       // Hito de racha: se celebra el más alto alcanzado
       const hitos = nuevos.filter((e) => e.tipo === "hito-racha");
       if (hitos.length) {

@@ -393,3 +393,154 @@
     animation: none !important;
   }
 }
+
+/* ── Subir de nivel a pantalla completa ──
+   Arriba: escena verde con rayos de sol, estrellas translúcidas que flotan, una estrella grande
+   detrás de la mascota que sale con rebote, y destellos que titilan. Abajo: el número que rueda.
+   El estado base es el final: con movimiento reducido se ve todo quieto y con el nivel nuevo. */
+.nivel-fondo {
+  animation: nivel-fondo 0.3s ease-out both;
+}
+@keyframes nivel-fondo {
+  from { opacity: 0; }
+}
+
+.nivel-escena {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--color-brand) 82%, #0a3d0a) 0%, var(--color-brand) 45%, color-mix(in srgb, var(--color-brand) 62%, #ffffff) 100%);
+  animation: nivel-escena 0.45s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+@keyframes nivel-escena {
+  from { clip-path: inset(0 0 100% 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+.nivel-franjas {
+  position: absolute;
+  inset: -20%;
+  background: repeating-linear-gradient(135deg, rgb(255 255 255 / 0.1) 0 70px, transparent 70px 150px);
+  animation: nivel-franjas 6s linear infinite;
+}
+@keyframes nivel-franjas {
+  to { transform: translate(150px, 0); }
+}
+
+/* Rayos de sol suaves que giran lento detrás de todo */
+.nivel-sol {
+  position: absolute;
+  left: 50%;
+  top: 55%;
+  width: 200vmax;
+  height: 200vmax;
+  margin: -100vmax 0 0 -100vmax;
+  background: repeating-conic-gradient(from 0deg, rgb(255 255 255 / 0.12) 0deg 10deg, transparent 10deg 22deg);
+  -webkit-mask-image: radial-gradient(circle, #000 0, #000 8vmax, transparent 50vmax);
+  mask-image: radial-gradient(circle, #000 0, #000 8vmax, transparent 50vmax);
+  animation:
+    nivel-aparece-suave 0.8s ease-out 0.2s both,
+    nivel-gira 45s linear infinite;
+}
+@keyframes nivel-gira {
+  to { rotate: 360deg; }
+}
+@keyframes nivel-aparece-suave {
+  from { opacity: 0; scale: 0.3; }
+}
+
+/* Estrellas grandes translúcidas que flotan en el fondo */
+.nivel-estrella-fondo {
+  rotate: var(--giro);
+  animation:
+    nivel-aparece-suave 0.6s ease-out var(--retraso) both,
+    nivel-estrella-flota 5s ease-in-out calc(var(--retraso) + 0.6s) infinite;
+}
+@keyframes nivel-estrella-flota {
+  50% { transform: translateY(-10px) rotate(8deg); }
+}
+
+/* Estrella grande: aparece girando con rebote y luego se mece suave */
+.nivel-boom {
+  left: 50%;
+  top: 55%;
+  margin: -175px 0 0 -175px;
+  animation:
+    nivel-boom 0.7s cubic-bezier(0.2, 1.5, 0.4, 1) 0.2s both,
+    nivel-mece 3s ease-in-out 1s infinite;
+}
+@keyframes nivel-boom {
+  0% { transform: scale(0) rotate(-60deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+@keyframes nivel-mece {
+  0%, 100% { transform: rotate(-4deg) scale(1); }
+  50% { transform: rotate(4deg) scale(1.03); }
+}
+
+.nivel-destello {
+  animation: nivel-destello 1.4s ease-in-out var(--retraso) infinite both;
+}
+@keyframes nivel-destello {
+  0%, 100% { opacity: 0; transform: scale(0.3) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1) rotate(45deg); }
+}
+
+.nivel-mascota {
+  rotate: -8deg;
+  animation: nivel-mascota 0.8s cubic-bezier(0.2, 0.8, 0.3, 1) 0.3s both;
+  transform-origin: 50% 100%;
+}
+@keyframes nivel-mascota {
+  0% { transform: translateY(60%) scale(0.3); }
+  55% { transform: translateY(-8%) scale(1.12, 0.9); }
+  72% { transform: translateY(0) scale(0.92, 1.08); }
+  88% { transform: translateY(0) scale(1.03, 0.97); }
+  100% { transform: none; }
+}
+
+.nivel-grieta {
+  animation: nivel-grieta 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) 0.15s both;
+}
+@keyframes nivel-grieta {
+  from { transform: translateY(100%); }
+}
+
+.nivel-rodillo {
+  transform: translateY(-50%);
+  animation: nivel-rodillo 0.7s cubic-bezier(0.3, 1.5, 0.5, 1) 1.05s both;
+}
+@keyframes nivel-rodillo {
+  from { transform: translateY(0); }
+}
+.nivel-numero {
+  animation: nivel-numero 0.45s ease-out 1.05s both;
+}
+@keyframes nivel-numero {
+  0% { opacity: 0.35; transform: scale(1); }
+  60% { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.nivel-aparece {
+  animation: nivel-aparece 0.5s ease-out var(--retraso, 1.7s) both;
+}
+@keyframes nivel-aparece {
+  from { opacity: 0; transform: translateY(12px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nivel-fondo,
+  .nivel-escena,
+  .nivel-franjas,
+  .nivel-sol,
+  .nivel-estrella-fondo,
+  .nivel-boom,
+  .nivel-mascota,
+  .nivel-grieta,
+  .nivel-rodillo,
+  .nivel-numero,
+  .nivel-aparece {
+    animation: none;
+  }
+  .nivel-destello {
+    display: none;
+  }
+}
