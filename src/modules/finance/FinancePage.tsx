@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeftRight, CalendarClock, Car, Clapperboard, CreditCard, Dices, Dumbbell, FolderInput, HandHeart, HeartPulse, House, Laptop, Pencil, PiggyBank, Plus, Repeat, Search, Shapes, ShoppingBag, Tag, Trash2, Unlink, Upload, Users, UtensilsCrossed, Zap, type LucideIcon } from "lucide-react";
+import { ArrowLeftRight, CalendarClock, CarFront, CreditCard, Dices, Dumbbell, Ellipsis, FolderInput, HandHeart, HeartPulse, House, Popcorn, Smartphone, Utensils, Pencil, PiggyBank, Plus, Repeat, Search, Shapes, ShoppingBag, Tag, Trash2, Unlink, Upload, Users, Zap, type LucideIcon } from "lucide-react";
 import { Deslizable } from "@/components/ui/Deslizable";
 import { completarPendiente } from "@/lib/finanzas/pagosFijos";
 import { AsistenteModulo } from "@/modules/asistentes/Presencia";
@@ -172,14 +172,14 @@ function Summary() {
 const ICONO_CATEGORIA: Record<string, LucideIcon> = {
   Vivienda: House,
   Servicios: Zap,
-  Alimentación: UtensilsCrossed,
-  Transporte: Car,
+  Alimentación: Utensils,
+  Transporte: CarFront,
   Salud: HeartPulse,
   Gimnasio: Dumbbell,
-  Entretenimiento: Clapperboard,
+  Entretenimiento: Popcorn,
   Apuestas: Dices,
   "Compras personales": ShoppingBag,
-  Tecnología: Laptop,
+  Tecnología: Smartphone,
   Suscripciones: Repeat,
   Familia: Users,
   "Ayuda a otras personas": HandHeart,
@@ -187,13 +187,16 @@ const ICONO_CATEGORIA: Record<string, LucideIcon> = {
   Otros: Shapes,
 };
 
-/** Colores fijos de las 5 primeras partes; el resto se agrupa en «Otras categorías» (gris) */
-const SERIES = ["var(--serie-1)", "var(--serie-2)", "var(--serie-3)", "var(--serie-4)", "var(--serie-5)"];
+/** Paleta de la app (verde marca, negro y grises) en orden fijo; el resto se agrupa en «Otras categorías» */
+const SERIES = [1, 2, 3, 4, 5].map((n) => ({ color: `var(--serie-${n})`, tinta: `var(--tinta-${n})` }));
+const OTRAS = { color: "var(--serie-otras)", tinta: "var(--tinta-otras)" };
 
 interface Parte {
   name: string;
   value: number;
   color: string;
+  /** Color del ícono encima del color de la serie */
+  tinta: string;
   icono: LucideIcon;
   /** Categorías que agrupa (una sola si no es «Otras categorías») */
   categorias: string[];
@@ -205,14 +208,14 @@ function partesDona(items: { name: string; value: number }[]): Parte[] {
   const partes: Parte[] = visibles.map((c, i) => ({
     name: c.name,
     value: c.value,
-    color: SERIES[i],
+    ...SERIES[i],
     icono: ICONO_CATEGORIA[c.name] ?? Tag,
     categorias: [c.name],
   }));
   const resto = conValor.slice(visibles.length);
-  if (resto.length === 1) partes.push({ name: resto[0].name, value: resto[0].value, color: "var(--serie-otras)", icono: ICONO_CATEGORIA[resto[0].name] ?? Tag, categorias: [resto[0].name] });
+  if (resto.length === 1) partes.push({ name: resto[0].name, value: resto[0].value, ...OTRAS, icono: ICONO_CATEGORIA[resto[0].name] ?? Tag, categorias: [resto[0].name] });
   else if (resto.length > 1)
-    partes.push({ name: "Otras categorías", value: sum(resto.map((c) => c.value)), color: "var(--serie-otras)", icono: Shapes, categorias: resto.map((c) => c.name) });
+    partes.push({ name: "Otras categorías", value: sum(resto.map((c) => c.value)), ...OTRAS, icono: Ellipsis, categorias: resto.map((c) => c.name) });
   return partes;
 }
 
@@ -255,27 +258,27 @@ export function TarjetaGastosCategoria({
           <p className="mt-4 text-[13px] text-muted">{vacio}</p>
         </div>
       ) : (
-        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-5">
+        <div className="@container"><div className="grid items-center justify-items-center gap-5 @[340px]:grid-cols-[auto_minmax(0,1fr)] @[340px]:justify-items-stretch">
           <Dona partes={partes} base={base} foco={foco} elegida={indiceElegida} clicable={!!onElegir} onActiva={setActiva} onElegir={elegir} />
-          <ul className="flex min-w-[220px] flex-1 flex-col gap-0.5" aria-label="Categorías">
+          <ul className="flex w-full flex-col gap-0.5" aria-label="Categorías">
             {partes.map((p, i) => {
               const Icono = p.icono;
               const clicable = !!onElegir && p.categorias.length === 1;
               const porcentaje = Math.round(pct(p.value, base));
               const contenido = (
                 <>
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[12px] text-white" style={{ background: p.color }} aria-hidden>
-                    <Icono size={17} strokeWidth={2} />
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full" style={{ background: p.color, color: p.tinta }} aria-hidden>
+                    <Icono size={15} strokeWidth={2.25} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13.5px] text-fg">{p.name}</span>
+                    <span className="block text-[13.5px] leading-snug text-fg [overflow-wrap:anywhere]">{p.name}</span>
                     <span className="num block text-[12px] text-muted">{formatCOP(p.value)}</span>
                   </span>
                   <span className="num shrink-0 text-[14px] text-fg">{porcentaje} %</span>
                 </>
               );
               const fila = cn(
-                "flex w-full items-center gap-3 rounded-[14px] px-2 py-1.5 text-left transition-[opacity,background-color] duration-200",
+                "flex w-full items-center gap-2.5 rounded-[12px] px-2 py-1 text-left transition-[opacity,background-color] duration-200",
                 foco === i && "bg-bg-2",
                 indiceElegida >= 0 && indiceElegida !== i && "opacity-50",
               );
@@ -302,7 +305,7 @@ export function TarjetaGastosCategoria({
               );
             })}
           </ul>
-        </div>
+        </div></div>
       )}
     </Card>
   );
@@ -329,7 +332,7 @@ function Dona({
   const R = 78;
   const GROSOR = 24;
   const C = 2 * Math.PI * R;
-  const HUECO = partes.length > 1 ? 2.4 : 0; // ≈2px con la dona a 176px
+  const HUECO = partes.length > 1 ? 1.8 : 0; // ≈2px con la dona a 232–260px
   const totalPartes = sum(partes.map((p) => p.value)) || 1;
   const largos = partes.map((p) => (p.value / totalPartes) * C);
   const segmentos = partes.map((p, i) => ({
@@ -338,9 +341,16 @@ function Dona({
     largo: Math.max(0.5, largos[i] - HUECO),
   }));
   const enFoco = foco !== null ? partes[foco] : null;
+  // Etiqueta que sigue al cursor sobre cada color
+  const [cursor, setCursor] = useState<{ i: number; x: number; y: number } | null>(null);
+  const mover = (i: number, e: React.MouseEvent<SVGCircleElement>) => {
+    const caja = e.currentTarget.ownerSVGElement?.parentElement?.getBoundingClientRect();
+    if (caja) setCursor({ i, x: e.clientX - caja.left, y: e.clientY - caja.top });
+  };
+  const señalada = cursor ? partes[cursor.i] : null;
 
   return (
-    <div className="relative h-[176px] w-[176px] shrink-0">
+    <div className="relative h-[204px] w-[204px] shrink-0 @[340px]:h-[172px] @[340px]:w-[172px] @[460px]:h-[208px] @[460px]:w-[208px] @[600px]:h-[240px] @[600px]:w-[240px]">
       <svg viewBox="0 0 200 200" className="h-full w-full -rotate-90 overflow-visible" role="img" aria-label={`Gastos por categoría, total ${formatCOP(base)}`}>
         {segmentos.map(({ p, desde, largo }, i) => (
           <circle
@@ -358,21 +368,42 @@ function Dona({
               clicable && p.categorias.length === 1 && "cursor-pointer",
               elegida >= 0 && elegida !== i && foco !== i && "opacity-35",
             )}
-            onMouseEnter={() => onActiva(i)}
-            onMouseLeave={() => onActiva(null)}
+            onMouseEnter={(e) => {
+              onActiva(i);
+              mover(i, e);
+            }}
+            onMouseMove={(e) => mover(i, e)}
+            onMouseLeave={() => {
+              onActiva(null);
+              setCursor(null);
+            }}
             onClick={() => onElegir(p)}
-          >
-            <title>{`${p.name}: ${formatCOP(p.value)} (${Math.round(pct(p.value, base))} %)`}</title>
-          </circle>
+          />
         ))}
       </svg>
       <div className="pointer-events-none absolute inset-0 grid place-items-center text-center">
-        <div className="max-w-[116px]">
-          <p className="truncate text-[12px] text-muted">{enFoco ? enFoco.name : "Total"}</p>
-          <p className="figure text-[22px] leading-tight text-fg">{formatKpiCOP(enFoco ? enFoco.value : base)}</p>
-          <p className="num text-[11.5px] text-muted">{enFoco ? `${Math.round(pct(enFoco.value, base))} %` : formatCOP(base)}</p>
+        <div className="max-w-[60%]">
+          <p className="line-clamp-2 text-[13px] leading-snug text-muted">{enFoco ? enFoco.name : "Total"}</p>
+          <p className="figure text-[24px] leading-tight text-fg @[340px]:text-[20px] @[460px]:text-[24px] @[600px]:text-[28px]">{formatKpiCOP(enFoco ? enFoco.value : base)}</p>
+          <p className="num text-[12px] text-muted">{enFoco ? `${Math.round(pct(enFoco.value, base))} %` : formatCOP(base)}</p>
         </div>
       </div>
+      {señalada && cursor ? (
+        <div
+          role="tooltip"
+          className="pointer-events-none absolute z-20 w-max max-w-[220px] -translate-x-1/2 -translate-y-[calc(100%+12px)] rounded-[14px] bg-fg px-3 py-2 text-on-fg shadow-lg"
+          style={{ left: cursor.x, top: cursor.y }}
+        >
+          <p className="flex items-center gap-2 text-[13px] font-medium">
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-on-fg/30" style={{ background: señalada.color }} aria-hidden />
+            {señalada.name}
+          </p>
+          <p className="num mt-0.5 text-[12px] opacity-70">
+            {formatCOP(señalada.value)} · {Math.round(pct(señalada.value, base))} %
+          </p>
+          {señalada.categorias.length > 1 ? <p className="mt-1 text-[11.5px] opacity-70">{señalada.categorias.join(", ")}</p> : null}
+        </div>
+      ) : null}
     </div>
   );
 }

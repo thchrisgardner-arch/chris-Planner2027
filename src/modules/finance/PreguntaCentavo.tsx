@@ -19,6 +19,7 @@ import { almacenAnimo, diaDificil } from "@/lib/animoUsuario";
 import { almacenPagosFijos, pagosDelMes, resumenMes } from "@/lib/finanzas/pagosFijos";
 import { armarResumen, responderPregunta, SUGERENCIAS, type Respuesta } from "@/lib/finanzas/preguntas";
 import { monthKey } from "@/utils/dates";
+import { cn } from "@/utils/cn";
 import { almacenConceptos } from "./EnQueSeVa";
 
 export function PreguntaCentavo({ className }: { className?: string }) {
@@ -73,7 +74,7 @@ export function PreguntaCentavo({ className }: { className?: string }) {
   };
 
   return (
-    <Card className={className}>
+    <Card className={cn("min-w-0", className)}>
       <div className="flex items-start gap-3">
         {centavo.activo ? (
           <Asistente id="centavo" size={56} momento={pensando ? "pensativo" : respuesta ? "aprobando" : "base"} colores={centavo.colores} accesorio={centavo.accesorio} decorativo animado={false} fx={false} />
@@ -110,7 +111,8 @@ export function PreguntaCentavo({ className }: { className?: string }) {
           <Send size={15} />
         </Button>
       </form>
-      <div className="mt-2.5 flex flex-wrap gap-1.5" role="group" aria-label="Preguntas sugeridas">
+      {/* Una sola línea: si no caben, se deslizan de lado (sin barra) */}
+      <div className="sin-barra mt-2.5 flex gap-1.5 overflow-x-auto" role="group" aria-label="Preguntas sugeridas">
         {SUGERENCIAS.map((s) => (
           <button
             key={s}
@@ -119,7 +121,7 @@ export function PreguntaCentavo({ className }: { className?: string }) {
               setTexto(s);
               preguntar(s);
             }}
-            className="focus-ring min-h-9 cursor-pointer rounded-full border border-line px-3 py-1.5 text-[12.5px] text-muted transition-colors hover:text-fg"
+            className="focus-ring min-h-9 shrink-0 cursor-pointer whitespace-nowrap rounded-full border border-line px-3 py-1.5 text-[12.5px] text-muted transition-colors hover:text-fg"
           >
             {s}
           </button>

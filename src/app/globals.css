@@ -57,24 +57,37 @@
 
 :root {
   color-scheme: light;
-  /* Series de gráficos (orden fijo, validado para daltonismo); «Otras» en gris */
-  --serie-1: #2a78d6;
-  --serie-2: #eb6834;
-  --serie-3: #1baf7a;
-  --serie-4: #eda100;
-  --serie-5: #e87ba4;
-  --serie-otras: #a3a3a3;
+  /* Series de gráficos con la paleta de la app: verde marca, negro y grises (orden fijo).
+     --tinta-*: color del ícono/texto encima de cada serie */
+  --serie-1: var(--color-brand);
+  --serie-2: #0a0a0a;
+  --serie-3: #6b6b6b;
+  --serie-4: #a3a3a3;
+  --serie-5: #c7c7c7;
+  --serie-otras: #dcdcdc;
+  --tinta-1: #0a0a0a;
+  --tinta-2: #ffffff;
+  --tinta-3: #ffffff;
+  --tinta-4: #0a0a0a;
+  --tinta-5: #0a0a0a;
+  --tinta-otras: #0a0a0a;
 }
 
 /* ── Modo oscuro (Configuración → Apariencia) ── */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --serie-1: #3987e5;
-  --serie-2: #d95926;
-  --serie-3: #199e70;
-  --serie-4: #c98500;
-  --serie-5: #d55181;
-  --serie-otras: #5c5c5c;
+  --serie-1: #5ce65c;
+  --serie-2: #f5f5f5;
+  --serie-3: #a3a3a3;
+  --serie-4: #737373;
+  --serie-5: #4d4d4d;
+  --serie-otras: #333333;
+  --tinta-1: #0a0a0a;
+  --tinta-2: #0a0a0a;
+  --tinta-3: #0a0a0a;
+  --tinta-4: #f5f5f5;
+  --tinta-5: #f5f5f5;
+  --tinta-otras: #f5f5f5;
   --color-canvas: #000000;
   --color-bg: #0e0e0e;
   --color-card: #1a1a1a;

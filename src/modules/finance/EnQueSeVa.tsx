@@ -5,10 +5,12 @@
  * periodo, agrupados por descripción normalizada, con su barra, monto, porcentaje, veces y la
  * comparación con el periodo anterior. Tocar una categoría del gráfico de al lado filtra la lista.
  * Unir conceptos a mano desde el menú de la fila (se recuerda y se puede deshacer).
+ * Compacta: dos columnas en pantallas anchas, una línea de datos por concepto y los 6 primeros
+ * a la vista (el resto con «Ver todos»).
  */
 import { useMemo, useState } from "react";
-import { MoreHorizontal, X } from "lucide-react";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { ChevronDown, MoreHorizontal, X } from "lucide-react";
+import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Segmented } from "@/components/ui/misc";
 import { Popover } from "@/components/ui/Popover";
@@ -27,6 +29,17 @@ export const almacenConceptos = crearAlmacen<{ version: 1; uniones: Record<strin
   uniones: (c.uniones as Record<string, string>) ?? {},
 }));
 
+/** Conceptos a la vista antes de «Ver todos» */
+const A_LA_VISTA = 6;
+
+/** «Nuevo», «+40 %», «−20 %» o «Igual»: el periodo de comparación se dice una sola vez arriba */
+function cambioCorto(actual: number, anterior: number): string | null {
+  if (anterior <= 0) return actual > 0 ? "Nuevo" : null;
+  const p = Math.round(((actual - anterior) / anterior) * 100);
+  if (p === 0) return "Igual";
+  return `${p > 0 ? "+" : "−"}${Math.abs(p)} %`;
+}
+
 export function EnQueSeVa({ categoria, onQuitarCategoria, className }: { categoria: string | null; onQuitarCategoria: () => void; className?: string }) {
   const { db } = useData();
   const today = useToday();
@@ -34,12 +47,14 @@ export function EnQueSeVa({ categoria, onQuitarCategoria, className }: { categor
   const centavo = estado.ajustes.centavo;
   const { uniones } = almacenConceptos.useValor();
   const [periodo, setPeriodo] = useState<PeriodoConceptos>("mes");
+  const [todos, setTodos] = useState(false);
   const r = useMemo(() => (today ? rangos(periodo, today) : null), [periodo, today]);
   const conceptos = useMemo(() => (r ? agruparConceptos(db.transactions, r.actual.desde, r.actual.hasta, uniones, categoria) : []), [db.transactions, r, uniones, categoria]);
   const antes = useMemo(() => (r ? new Map(agruparConceptos(db.transactions, r.anterior.desde, r.anterior.hasta, uniones, categoria).map((c) => [c.clave, c.total])) : new Map<string, number>()), [db.transactions, r, uniones, categoria]);
   if (!r) return null;
   const total = totalGastos(db.transactions, r.actual.desde, r.actual.hasta, categoria);
   const top = conceptos.slice(0, 10);
+  const visibles = todos ? top : top.slice(0, A_LA_VISTA);
   const listaUniones = Object.entries(uniones);
 
   const unir = (desde: string, hacia: string) => almacenConceptos.cambiar((d) => ({ ...d, uniones: { ...d.uniones, [desde]: hacia } }));
@@ -52,12 +67,17 @@ export function EnQueSeVa({ categoria, onQuitarCategoria, className }: { categor
 
   return (
     <Card className={className}>
-      <CardHeader
-        title="¿En qué se va tu plata?"
-        subtitle={categoria ? `${categoria} · ${r.actual.nombre}` : `Conceptos con más gasto · ${r.actual.nombre}`}
-      />
-      {/* El periodo va debajo del título: en el celular no cabe al lado */}
-      <Segmented size="sm" label="Periodo" className="-mt-1 mb-3" value={periodo} onChange={setPeriodo} options={PERIODOS_CONCEPTOS} />
+      {/* Título y periodo en una fila; en el celular el periodo baja */}
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+        <div className="min-w-0">
+          <h2 className="text-[16px] font-bold tracking-[-0.01em] text-fg">¿En qué se va tu plata?</h2>
+          <p className="mt-0.5 text-[13px] text-muted">
+            {categoria ? categoria : "Conceptos con más gasto"} · {r.actual.nombre}
+            <span className="text-dim"> · cambio frente a {periodo === "anio" ? "los 12 meses anteriores" : r.anterior.nombre}</span>
+          </p>
+        </div>
+        <Segmented size="sm" label="Periodo" value={periodo} onChange={setPeriodo} options={PERIODOS_CONCEPTOS} />
+      </div>
       {categoria ? (
         <button type="button" onClick={onQuitarCategoria} className="focus-ring mb-3 inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full bg-bg-2 px-3 text-[12.5px] font-medium hover:bg-elev">
           {categoria} <X size={14} aria-hidden /> <span className="sr-only">Quitar filtro</span>
@@ -71,25 +91,35 @@ export function EnQueSeVa({ categoria, onQuitarCategoria, className }: { categor
           </p>
         </div>
       ) : (
-        <ol className="flex flex-col gap-3">
-          {top.map((c, i) => {
-            const cmp = comparacion(c.total, antes.get(c.clave) ?? 0, r.anterior.nombre);
-            return (
-              <li key={c.clave}>
-                <div className="mb-1.5 flex items-baseline justify-between gap-3 text-[13.5px]">
-                  <span className="min-w-0 truncate text-fg">{c.nombre}</span>
-                  <span className="num shrink-0 text-muted">
-                    {formatCOP(c.total)} <span className="text-dim">· {Math.round(pct(c.total, total))} %</span>
+        <>
+          <ol className="grid gap-x-8 md:grid-cols-2">
+            {visibles.map((c, i) => {
+              const cambio = cambioCorto(c.total, antes.get(c.clave) ?? 0);
+              const largo = comparacion(c.total, antes.get(c.clave) ?? 0, r.anterior.nombre);
+              return (
+                <li key={c.clave} className="flex items-center gap-3 border-b border-line py-2.5">
+                  <span className="num w-5 shrink-0 text-center text-[12px] text-dim" aria-hidden>
+                    {i + 1}
                   </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-elev" aria-hidden>
-                    <div className={cn("h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none", i === 0 ? "bg-brand" : "bg-line-strong")} style={{ width: `${Math.max(4, pct(c.total, top[0].total))}%` }} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="min-w-0 text-[13.5px] leading-snug text-fg [overflow-wrap:anywhere]">{c.nombre}</span>
+                      <span className="num shrink-0 text-[13.5px] text-fg">{formatCOP(c.total)}</span>
+                    </div>
+                    <div className="mt-1.5 flex items-center gap-3">
+                      <div className="h-1.5 min-w-[48px] flex-1 overflow-hidden rounded-full bg-elev" aria-hidden>
+                        <div className={cn("h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none", i === 0 ? "bg-brand" : "bg-line-strong")} style={{ width: `${Math.max(4, pct(c.total, top[0].total))}%` }} />
+                      </div>
+                      <span className="num shrink-0 whitespace-nowrap text-[11.5px] text-muted" title={largo ?? undefined}>
+                        {Math.round(pct(c.total, total))} % · {c.veces} {c.veces === 1 ? "vez" : "veces"}
+                        {cambio ? <span className="text-dim"> · {cambio}</span> : null}
+                      </span>
+                    </div>
                   </div>
                   <Popover
                     side="bottom"
                     trigger={({ open, toggle }) => (
-                      <Button size="icon-sm" variant="ghost" aria-label={`Opciones de ${c.nombre}`} aria-expanded={open} onClick={toggle} className="-my-1 shrink-0">
+                      <Button size="icon-sm" variant="ghost" aria-label={`Opciones de ${c.nombre}`} aria-expanded={open} onClick={toggle} className="-mr-1.5 shrink-0">
                         <MoreHorizontal size={16} />
                       </Button>
                     )}
@@ -114,15 +144,17 @@ export function EnQueSeVa({ categoria, onQuitarCategoria, className }: { categor
                       </div>
                     )}
                   </Popover>
-                </div>
-                <p className="mt-1 text-[12px] text-dim">
-                  {c.veces} {c.veces === 1 ? "vez" : "veces"}
-                  {cmp ? ` · ${cmp}` : ""}
-                </p>
-              </li>
-            );
-          })}
-        </ol>
+                </li>
+              );
+            })}
+          </ol>
+          {top.length > A_LA_VISTA ? (
+            <button type="button" onClick={() => setTodos((v) => !v)} aria-expanded={todos} className="focus-ring mt-3 inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full bg-bg-2 px-3.5 text-[12.5px] font-medium hover:bg-elev">
+              {todos ? "Ver menos" : `Ver todos (${top.length})`}
+              <ChevronDown size={14} className={cn("transition-transform duration-200", todos && "rotate-180")} aria-hidden />
+            </button>
+          ) : null}
+        </>
       )}
       {listaUniones.length ? (
         <p className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-dim">
