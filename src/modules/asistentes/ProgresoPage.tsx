@@ -72,7 +72,7 @@ function Escalera({ className, principal }: { className?: string; principal: Asi
         </div>
         <p className="num text-[13px] text-muted">{g.nivel.xpParaSiguiente ? `${g.nivel.xpEnNivel} / ${g.nivel.xpParaSiguiente} XP` : "Nivel máximo"}</p>
       </div>
-      <div className="relative mt-24 grid grid-cols-6 items-end gap-2 sm:gap-3" aria-label={`Escalera de etapas: estás en ${g.nivel.etapa}`}>
+      <div className="relative mt-24 grid grid-cols-6 items-end gap-1.5 sm:gap-3" aria-label={`Escalera de etapas: estás en ${g.nivel.etapa}`}>
         {ETAPAS.map((e, i) => (
           <div key={e} className="relative flex flex-col items-center justify-end">
             {i === actual ? (
@@ -88,12 +88,12 @@ function Escalera({ className, principal }: { className?: string; principal: Asi
             ) : null}
             <div
               className={cn(
-                "flex w-full items-start justify-center rounded-[16px] pt-3 text-[11px] font-bold sm:text-[13px]",
+                "@container flex w-full items-start justify-center overflow-hidden rounded-[16px] pt-3 font-bold",
                 i < actual ? "bg-fg text-on-fg" : i === actual ? "bg-brand text-[#0a0a0a]" : "bg-elev text-muted",
               )}
               style={{ height: alturas[i] }}
             >
-              <span className="px-1 text-center [writing-mode:horizontal-tb]">{e}</span>
+              <span className="nombre-etapa">{e}</span>
             </div>
           </div>
         ))}

@@ -117,6 +117,16 @@ body {
   display: none;
 }
 
+/* Nombre de cada etapa en la escalera de Progreso: siempre horizontal y dentro de su barra. La letra se achica
+   con el ancho de la barra (la barra lleva @container; 100cqw = su ancho) hasta que «Disciplina», el nombre más
+   largo (≈ 5,6 veces el tamaño de letra), quepa; nunca pasa de 13 px */
+.nombre-etapa {
+  white-space: nowrap;
+  text-align: center;
+  font-size: min(13px, calc((100cqw - 6px) / 5.7));
+  letter-spacing: -0.01em;
+}
+
 @layer components {
   /* Tarjeta: plano gris, sin borde ni sombra */
   .card {
