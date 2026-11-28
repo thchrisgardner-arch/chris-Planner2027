@@ -56,7 +56,8 @@ export function AjustesProgreso() {
                   disabled={!a.gamificacion}
                   onClick={() => cambiar({ metaDiaria: m.xp })}
                   className={cn(
-                    "focus-ring cursor-pointer rounded-[16px] p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                    // Contenido arriba (no centrado): títulos y descripciones alineados aunque una descripción ocupe dos líneas
+                    "focus-ring flex cursor-pointer flex-col items-start justify-start rounded-[16px] p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50",
                     on ? "bg-fg text-on-fg" : "bg-card hover:bg-elev",
                   )}
                 >
