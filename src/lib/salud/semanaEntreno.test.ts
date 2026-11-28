@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Habit, HabitLog } from "../../types/db";
 import { completion, isScheduled, streak } from "../../modules/habits/selectors";
-import { diasDeSemana, estadoDia, etiquetaDia, reaccionEntreno, resumenSemana, semanaCompleta } from "./semanaEntreno";
+import { diasDeSemana, estadoDia, etiquetaDia, rachaSemanasEntreno, reaccionEntreno, resumenSemana, semanaCompleta } from "./semanaEntreno";
 
 const HOY = "2026-11-26"; // jueves
 const LUNES = "2026-11-23";
@@ -121,5 +121,28 @@ describe("realizado, no realizado y reacción de la mascota", () => {
   it("«X veces por semana»: solo se preocupa cuando ya no alcanzan los días", () => {
     expect(reaccionEntreno(flexible, semana([], flexible))).toBeNull(); // 0 de 3, quedan jueves a domingo
     expect(semanaCompleta(flexible, semana(["2026-11-23", "2026-11-24", "2026-11-25"], flexible))).toBe(true);
+  });
+});
+
+describe("racha de semanas completas", () => {
+  // Plan lunes, miércoles y viernes; hoy jueves 26 de noviembre (semana del 23)
+  const semanaCompletaDe = (lunes: string) => [0, 2, 4].map((d) => log("h", addDaysISO(lunes, d)));
+  function addDaysISO(iso: string, n: number) {
+    const d = new Date(`${iso}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + n);
+    return d.toISOString().slice(0, 10);
+  }
+  it("cuenta las semanas pasadas completas; la semana en curso no la rompe", () => {
+    const logs = [...semanaCompletaDe("2026-11-02"), ...semanaCompletaDe("2026-11-09"), ...semanaCompletaDe("2026-11-16"), log("h", "2026-11-23")];
+    expect(rachaSemanasEntreno(entrenar, logs, HOY)).toEqual({ actual: 3, mejor: 3 });
+  });
+  it("una semana incompleta corta la racha, pero se recuerda la mejor", () => {
+    const logs = [...semanaCompletaDe("2026-10-19"), ...semanaCompletaDe("2026-10-26"), log("h", "2026-11-02"), ...semanaCompletaDe("2026-11-09"), ...semanaCompletaDe("2026-11-16")];
+    expect(rachaSemanasEntreno(entrenar, logs, HOY)).toEqual({ actual: 2, mejor: 2 });
+    const larga = [...semanaCompletaDe("2026-10-12"), ...logs];
+    expect(rachaSemanasEntreno(entrenar, larga, HOY)).toEqual({ actual: 2, mejor: 3 });
+  });
+  it("sin registros, sin racha", () => {
+    expect(rachaSemanasEntreno(entrenar, [], HOY)).toEqual({ actual: 0, mejor: 0 });
   });
 });

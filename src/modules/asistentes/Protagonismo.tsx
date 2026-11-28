@@ -1,5 +1,6 @@
 "use client";
 
+import { almacenPresupuestos } from "@/lib/finanzas/presupuestos";
 import { useEffect, useMemo, useState } from "react";
 import Link from "@/components/Enlace";
 import { ArrowUpRight, X } from "lucide-react";
@@ -47,7 +48,11 @@ export function HeroAsistente({ nombreUsuario }: { nombreUsuario?: string }) {
   const activos = ASISTENTE_IDS.filter((id) => estado.ajustes[id].activo);
   const id = elegido && estado.ajustes[elegido].activo ? elegido : estado.principal;
   const a = estado.ajustes[id];
-  const msg = useMemo(() => getMensajeAsistente(id, { db, today, tono: a.tono, forzarSalud: g.demo ? g.forzarSalud : undefined }), [id, db, today, a.tono, g.demo, g.forzarSalud]);
+  const presupuestos = almacenPresupuestos.useValor().topes;
+  const msg = useMemo(
+    () => getMensajeAsistente(id, { db, today, tono: a.tono, forzarSalud: g.demo ? g.forzarSalud : undefined, presupuestos }),
+    [id, db, today, a.tono, g.demo, g.forzarSalud, presupuestos],
+  );
   const pose = a.expresion !== "idle" ? a.expresion : msg.expresion;
   const radiante = g.general.animo === "radiante";
   const animo = msg.animo ? ANIMO_LABEL[msg.animo].toLowerCase() : "";

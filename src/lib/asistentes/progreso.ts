@@ -14,7 +14,7 @@ import type { Database } from "@/types/db";
 import { isScheduled } from "@/modules/habits/selectors";
 import { addDays, addMonths, fechaLocal, monthKey, startOfWeek, weekdayMon } from "@/utils/dates";
 import { habitoDeEntreno } from "@/lib/salud/entrenamiento";
-import { diasDeSemana, semanaCompleta, XP_SEMANA_ENTRENO } from "@/lib/salud/semanaEntreno";
+import { diasDeSemana, rachaSemanasEntreno, semanaCompleta, XP_SEMANA_ENTRENO } from "@/lib/salud/semanaEntreno";
 import { sum } from "@/utils/money";
 import { ASISTENTE_IDS, type AsistenteId } from "./tipos";
 
@@ -94,7 +94,10 @@ export type LogroId =
   | "nivel-20"
   | "leyenda"
   | "meta-7"
-  | "misiones-30";
+  | "misiones-30"
+  | "gym-4"
+  | "gym-8"
+  | "gym-12";
 
 export interface Progreso {
   version: 1;
@@ -666,6 +669,9 @@ export const LOGROS: LogroDef[] = [
   { id: "leyenda", titulo: "Leyenda", condicion: "Llega a la etapa Leyenda (nivel 26)", asistente: "todos", grande: true },
   { id: "meta-7", titulo: "Semana en meta", condicion: "Cumple tu meta diaria 7 días", asistente: "todos" },
   { id: "misiones-30", titulo: "Cazador de misiones", condicion: "Completa 30 misiones del día", asistente: "todos", grande: true },
+  { id: "gym-4", titulo: "Mes de gym", condicion: "Completa 4 semanas de entrenamiento seguidas", asistente: "brote" },
+  { id: "gym-8", titulo: "Dos meses de gym", condicion: "Completa 8 semanas de entrenamiento seguidas", asistente: "brote", grande: true },
+  { id: "gym-12", titulo: "Trimestre de gym", condicion: "Completa 12 semanas de entrenamiento seguidas", asistente: "brote", grande: true },
 ];
 
 export function evaluarLogros(db: Database, p: Progreso, today: string): LogroId[] {
@@ -680,6 +686,8 @@ export function evaluarLogros(db: Database, p: Progreso, today: string): LogroId
   });
   const hechas = db.tasks.filter((t) => t.status === "completada").length;
   const vencidas = db.tasks.filter((t) => t.status !== "completada" && t.due_date && t.due_date < today).length;
+  const entreno = habitoDeEntreno(db.habits);
+  const semanasGym = entreno ? rachaSemanasEntreno(entreno, db.habit_logs, today).mejor : 0;
   const ok: Record<LogroId, boolean> = {
     "primer-movimiento": db.transactions.length > 0,
     "racha-7": p.racha.mejor >= 7,
@@ -701,6 +709,9 @@ export function evaluarLogros(db: Database, p: Progreso, today: string): LogroId
     leyenda: nivel >= 26,
     "meta-7": cuenta("meta-diaria") >= 7,
     "misiones-30": cuenta("mision") >= 30,
+    "gym-4": semanasGym >= 4,
+    "gym-8": semanasGym >= 8,
+    "gym-12": semanasGym >= 12,
   };
   return (Object.keys(ok) as LogroId[]).filter((id) => ok[id] && !p.logros[id]);
 }

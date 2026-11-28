@@ -26,6 +26,9 @@ import {
 import { cn } from "@/utils/cn";
 import { isScheduled } from "@/modules/habits/selectors";
 import { CALENDAR_EXTRA, EVENT_TYPES, eventType } from "./constants";
+import { almacenPagosFijos, pagosDelMes } from "@/lib/finanzas/pagosFijos";
+import { formatCOP } from "@/utils/money";
+import { useRouter } from "next/navigation";
 
 type View = "dia" | "semana" | "mes";
 type Filter = "todos" | EventType | "tareas";
@@ -45,6 +48,8 @@ interface Item {
   dot: string;
   kind: string;
   form?: FormRequest;
+  /** Si no hay formulario: a dónde lleva al tocarlo (p. ej. un pago fijo aún sin movimiento) */
+  href?: string;
 }
 
 const toMin = (t: string | null) => {
@@ -85,7 +90,40 @@ function itemsFor(db: Database, iso: string, filter: Filter): Item[] {
     for (const g of db.annual_goals)
       if (g.target_date === iso) out.push({ id: g.id, title: g.title, start: null, end: null, bg: x.bg, fg: x.fg, dot: x.color, kind: "Objetivo", form: { kind: "goal", record: g } });
   }
+  if (filter === "todos" || filter === "pago") out.push(...fijosDelDia(db, iso));
   return out.sort((a, b) => (a.start ?? -1) - (b.start ?? -1));
+}
+
+/**
+ * Gastos e ingresos fijos que vencen ese día (Finanzas → Gastos/Ingresos fijos), sin crearlos a mano.
+ * Si el movimiento del mes ya existe (pendiente o pagado), se abre ese movimiento; si no, lleva a la pestaña.
+ * Desde el mes en que se creó el fijo; los omitidos ese mes no aparecen.
+ */
+function fijosDelDia(db: Database, iso: string): Item[] {
+  const datos = almacenPagosFijos.leer();
+  if (!datos.pagos.length) return [];
+  const mes = monthKey(iso);
+  const out: Item[] = [];
+  for (const mov of ["gasto", "ingreso"] as const) {
+    const t = mov === "gasto" ? eventType("pago") : CALENDAR_EXTRA.habito;
+    for (const f of pagosDelMes(datos, db, mes, mov)) {
+      if (f.fecha !== iso || f.estado === "omitido" || mes < monthKey(f.pago.creado.slice(0, 10))) continue;
+      const hecho = f.estado === "pagado";
+      out.push({
+        id: `fijo:${f.pago.id}:${mes}`,
+        title: `${hecho ? "✓ " : ""}${f.pago.nombre} · ${formatCOP(f.monto)}`,
+        start: null,
+        end: null,
+        bg: t.bg,
+        fg: t.fg,
+        dot: t.color,
+        kind: `${mov === "gasto" ? "Gasto fijo" : "Ingreso fijo"}${hecho ? (mov === "gasto" ? " · pagado" : " · recibido") : " · pendiente"}`,
+        form: f.tx ? { kind: "transaction", record: f.tx } : undefined,
+        href: f.tx ? undefined : `/finanzas?tab=${mov === "gasto" ? "fijos" : "ingresos-fijos"}`,
+      });
+    }
+  }
+  return out;
 }
 
 /** Reparte eventos que se cruzan en columnas para que no se tapen. */
@@ -159,6 +197,8 @@ export function CalendarPage() {
  */
 export function VistaCalendario({ db, estado, extra }: { db: Database; estado: EstadoCalendario; extra?: Partial<CalendarEvent> }) {
   const today = useToday();
+  // Los gastos e ingresos fijos salen en el calendario: se vuelve a dibujar si cambian
+  almacenPagosFijos.useValor();
   const { view, setView, cursor, setCursor, filter, setFilter } = estado;
 
   const move = (dir: number) => {
@@ -277,6 +317,7 @@ export function VistaCalendario({ db, estado, extra }: { db: Database; estado: E
 /* ───────── Vista por horas (semana o día) ───────── */
 function TimeGrid({ db, days, today, filter, extra }: { db: Database; days: string[]; today: string; filter: Filter; extra?: Partial<CalendarEvent> }) {
   const open = useForms();
+  const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [now, setNow] = useState(() => bogotaNowMinutes());
   const hours = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i);
@@ -326,7 +367,7 @@ function TimeGrid({ db, days, today, filter, extra }: { db: Database; days: stri
                 {allDay[i].map((it) => (
                   <button
                     key={it.id}
-                    onClick={() => it.form && open(it.form)}
+                    onClick={() => (it.form ? open(it.form) : it.href && router.push(it.href))}
                     className="cursor-pointer truncate rounded-[10px] border-l-[3px] bg-elev px-2 py-1 text-left text-[11.5px] text-fg transition-colors hover:bg-line-strong/50"
                     style={{ borderLeftColor: it.dot }}
                     title={`${it.kind}: ${it.title}`}
@@ -380,7 +421,7 @@ function TimeGrid({ db, days, today, filter, extra }: { db: Database; days: stri
                     return (
                       <button
                         key={item.id}
-                        onClick={() => item.form && open(item.form)}
+                        onClick={() => (item.form ? open(item.form) : item.href && router.push(item.href))}
                         className="absolute flex cursor-pointer flex-col overflow-hidden rounded-[12px] border-l-[3px] bg-elev px-2.5 py-1.5 text-left text-fg transition-colors duration-200 hover:bg-line-strong/50"
                         style={{
                           top,

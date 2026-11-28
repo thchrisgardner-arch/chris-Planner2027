@@ -16,7 +16,9 @@ import { useAsistentes } from "@/lib/asistentes/estado";
 import { FICHAS } from "@/lib/asistentes/definiciones";
 import { getMensajeAsistente } from "@/lib/asistentes/motor";
 import { ANIMO_LABEL, poseDeAnimo } from "@/lib/asistentes/animo";
-import { ASISTENTE_IDS } from "@/lib/asistentes/tipos";
+import { ASISTENTE_IDS, type AsistenteId, type Pose } from "@/lib/asistentes/tipos";
+import { resumenSemanal } from "@/lib/asistentes/resumenSemana";
+import { formatCOP } from "@/utils/money";
 import { cn } from "@/utils/cn";
 import { useGamificacion } from "./Gamificacion";
 import { useSemana } from "./semana";
@@ -79,6 +81,40 @@ function ModalRevision({ abierta, onClose }: { abierta: boolean; onClose: () => 
     onClose();
   };
 
+  // Resumen del domingo: gasto frente a la semana anterior, entrenamientos y la meta más cercana
+  const r = useMemo(() => (today ? resumenSemanal(db, today) : null), [db, today]);
+  const comentarios: { clave: string; id: AsistenteId; pose: Pose; texto: string }[] = [];
+  if (r) {
+    if (r.gasto > 0 || r.gastoAnterior > 0)
+      comentarios.push({
+        clave: "gasto",
+        id: "centavo",
+        pose: r.variacion !== null && r.variacion > 10 ? "preocupado" : "feliz",
+        texto:
+          r.variacion === null
+            ? `Gastaste ${formatCOP(r.gasto)} en los últimos 7 días.`
+            : r.variacion === 0
+              ? `Gastaste ${formatCOP(r.gasto)}, igual que la semana anterior.`
+              : `Gastaste ${formatCOP(r.gasto)}: un ${Math.abs(r.variacion)} % ${r.variacion < 0 ? "menos" : "más"} que la semana anterior.`,
+      });
+    if (r.entreno)
+      comentarios.push({
+        clave: "entreno",
+        id: "brote",
+        pose: r.entreno.hechos >= r.entreno.meta ? "celebrando" : r.entreno.hechos === 0 ? "triste" : "feliz",
+        texto: `${Math.min(r.entreno.hechos, r.entreno.meta)} de ${r.entreno.meta} entrenamientos esta semana.${
+          r.entreno.rachaSemanas > 1 ? ` Llevas ${r.entreno.rachaSemanas} semanas completas seguidas.` : r.entreno.hechos >= r.entreno.meta ? " Semana completa." : ""
+        }`,
+      });
+    if (r.meta)
+      comentarios.push({
+        clave: "meta",
+        id: "centavo",
+        pose: "orgulloso",
+        texto: `Tu meta más cerca: ${r.meta.nombre}, al ${r.meta.pct} %. Faltan ${formatCOP(r.meta.falta)}.`,
+      });
+  }
+
   const titulos = ["Tu semana en cifras", "Lo que más necesita atención", "Una acción para empezar"];
   return (
     <Modal
@@ -119,19 +155,35 @@ function ModalRevision({ abierta, onClose }: { abierta: boolean; onClose: () => 
         ))}
       </div>
       {paso === 0 ? (
-        <ul className="divide-y divide-line rounded-[20px] bg-card px-4">
-          {[
-            ["XP ganado", String(s.xp)],
-            ["Hábitos cumplidos", String(s.habitos)],
-            ["Tareas terminadas", String(s.tareas)],
-            ["Días activos", `${s.dias} de 7`],
-          ].map(([l, v]) => (
-            <li key={l} className="flex items-center justify-between py-3 text-[14.5px]">
-              <span>{l}</span>
-              <span className="num font-bold">{v}</span>
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="divide-y divide-line rounded-[20px] bg-card px-4">
+            {[
+              ["XP ganado", String(s.xp)],
+              ["Hábitos cumplidos", String(s.habitos)],
+              ["Tareas terminadas", String(s.tareas)],
+              ["Días activos", `${s.dias} de 7`],
+            ].map(([l, v]) => (
+              <li key={l} className="flex items-center justify-between py-3 text-[14.5px]">
+                <span>{l}</span>
+                <span className="num font-bold">{v}</span>
+              </li>
+            ))}
+          </ul>
+          {/* Lo que dice cada asistente de su parte de la semana */}
+          <ul className="mt-3 grid gap-2">
+            {comentarios.map((c) => {
+              const a = estado.ajustes[c.id];
+              return (
+                <li key={c.clave} className="flex items-center gap-3 rounded-[18px] bg-card p-3">
+                  {a.activo ? <Asistente id={c.id} size={40} pose={c.pose} colores={a.colores} accesorio={a.accesorio} decorativo /> : null}
+                  <p className="min-w-0 flex-1 text-[13.5px] leading-snug">
+                    <span className="font-medium">{a.nombre}:</span> {c.texto}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        </>
       ) : paso === 1 ? (
         <div className="flex items-center gap-4 rounded-[20px] bg-card p-4">
           <Asistente id={menor} size={96} pose={poseDeAnimo(sm.animo, today)} colores={am.colores} accesorio={am.accesorio} mostrarProp={am.mostrarProp} nombre={am.nombre} />

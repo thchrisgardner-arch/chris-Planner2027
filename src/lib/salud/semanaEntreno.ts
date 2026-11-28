@@ -64,6 +64,38 @@ export function semanaCompleta(habit: Habit, dias: DiaSemana[]): boolean {
   return meta > 0 && hechos >= meta;
 }
 
+/** Hitos de la racha de semanas completas (logros de Brote) */
+export const HITOS_SEMANAS_GYM = [4, 8, 12] as const;
+
+/**
+ * Racha de semanas de entrenamiento completas seguidas.
+ *  - actual: hasta la semana pasada (o incluida la actual si ya está completa). La semana en curso
+ *    no rompe la racha mientras no termine.
+ *  - mejor: la racha más larga desde la primera semana con un entrenamiento marcado.
+ */
+export function rachaSemanasEntreno(habit: Habit, logs: HabitLog[], hoy: string): { actual: number; mejor: number } {
+  const propios = logs.filter((l) => l.habit_id === habit.id);
+  if (!propios.length) return { actual: 0, mejor: 0 };
+  const completa = (lunes: string) => semanaCompleta(habit, diasDeSemana(habit, propios, lunes, hoy));
+  const esta = startOfWeek(hoy);
+  // actual
+  let actual = 0;
+  let lunes = completa(esta) ? esta : addDays(esta, -7);
+  while (completa(lunes)) {
+    actual++;
+    lunes = addDays(lunes, -7);
+  }
+  // mejor: recorre desde la primera semana con registro
+  const primera = startOfWeek(propios.reduce((m, l) => (l.date < m ? l.date : m), propios[0].date));
+  let mejor = 0;
+  let seguidas = 0;
+  for (let l = primera; l <= esta; l = addDays(l, 7)) {
+    if (completa(l)) mejor = Math.max(mejor, ++seguidas);
+    else if (l !== esta) seguidas = 0; // la semana en curso sin completar no corta
+  }
+  return { actual, mejor: Math.max(mejor, actual) };
+}
+
 /** Estado de un día en la lista de la rutina */
 export type EstadoDia = "realizado" | "no-realizado" | "pendiente" | "proximo" | "descanso";
 export function estadoDia(d: DiaSemana): EstadoDia {

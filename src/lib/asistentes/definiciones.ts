@@ -91,6 +91,17 @@ export const FICHAS: Record<AsistenteId, Ficha> = {
         motivador: (d) => `Llevas ${d.gastos} en gastos este mes. Buen control.`,
         tranquilo: (d) => `Este mes llevas ${d.gastos} en gastos.`,
       },
+      // Presupuestos por categoría (lib/finanzas/presupuestos)
+      presupuestoCerca: {
+        seco: (d) => `Llevas el ${d.pct} % de ${d.cat} y faltan ${d.dias} días. Quedan ${d.porDia} al día.`,
+        motivador: (d) => `Ojo con ${d.cat}: vas en el ${d.pct} % y faltan ${d.dias} días. Con ${d.porDia} al día llegas bien.`,
+        tranquilo: (d) => `${d.cat} va en el ${d.pct} % del presupuesto. Para cerrar el mes, unos ${d.porDia} al día.`,
+      },
+      presupuestoPasado: {
+        seco: (d) => `${d.cat} ya pasó su presupuesto: ${d.pct} %. Te pasaste por ${d.exceso}.`,
+        motivador: (d) => `${d.cat} se pasó del presupuesto por ${d.exceso}. El próximo mes lo ajustamos.`,
+        tranquilo: (d) => `${d.cat} superó el presupuesto del mes (${d.pct} %).`,
+      },
     },
   },
   brote: {

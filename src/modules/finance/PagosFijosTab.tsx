@@ -31,6 +31,7 @@ import {
 } from "@/lib/finanzas/pagosFijos";
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "./constants";
 import { Kpi } from "./DeudasTab";
+import { CobrosRepetidos } from "./CobrosRepetidos";
 import { monthKey, monthLabel, relativeDay } from "@/utils/dates";
 import { formatAmountInput, formatCOP, formatKpiCOP, parseCOP } from "@/utils/money";
 
@@ -89,7 +90,8 @@ export function PagosFijos({ mov = "gasto" }: { mov?: MovFijo }) {
 
   if (!datos.pagos.some((p) => (p.mov ?? "gasto") === mov)) {
     return (
-      <>
+      <div className="flex flex-col gap-3">
+        {mov === "gasto" ? <CobrosRepetidos /> : null}
         <EmptyCard
           ghost="list"
           title={t.vacioTitulo}
@@ -101,12 +103,13 @@ export function PagosFijos({ mov = "gasto" }: { mov?: MovFijo }) {
           }
         />
         {modales}
-      </>
+      </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-3">
+      {mov === "gasto" ? <CobrosRepetidos /> : null}
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4 [&>*]:min-w-0">
         <Kpi inverse label={t.kpiHecho} value={formatKpiCOP(r.pagado)} hint={`${r.cuantosPagados} de ${r.cuantos} ${t.plural[1]}`} />
         <Kpi label={t.kpiFalta} value={formatKpiCOP(r.falta)} alerta={vencidos.length > 0} hint={vencidos.length ? `${vencidos.length} ${vencidos.length === 1 ? t.vencido[0] : t.vencido[1]}` : "En fijos este mes"} />

@@ -11,6 +11,7 @@ import { isScheduled, logFor, streak } from "@/modules/habits/selectors";
 import { addDays, addMonths, bogotaHour, formatTime, monthKey, monthLabel, relativeDay, startOfWeek } from "@/utils/dates";
 import { habitoDeEntreno } from "@/lib/salud/entrenamiento";
 import { diasDeSemana, reaccionEntreno } from "@/lib/salud/semanaEntreno";
+import { almacenPresupuestos, estadoPresupuestos, presupuestoEnRiesgo } from "@/lib/finanzas/presupuestos";
 import { formatKpiCOP, sum } from "@/utils/money";
 import { FICHAS, type Datos, type Tono } from "./definiciones";
 import type { AsistenteId, Expresion } from "./tipos";
@@ -34,6 +35,8 @@ export interface ContextoAsistente {
   tono: Tono;
   /** Minutos desde la medianoche en Bogotá (para la agenda) */
   ahoraMin?: number;
+  /** Topes de presupuesto por categoría (si no se pasan, se leen de este dispositivo) */
+  presupuestos?: Record<string, number>;
   /** Solo modo demo: fuerza la salud de un módulo para probar ánimos */
   forzarSalud?: Partial<Record<AsistenteId, number | null>>;
 }
@@ -55,7 +58,7 @@ const mesCorto = (key: string) => monthLabel(key).split(" ")[0].toLowerCase();
 const dias = (a: string, b: string) => Math.round((Date.parse(b) - Date.parse(a)) / 86_400_000);
 
 /* ───────── reglas por asistente ───────── */
-function centavo({ db, today, tono }: ContextoAsistente): Mensaje {
+function centavo({ db, today, tono, presupuestos }: ContextoAsistente): Mensaje {
   const key = monthKey(today);
   const prev = addMonths(key, -1);
   const gastos = db.transactions.filter((x) => x.type === "gasto");
@@ -64,6 +67,14 @@ function centavo({ db, today, tono }: ContextoAsistente): Mensaje {
   const totalMes = sum(delMes.map((x) => x.amount));
   const accion = { label: "Ver gastos", href: "/finanzas?tab=movimientos" };
   if (!db.transactions.length) return m(t("centavo", "sinDatos", tono), "idle", 0, { label: "Registrar", href: "/finanzas" });
+
+  // Presupuestos: pasarse del tope va primero; llegar al 80 % avisa con lo que queda por día
+  const riesgo = presupuestoEnRiesgo(estadoPresupuestos(db, presupuestos ?? almacenPresupuestos.leer().topes, today));
+  if (riesgo) {
+    const verPresupuestos = { label: "Ver presupuestos", href: "/finanzas?tab=resumen" };
+    if (riesgo.nivel === "pasado") return m(t("centavo", "presupuestoPasado", tono, { cat: riesgo.categoria, pct: riesgo.pct, exceso: formatKpiCOP(-riesgo.restante) }), "molesto", 3, verPresupuestos);
+    return m(t("centavo", "presupuestoCerca", tono, { cat: riesgo.categoria, pct: riesgo.pct, dias: riesgo.diasRestantes, porDia: formatKpiCOP(riesgo.porDia) }), "preocupado", 3, verPresupuestos);
+  }
 
   // Gasto de hoy muy por encima del promedio
   const promedio = gastos.length ? sum(gastos.map((x) => x.amount)) / gastos.length : 0;

@@ -31,8 +31,10 @@ import { PagosFijos } from "./PagosFijosTab";
 import { ImportarExtracto } from "./ImportarExtracto";
 import { MenuExportar } from "@/components/ui/MenuExportar";
 import { documentoMovimientos } from "@/lib/exportar/datos";
+import { mesTexto, proyeccionMeta } from "@/lib/finanzas/proyeccionMeta";
 import { EnQueSeVa } from "./EnQueSeVa";
 import { PreguntaCentavo } from "./PreguntaCentavo";
+import { Presupuestos } from "./Presupuestos";
 import { AsignarProyecto } from "./AsignarProyecto";
 import { accountBalance, avisoBorrarCuenta, expensesByBeneficiary, expensesByCategory, monthTotals, totalBalance } from "./selectors";
 
@@ -75,7 +77,6 @@ export function FinancePage() {
       {tab === "deudas" && <Deudas />}
       {tab === "fijos" && <PagosFijos />}
       {tab === "ingresos-fijos" && <PagosFijos mov="ingreso" />}
-      <p className="mt-8 text-center text-[13px] text-dim">Próximamente: presupuestos y análisis.</p>
     </>
   );
 }
@@ -122,6 +123,7 @@ function Summary() {
         <Kpi label="Deuda en tarjetas" value={Math.abs(cardDebt)} hint="Saldo negativo de tarjetas" />
       </div>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-12">
+        <Presupuestos className="md:col-span-2 xl:col-span-12" />
         <PreguntaCentavo className="md:col-span-2 xl:col-span-12" />
         <ActivityWidget className="md:col-span-2 xl:col-span-7" />
         <TarjetaGastosCategoria className="xl:col-span-5" items={byCat} total={m.expense} subtitle={monthLabel(key)} onElegir={setCategoria} elegida={categoria} />
@@ -545,6 +547,40 @@ function Accounts() {
 }
 
 /* ───────── Ahorros ───────── */
+/** Meta sin plan: cuándo llega al ritmo real, cuánto la adelanta un extra y cuánto hace falta para su fecha */
+function ProyeccionEnTarjeta({ meta, hoy }: { meta: SavingsGoal; hoy: string }) {
+  const p = proyeccionMeta(meta, hoy);
+  if (!p) return null;
+  return (
+    <div className="mt-3 rounded-[14px] bg-bg-2 px-3 py-2.5 text-[12.5px] leading-snug">
+      {p.llega ? (
+        <p>
+          A tu ritmo (~{formatCOP(Math.round(p.ritmo / 1000) * 1000)} al mes) llega en <span className="font-medium">{mesTexto(p.llega)}</span>
+          {p.aTiempo === false ? <span className="text-danger">, después de su fecha</span> : p.aTiempo ? ", a tiempo" : ""}.
+        </p>
+      ) : (
+        <p>
+          {p.reciente
+            ? "Meta nueva: en unas semanas te digo a qué ritmo vas y cuándo llega."
+            : p.ritmo > 0
+              ? "A tu ritmo actual tardaría más de 10 años."
+              : "Aún no tiene ahorro: con el primer aporte te digo cuándo llega."}
+        </p>
+      )}
+      {p.llegaConExtra ? (
+        <p className="mt-1 text-muted">
+          Con {formatCOP(p.extra)} más al mes, en {mesTexto(p.llegaConExtra)}.
+        </p>
+      ) : null}
+      {p.necesarioAlMes !== null && p.aTiempo !== true ? (
+        <p className="mt-1 text-muted">
+          Para llegar en {mesTexto(monthKey(meta.target_date!))} necesitas {formatCOP(p.necesarioAlMes)} al mes.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 function Savings() {
   const { db } = useData();
   const open = useForms();
@@ -610,6 +646,7 @@ function Savings() {
               <p className="mt-2 text-[12px] text-dim">
                 Faltan {formatCOP(Math.max(0, g.target_amount - g.current_amount))} de {formatCOP(g.target_amount)}
               </p>
+              {!g.plan && today ? <ProyeccionEnTarjeta meta={g} hoy={today} /> : null}
               <PlanEnTarjeta meta={g} onPlan={() => setPlanDe(g)} />
               <div className="mt-5 flex flex-wrap gap-2">
                 <Button size="sm" variant="secondary" className="self-start bg-bg-2" onClick={() => open({ kind: "deposit", record: g })}>

@@ -153,17 +153,24 @@ export async function sincronizar(ctx: Contexto, preferir: Preferir = "fusion"):
     // Lo que hay en la nube: si lo fusionado es distinto, se sube en el paso siguiente
     docs[d.clave] = { hash: huella(d.data), remoto: d.updated_at };
   }
+  // Un documento que no se puede subir (p. ej. una clave nueva cuya migración aún no se ejecutó) no frena
+  // a los demás: se reintenta en el próximo ciclo y queda anotado como error
+  let fallo: string | null = null;
   for (const clave of CLAVES_DOC) {
     const v = ctx.local.doc(clave);
     if (v == null) continue;
     const h = huella(v);
     if (docs[clave]?.hash === h) continue;
-    const remoto = await ctx.remoto.subirDoc(clave, v, estado.clientId);
-    docs[clave] = { hash: h, remoto };
-    if (!marcaDocs || remoto > marcaDocs) marcaDocs = remoto;
-    res.subidas += 1;
+    try {
+      const remoto = await ctx.remoto.subirDoc(clave, v, estado.clientId);
+      docs[clave] = { hash: h, remoto };
+      if (!marcaDocs || remoto > marcaDocs) marcaDocs = remoto;
+      res.subidas += 1;
+    } catch (e) {
+      fallo = `No se pudo sincronizar «${clave}»: ${e instanceof Error ? e.message : String(e)}`;
+    }
   }
-  ctx.estado.guardar({ ...ctx.estado.leer(), docs, marcaDocs, ultimo: new Date().toISOString(), error: null });
+  ctx.estado.guardar({ ...ctx.estado.leer(), docs, marcaDocs, ultimo: new Date().toISOString(), error: fallo });
   return res;
 }
 

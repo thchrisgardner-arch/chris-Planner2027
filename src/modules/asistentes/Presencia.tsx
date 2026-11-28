@@ -1,5 +1,6 @@
 "use client";
 
+import { almacenPresupuestos } from "@/lib/finanzas/presupuestos";
 import { MOMENTO_DE_EXPRESION, MOMENTO_DE_LUGAR } from "@/lib/asistentes/momentos";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "@/components/Enlace";
@@ -28,7 +29,9 @@ function useMensaje(id: AsistenteId): Mensaje {
   const tono = estado.ajustes[id].tono;
   const g = useGamificacion();
   const forzar = g.demo ? g.forzarSalud : undefined;
-  return useMemo(() => getMensajeAsistente(id, { db, today, tono, ahoraMin: ahoraBogota(), forzarSalud: forzar }), [id, db, today, tono, forzar]);
+  // Centavo avisa de los presupuestos: el mensaje se recalcula también al cambiar los topes
+  const presupuestos = almacenPresupuestos.useValor().topes;
+  return useMemo(() => getMensajeAsistente(id, { db, today, tono, ahoraMin: ahoraBogota(), forzarSalud: forzar, presupuestos }), [id, db, today, tono, forzar, presupuestos]);
 }
 
 /* ═════════ Inicio: tarjeta del asistente principal ═════════ */

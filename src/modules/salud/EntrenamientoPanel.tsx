@@ -6,11 +6,11 @@
  * abajo, plegada. Hoy queda abierto y se puede marcar como hecho (marca el hábito y suma XP).
  */
 import { useState } from "react";
-import { Check, ChevronDown, Clock, Dumbbell, Plus, X } from "lucide-react";
+import { Check, ChevronDown, Clock, Dumbbell, Flame, Plus, X } from "lucide-react";
 import { Asistente } from "@/components/asistentes/Asistente";
 import { useAsistentes } from "@/lib/asistentes/estado";
 import { FICHAS } from "@/lib/asistentes/definiciones";
-import { diasDeSemana, estadoDia, reaccionEntreno, XP_SEMANA_ENTRENO } from "@/lib/salud/semanaEntreno";
+import { diasDeSemana, estadoDia, HITOS_SEMANAS_GYM, rachaSemanasEntreno, reaccionEntreno, XP_SEMANA_ENTRENO } from "@/lib/salud/semanaEntreno";
 import { esFlexible } from "@/modules/habits/selectors";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -115,6 +115,8 @@ export function EntrenamientoPanel() {
   const hechos = dias.filter((d) => d.hecho).length;
   const meta = esFlexible(habito) ? habito.weekly_target! : dias.filter((d) => d.planeado).length;
   const reaccion = today ? reaccionEntreno(habito, dias) : null;
+  const racha = today ? rachaSemanasEntreno(habito, db.habit_logs, today) : { actual: 0, mejor: 0 };
+  const proximoHito = HITOS_SEMANAS_GYM.find((h) => h > racha.actual) ?? null;
 
   /** Marca o desmarca un día de esta semana (hoy o un día que ya pasó) */
   const marcar = async (fecha: string) => {
@@ -175,12 +177,26 @@ export function EntrenamientoPanel() {
         </div>
       ) : null}
 
-      <div className="flex items-baseline justify-between gap-3 px-1">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-1">
         <h3 className="text-[15px] font-bold">Rutina de la semana</h3>
         <p className="num text-[13px] text-muted">
           {Math.min(hechos, meta)} de {meta} realizados{hechos >= meta && meta > 0 ? ` · +${XP_SEMANA_ENTRENO} XP` : ""}
         </p>
       </div>
+      {/* Racha de semanas completas y el próximo logro (4, 8 y 12 semanas) */}
+      {racha.actual > 0 || racha.mejor > 0 ? (
+        <p className="-mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 px-1 text-[13px]">
+          <span className="inline-flex items-center gap-1 rounded-full bg-fg px-2.5 py-1 font-medium text-on-fg">
+            <Flame size={14} /> {racha.actual} {racha.actual === 1 ? "semana completa" : "semanas completas"} seguidas
+          </span>
+          {proximoHito ? (
+            <span className="text-muted">
+              {proximoHito - racha.actual === 1 ? "Falta 1" : `Faltan ${proximoHito - racha.actual}`} para el logro de {proximoHito} semanas
+            </span>
+          ) : null}
+          {racha.mejor > racha.actual ? <span className="text-dim">· tu mejor racha: {racha.mejor}</span> : null}
+        </p>
+      ) : null}
 
       <ol className="grid grid-cols-1 gap-2">
         {semana.map((d) => {

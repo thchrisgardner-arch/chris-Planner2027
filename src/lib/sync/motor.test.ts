@@ -116,6 +116,7 @@ function dispositivo(nube: Nube, nombre: string) {
     },
     borrar,
     sync: () => sincronizar(ctx),
+    estado: () => estado,
   };
 }
 
@@ -278,5 +279,23 @@ describe("motor de sincronización", () => {
     await conectar(B.ctx, "nube");
     expect(B.filas("habits").map((f) => f.id)).toEqual(["h1"]);
     expect(await nube.remoto().idsVivos("habits")).toEqual(["h1"]);
+  });
+  it("un documento que la nube rechaza no frena a los demás y queda anotado", async () => {
+    const nube = new Nube();
+    const base = nube.remoto.bind(nube);
+    // Nube sin la migración nueva: rechaza la clave «presupuestos»
+    nube.remoto = () => ({ ...base(), subirDoc: async (clave, data, cid) => {
+      if (clave === "presupuestos") throw new Error("violates check constraint");
+      return base().subirDoc(clave, data, cid);
+    } });
+    const A = dispositivo(nube, "A");
+    A.ctx.remoto = nube.remoto();
+    await conectar(A.ctx, "combinar");
+    A.ponerDoc("presupuestos", { version: 1, topes: { Alimentación: 800000 } });
+    A.ponerDoc("asistentes", { principal: "brote" });
+    await A.sync();
+    expect(nube.docs.get("asistentes")?.data).toEqual({ principal: "brote" });
+    expect(nube.docs.has("presupuestos")).toBe(false);
+    expect(A.estado().error).toContain("presupuestos");
   });
 });
