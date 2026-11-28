@@ -112,13 +112,19 @@ export function WishlistPage() {
           {items.length === 0 ? (
             <EmptyState compact icon={<Gift size={20} />} title="Nada con estos filtros" />
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+            // Celular: dos columnas con la tarjeta compacta (los demás productos siguen hacia abajo)
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-4">
               {items.map((w) => {
                 const goal = db.savings_goals.find((g) => g.id === w.savings_goal_id);
                 const saved = goal ? (ahorros.get(w.id) ?? 0) : 0;
                 const shop = findStore(w.store);
+                const acciones = (clase: string) => (
+                  <div className={clase}>
+                    <RowActions label={w.name} onEdit={() => open({ kind: "wish", record: w })} onDelete={() => del("wishlist_items", w.id, `¿Eliminar ${w.name}?`)} />
+                  </div>
+                );
                 return (
-                  <Card key={w.id} className="flex flex-col overflow-hidden p-0 sm:p-0">
+                  <Card key={w.id} className="flex min-w-0 flex-col overflow-hidden p-0 sm:p-0">
                     <div className="relative aspect-[4/3] bg-elev">
                       {w.image_url ? (
                         <ImagenGuardada src={w.image_url} alt={w.name} className="h-full w-full object-cover" />
@@ -127,22 +133,26 @@ export function WishlistPage() {
                           <ImageOff size={26} />
                         </div>
                       )}
-                      <Badge tone={wishStatusTone(w.status)} className="absolute left-3 top-3 bg-card/90 backdrop-blur">
+                      <Badge tone={wishStatusTone(w.status)} className="absolute left-2 top-2 max-w-[calc(100%-3rem)] truncate bg-card/90 backdrop-blur max-sm:text-[10.5px] sm:left-3 sm:top-3">
                         {wishStatusLabel(w.status)}
                       </Badge>
-                      {shop ? <StoreLogo store={shop} size={40} className="absolute right-3 top-3" /> : null}
+                      {shop ? <StoreLogo store={shop} size={40} className="absolute right-2 top-2 max-sm:!h-7 max-sm:!w-7 max-sm:!p-1 sm:right-3 sm:top-3" /> : null}
                     </div>
-                    <div className="flex flex-1 flex-col p-5">
+                    <div className="flex flex-1 flex-col p-3 sm:p-5">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="truncate text-[16px] font-medium">{w.name}</p>
-                          <p className="text-[12px] text-muted">
-                            {w.category} · {WISH_CLASSIFICATIONS.find((c) => c.value === w.classification)?.label} · Prioridad {priorityLabel(w.priority).toLowerCase()}
+                          <p className="line-clamp-2 text-[14px] font-medium leading-snug sm:line-clamp-none sm:truncate sm:text-[16px]">{w.name}</p>
+                          <p className="truncate text-[11.5px] text-muted sm:whitespace-normal sm:text-[12px]">
+                            {w.category}
+                            <span className="max-sm:hidden">
+                              {" "}
+                              · {WISH_CLASSIFICATIONS.find((c) => c.value === w.classification)?.label} · Prioridad {priorityLabel(w.priority).toLowerCase()}
+                            </span>
                           </p>
                         </div>
-                        <RowActions label={w.name} onEdit={() => open({ kind: "wish", record: w })} onDelete={() => del("wishlist_items", w.id, `¿Eliminar ${w.name}?`)} />
+                        {acciones("max-sm:hidden")}
                       </div>
-                      <p className="num mt-3 text-[22px] font-medium">{formatoPrecio(w)}</p>
+                      <p className="num mt-2 text-[17px] font-medium sm:mt-3 sm:text-[22px]">{formatoPrecio(w)}</p>
                       {equivalente(w) ? <p className="num text-[12.5px] text-muted">{equivalente(w)}</p> : null}
                       {goal ? (
                         <div className="mt-3">
@@ -152,16 +162,19 @@ export function WishlistPage() {
                           </p>
                         </div>
                       ) : null}
-                      <div className="mt-auto flex items-center justify-between gap-2 pt-4 text-[11.5px] text-dim">
-                        <span>
+                      <div className="mt-auto flex items-center justify-between gap-2 pt-3 text-[11.5px] text-dim sm:pt-4">
+                        <span className="max-sm:hidden">
                           Agregado {formatShortDate(fechaLocal(w.created_at))}
                           {w.desired_date ? ` · Compra ${relativeDay(w.desired_date, today).toLowerCase()}` : ""}
                         </span>
                         {w.link ? (
-                          <a href={w.link} target="_blank" rel="noopener noreferrer" className="flex shrink-0 items-center gap-1 text-info hover:underline">
-                            {shop ? `Ver en ${shop.name}` : "Ver"} <ExternalLink size={12} />
+                          <a href={w.link} target="_blank" rel="noopener noreferrer" className="flex min-w-0 shrink-0 items-center gap-1 text-info hover:underline max-sm:shrink">
+                            <span className="truncate">{shop ? (<><span className="max-sm:hidden">Ver en </span>{shop.name}</>) : "Ver"}</span> <ExternalLink size={12} className="shrink-0" />
                           </a>
-                        ) : null}
+                        ) : (
+                          <span className="sm:hidden" />
+                        )}
+                        {acciones("-mr-1.5 sm:hidden")}
                       </div>
                     </div>
                   </Card>
