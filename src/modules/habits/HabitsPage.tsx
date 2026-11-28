@@ -47,8 +47,8 @@ export function HabitsPage() {
       <PageHeader title="Salud y hábitos" subtitle="Hábitos, rutina de entrenamiento y alimentación." asistente={<AsistenteModulo id="brote" celebrar={celebrar} oculto={db.habits.length === 0} />} />
       {/* Pestañas a la izquierda y «Nuevo hábito» a la derecha, en la misma fila (en celular el botón es el «+» flotante) */}
       <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="-mx-4 min-w-0 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <Segmented size="md" label="Secciones de salud" value={vista} onChange={elegir} options={VISTAS} />
+        <div className="-mx-4 min-w-0 overflow-x-auto px-4 sm:mx-0 sm:px-0 sin-barra">
+          <Segmented size="md" label="Secciones de salud" value={vista} onChange={elegir} options={VISTAS} desplazable />
         </div>
         {vista === "habitos" ? (
           <Button variant="primary" className="shrink-0 max-md:hidden" onClick={() => open({ kind: "habit" })}>

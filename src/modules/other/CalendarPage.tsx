@@ -227,8 +227,8 @@ export function VistaCalendario({ db, estado, extra }: { db: Database; estado: E
               />
             </div>
           </div>
-          {/* Los filtros pasan a otra fila en celular: ninguno queda cortado */}
-          <div className="flex flex-wrap gap-1.5">
+          {/* Celular: una sola fila que se desliza de lado (hasta el borde de la tarjeta); desde tablet, pasan a otra fila si no caben */}
+          <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sin-barra">
             {FILTERS.map((f) => {
               const active = filter === f.value;
               return (

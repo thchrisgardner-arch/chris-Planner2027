@@ -59,8 +59,8 @@ export function FinancePage() {
       <PageHeader title="Finanzas" subtitle="Ingresos, gastos, cuentas, ahorros y deudas." asistente={<AsistenteModulo id="centavo" />} />
       {/* Pestañas y «Nuevo movimiento» en la misma fila; si no caben, el botón baja y sigue a la derecha (en celular es el «+» flotante) */}
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <div className="-mx-4 min-w-0 max-w-full overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <Segmented size="md" label="Secciones de finanzas" value={tab} onChange={(v) => router.replace(`/finanzas?tab=${v}`, { scroll: false })} options={TABS} />
+        <div className="-mx-4 min-w-0 max-w-[calc(100%+2rem)] overflow-x-auto px-4 sm:mx-0 sm:max-w-full sm:px-0 sin-barra">
+          <Segmented size="md" label="Secciones de finanzas" value={tab} onChange={(v) => router.replace(`/finanzas?tab=${v}`, { scroll: false })} options={TABS} desplazable />
         </div>
         <Button variant="primary" className="ml-auto shrink-0 max-md:hidden" onClick={() => open({ kind: "transaction" })}>
           <Plus size={18} /> Nuevo movimiento

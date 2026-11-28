@@ -71,8 +71,8 @@ export function SettingsPage() {
   return (
     <>
       <PageHeader title="Configuración" subtitle="Perfil, preferencias, asistentes y tus datos." />
-      <div className="-mx-4 mb-5 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-        <Segmented size="md" label="Secciones de configuración" value={seccion} onChange={elegir} options={SECCIONES} />
+      <div className="-mx-4 mb-5 overflow-x-auto px-4 sm:mx-0 sm:px-0 sin-barra">
+        <Segmented size="md" label="Secciones de configuración" value={seccion} onChange={elegir} options={SECCIONES} desplazable />
       </div>
       {seccion === "perfil" ? (
         <div className="grid max-w-[820px] grid-cols-1 gap-3">

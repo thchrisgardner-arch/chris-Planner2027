@@ -201,6 +201,7 @@ export function Segmented<T extends string>({
   className,
   size = "sm",
   label,
+  desplazable = false,
 }: {
   value: T;
   onChange: (v: T) => void;
@@ -208,13 +209,28 @@ export function Segmented<T extends string>({
   className?: string;
   size?: "sm" | "md";
   label?: string;
+  /** En una sola fila que se desplaza de lado (el contenedor lleva overflow-x-auto); si no, pasan a otra fila */
+  desplazable?: boolean;
 }) {
-  // Si no caben en una fila (celular), pasan a una segunda fila completas: nada queda cortado
+  // Por defecto, si no caben en una fila (celular), pasan a una segunda fila completas: nada queda cortado
   return (
-    <div className={cn("inline-flex max-w-full flex-wrap gap-y-1 rounded-[22px] bg-elev p-1", className)} role="tablist" aria-label={label} onKeyDown={(e) => flechasGrupo(e, options.map((o) => o.value), value, onChange)}>
+    <div
+      className={cn("inline-flex gap-y-1 rounded-[22px] bg-elev p-1", desplazable ? "flex-nowrap" : "max-w-full flex-wrap", className)}
+      role="tablist"
+      aria-label={label}
+      onKeyDown={(e) => flechasGrupo(e, options.map((o) => o.value), value, onChange)}
+    >
       {options.map((o) => (
         <button
           key={o.value}
+          // Desplazable: la pestaña elegida siempre queda a la vista (solo se mueve la fila, no la página)
+          ref={
+            desplazable && o.value === value
+              ? (el) => {
+                  if (el) mostrarEnFila(el);
+                }
+              : undefined
+          }
           type="button"
           role="tab"
           aria-selected={o.value === value}
@@ -231,6 +247,17 @@ export function Segmented<T extends string>({
       ))}
     </div>
   );
+}
+
+/** Desplaza de lado el contenedor con scroll más cercano para que `el` quede visible */
+function mostrarEnFila(el: HTMLElement) {
+  let fila = el.parentElement;
+  while (fila && fila.scrollWidth <= fila.clientWidth) fila = fila.parentElement;
+  if (!fila || fila === document.documentElement || fila === document.body) return;
+  const f = fila.getBoundingClientRect();
+  const r = el.getBoundingClientRect();
+  if (r.left < f.left + 16) fila.scrollLeft += r.left - f.left - 16;
+  else if (r.right > f.right - 16) fila.scrollLeft += r.right - f.right + 16;
 }
 
 /* ── Variación vs. periodo anterior (texto discreto, sin colores de fondo) ── */
