@@ -198,6 +198,11 @@ export interface AnnualGoal extends BaseRow {
   priority: Priority;
   progress: number;
   status: GoalStatus;
+  /**
+   * Objetivo que es una compra de contado (un carro, una cocina): su meta de ahorro con el precio, lo ahorrado
+   * y la cuota (plan de aporte). Con meta, el progreso es el de la meta. Sin valor, objetivo normal.
+   */
+  savings_goal_id?: ID | null;
 }
 
 /* ── Calendario ── */
@@ -285,7 +290,11 @@ export const CASCADES: Partial<
   ],
   tasks: [{ table: "tasks", field: "parent_task_id", action: "delete" }],
   habits: [{ table: "habit_logs", field: "habit_id", action: "delete" }],
-  savings_goals: [{ table: "wishlist_items", field: "savings_goal_id", action: "nullify" }],
+  savings_goals: [
+    { table: "wishlist_items", field: "savings_goal_id", action: "nullify" },
+    // Un objetivo de compra cuya meta se borra queda como objetivo normal
+    { table: "annual_goals", field: "savings_goal_id", action: "nullify" },
+  ],
   debts: [{ table: "debt_payments", field: "debt_id", action: "delete" }],
   transactions: [{ table: "debt_payments", field: "transaction_id", action: "nullify" }],
 };

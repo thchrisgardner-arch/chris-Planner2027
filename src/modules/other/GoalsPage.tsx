@@ -1,6 +1,9 @@
 "use client";
 
-import { Minus, Plus } from "lucide-react";
+import { Minus, PiggyBank, Plus } from "lucide-react";
+import { resumenCompra } from "@/lib/objetivos/compra";
+import { mesTexto } from "@/lib/finanzas/proyeccionMeta";
+import { formatKpiCOP } from "@/utils/money";
 import { AsistenteModulo, useCelebracion, useVacioAsistente } from "@/modules/asistentes/Presencia";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -93,6 +96,10 @@ export function GoalsPage() {
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {goals.map((g) => {
               const area = goalArea(g.area);
+              // Compra de contado: los números salen de su meta de ahorro y el % es el de la meta
+              const meta = g.savings_goal_id ? db.savings_goals.find((s) => s.id === g.savings_goal_id) : undefined;
+              const compra = meta && today ? resumenCompra(meta, today) : null;
+              const pct = compra ? compra.pct : g.progress;
               return (
                 <Card key={g.id} className="flex flex-col">
                   <div className="flex items-start justify-between gap-2">
@@ -110,23 +117,54 @@ export function GoalsPage() {
                     Prioridad {priorityLabel(g.priority).toLowerCase()}
                     {g.target_date ? ` · ${relativeDay(g.target_date, today)}` : ""}
                   </p>
+                  {compra ? (
+                    <div className="mt-4 grid gap-1 rounded-[16px] bg-bg-2 p-3 text-[13px] leading-snug">
+                      <p>
+                        <span className="num font-medium">{formatKpiCOP(compra.ahorrado)}</span> de <span className="num font-medium">{formatKpiCOP(compra.precio)}</span> ahorrados
+                        {compra.falta > 0 ? <span className="text-muted"> · faltan {formatKpiCOP(compra.falta)}</span> : null}
+                      </p>
+                      {compra.cuota ? (
+                        <p className="text-muted">
+                          Cuota de {formatKpiCOP(compra.cuota.monto)} {compra.cuota.cada} · {compra.cuotasPagadas} {compra.cuotasPagadas === 1 ? "pagada" : "pagadas"}
+                          {compra.cuotasRestantes > 0 ? ` · faltan ${compra.cuotasRestantes}` : ""}
+                        </p>
+                      ) : (
+                        <p className="text-muted">Sin cuota fija: edita el objetivo para ponerle una.</p>
+                      )}
+                      {compra.cuota && compra.falta > 0 ? (
+                        <p className="text-muted">
+                          {compra.llega ? `Llegas en ${mesTexto(compra.llega.slice(0, 7))}` : ""}
+                          {compra.ritmo ? `${compra.llega ? " · " : ""}${compra.ritmo}` : ""}
+                        </p>
+                      ) : compra.falta <= 0 ? (
+                        <p className="font-medium">Ya tienes el dinero completo: ¡a comprarlo!</p>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <div className="mt-auto pt-5">
                     <div className="flex items-end justify-between gap-3">
-                      <p className={cn("figure text-[52px]", g.progress === 0 && "text-dim")}>
-                        {g.progress}
+                      <p className={cn("figure text-[52px]", pct === 0 && "text-dim")}>
+                        {pct}
                         <span className="text-[22px] text-muted"> %</span>
                       </p>
-                      <div className="flex gap-1.5 pb-1.5">
-                        <Button size="icon-sm" variant="secondary" className="bg-bg-2" onClick={() => bump(g, -10)} aria-label={`Restar 10 % a ${g.title}`} disabled={g.progress === 0}>
-                          <Minus size={16} />
+                      {meta ? (
+                        // El % sale de lo ahorrado: se avanza abonando a la meta
+                        <Button size="sm" variant="secondary" className="mb-1.5 bg-bg-2" onClick={() => open({ kind: "deposit", record: meta })}>
+                          <PiggyBank size={15} /> Abonar
                         </Button>
-                        <Button size="icon-sm" variant="secondary" className="bg-bg-2" onClick={() => bump(g, 10)} aria-label={`Sumar 10 % a ${g.title}`} disabled={g.progress >= 100}>
-                          <Plus size={16} />
-                        </Button>
-                      </div>
+                      ) : (
+                        <div className="flex gap-1.5 pb-1.5">
+                          <Button size="icon-sm" variant="secondary" className="bg-bg-2" onClick={() => bump(g, -10)} aria-label={`Restar 10 % a ${g.title}`} disabled={g.progress === 0}>
+                            <Minus size={16} />
+                          </Button>
+                          <Button size="icon-sm" variant="secondary" className="bg-bg-2" onClick={() => bump(g, 10)} aria-label={`Sumar 10 % a ${g.title}`} disabled={g.progress >= 100}>
+                            <Plus size={16} />
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                    <div className="mt-3 h-3 overflow-hidden rounded-full bg-bg-2" role="progressbar" aria-label={`Progreso de ${g.title}`} aria-valuenow={g.progress} aria-valuemin={0} aria-valuemax={100}>
-                      <div className={cn("h-full rounded-full", g.progress >= 100 ? "bg-brand" : "bg-fg")} style={{ width: `${g.progress}%` }} />
+                    <div className="mt-3 h-3 overflow-hidden rounded-full bg-bg-2" role="progressbar" aria-label={`Progreso de ${g.title}`} aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+                      <div className={cn("h-full rounded-full", pct >= 100 ? "bg-brand" : "bg-fg")} style={{ width: `${pct}%` }} />
                     </div>
                   </div>
                 </Card>

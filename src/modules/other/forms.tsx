@@ -27,6 +27,10 @@ import { PRIORITIES } from "@/modules/projects/constants";
 import { StorePicker } from "./StorePicker";
 import { detectStore, findStore } from "./stores";
 import { ProductLinkFinder, type ProductResult } from "./ProductLinkFinder";
+import { Switch } from "@/components/ui/Switch";
+import { FRECUENCIAS, proximaFecha, type FrecuenciaAporte, type PlanAporte } from "@/lib/finanzas/planAporte";
+import { resumenCompra } from "@/lib/objetivos/compra";
+import { mesTexto } from "@/lib/finanzas/proyeccionMeta";
 
 /** Categoría sugerida según la tienda (solo si la persona no la cambió). */
 const STORE_CATEGORY: Record<string, string> = {
@@ -387,7 +391,15 @@ export function WishlistForm({ open, onClose, record }: { open: boolean; onClose
 
 /* ───────────── Objetivo anual ───────────── */
 export function GoalForm({ open, onClose, record }: { open: boolean; onClose: () => void; record?: AnnualGoal }) {
-  const { insert, update } = useData();
+  const { db, insert, update } = useData();
+  // Objetivo de compra de contado: precio, lo ahorrado y la cuota viven en su meta de ahorro
+  const metaCompra = record?.savings_goal_id ? db.savings_goals.find((s) => s.id === record.savings_goal_id) : undefined;
+  const planCompra = metaCompra?.plan as PlanAporte | null | undefined;
+  const [esCompra, setEsCompra] = useState(!!metaCompra);
+  const [precio, setPrecio] = useState(metaCompra ? formatAmountInput(String(metaCompra.target_amount)) : "");
+  const [ahorrado, setAhorrado] = useState(metaCompra ? formatAmountInput(String(metaCompra.current_amount)) : "");
+  const [cuota, setCuota] = useState(planCompra ? formatAmountInput(String(planCompra.monto)) : "");
+  const [frecuencia, setFrecuencia] = useState<FrecuenciaAporte>(planCompra?.frecuencia ?? "mensual");
   const [title, setTitle] = useState(record?.title ?? "");
   const [description, setDescription] = useState(record?.description ?? "");
   const [area, setArea] = useState<GoalArea>(record?.area ?? "personal");
@@ -397,26 +409,64 @@ export function GoalForm({ open, onClose, record }: { open: boolean; onClose: ()
   const [status, setStatus] = useState<GoalStatus>(record?.status ?? "no_iniciado");
   const [errors, setErrors] = useState<Errors>({});
 
+  const hoy = todayISO();
+  const vPrecio = parseCOP(precio) ?? 0;
+  const vAhorrado = parseCOP(ahorrado) ?? 0;
+  const vCuota = parseCOP(cuota) ?? 0;
+  // Vista previa de la compra con lo escrito: % y, con cuota, cuántas faltan y cuándo se llega
+  const previa =
+    esCompra && vPrecio > 0
+      ? resumenCompra(
+          {
+            target_amount: vPrecio,
+            current_amount: vAhorrado,
+            target_date: null,
+            plan: vCuota > 0 ? { frecuencia, monto: vCuota, inicio: proximaFecha({ frecuencia, inicio: hoy }, hoy) ?? hoy, base: vAhorrado } : null,
+          },
+          hoy,
+        )
+      : null;
+
   const submit = async () => {
     const e: Errors = {};
     if (!title.trim()) e.title = "Escribe el objetivo.";
+    if (esCompra && vPrecio <= 0) e.precio = "Escribe cuánto cuesta.";
     setErrors(e);
     if (Object.keys(e).length) return false;
+
+    let savings_goal_id: string | null = null;
+    let avance = progress;
+    if (esCompra) {
+      // Se conserva el plan si la cuota no cambió (para no reiniciar su ritmo ni sus aportes)
+      const igual = planCompra && planCompra.frecuencia === frecuencia && planCompra.monto === vCuota;
+      const plan: PlanAporte | null =
+        vCuota > 0 ? (igual ? planCompra! : { frecuencia, monto: vCuota, inicio: proximaFecha({ frecuencia, inicio: hoy }, hoy) ?? hoy, base: vAhorrado }) : null;
+      const datosMeta = { name: title.trim(), target_amount: vPrecio, current_amount: vAhorrado, target_date: date || null, plan };
+      if (metaCompra) {
+        await update("savings_goals", metaCompra.id, datosMeta);
+        savings_goal_id = metaCompra.id;
+      } else {
+        const meta = await insert("savings_goals", { ...datosMeta, priority, account_id: null, description: null });
+        savings_goal_id = meta.id;
+      }
+      avance = Math.min(100, Math.floor((vAhorrado / vPrecio) * 100));
+    }
     const data = {
       title: title.trim(),
       description: description.trim() || null,
       area,
       target_date: date || null,
       priority,
-      progress,
-      status: progress >= 100 ? "logrado" : status,
+      progress: avance,
+      status: avance >= 100 ? "logrado" : esCompra && avance > 0 && status === "no_iniciado" ? "en_progreso" : status,
+      savings_goal_id,
     } as const;
     if (record) {
       await update("annual_goals", record.id, data);
-      return "Objetivo actualizado.";
+      return esCompra && !metaCompra ? "Objetivo actualizado. Su meta de ahorro quedó en Finanzas → Ahorros." : "Objetivo actualizado.";
     }
     await insert("annual_goals", data);
-    return "Objetivo 2027 creado.";
+    return esCompra ? "Objetivo creado. Su meta de ahorro quedó en Finanzas → Ahorros." : "Objetivo 2027 creado.";
   };
 
   return (
@@ -443,20 +493,51 @@ export function GoalForm({ open, onClose, record }: { open: boolean; onClose: ()
           )}
         </Field>
       </div>
-      <Field label={`Progreso: ${progress} %`}>
-        {(id) => (
-          <input
-            id={id}
-            type="range"
-            min={0}
-            max={100}
-            step={5}
-            value={progress}
-            onChange={(e) => setProgress(Number(e.target.value))}
-            className="w-full cursor-pointer accent-[#9b82f6]"
-          />
-        )}
-      </Field>
+      {/* Compra de contado: se ahorra en cuotas y el progreso sale solo de lo ahorrado */}
+      <div className="rounded-[18px] bg-bg-2 p-3">
+        <Switch checked={esCompra} onChange={setEsCompra} label="Es una compra (se ahorra en cuotas y se paga de contado)" />
+        {esCompra ? (
+          <div className="mt-3 grid gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Precio total" error={errors.precio}>
+                {(id) => <AmountInput id={id} value={precio} onChange={setPrecio} invalid={!!errors.precio} />}
+              </Field>
+              <Field label="Ya ahorrado">{(id) => <AmountInput id={id} value={ahorrado} onChange={setAhorrado} />}</Field>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Valor de cada cuota (opcional)">{(id) => <AmountInput id={id} value={cuota} onChange={setCuota} />}</Field>
+              <Field label="Cada cuánto">
+                {() => <ChoiceGroup value={frecuencia} onChange={setFrecuencia} options={FRECUENCIAS.filter((f) => f.value !== "diaria").map(({ value, label }) => ({ value, label }))} />}
+              </Field>
+            </div>
+            {previa ? (
+              <p className="text-[13px] leading-snug text-muted" aria-live="polite">
+                Llevas el <span className="font-medium text-fg">{previa.pct} %</span>: faltan {formatCOP(previa.falta)}.
+                {previa.cuota && previa.falta > 0
+                  ? ` Con ${formatCOP(previa.cuota.monto)} ${previa.cuota.cada} son ${previa.cuotasRestantes} ${previa.cuotasRestantes === 1 ? "cuota" : "cuotas"}${previa.llega ? ` y llegas en ${mesTexto(previa.llega.slice(0, 7))}` : ""}.`
+                  : ""}
+              </p>
+            ) : null}
+            <p className="text-[12px] text-dim">Se guarda como meta de ahorro en Finanzas → Ahorros: ahí confirmas cada cuota.</p>
+          </div>
+        ) : null}
+      </div>
+      {!esCompra ? (
+        <Field label={`Progreso: ${progress} %`}>
+          {(id) => (
+            <input
+              id={id}
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={progress}
+              onChange={(e) => setProgress(Number(e.target.value))}
+              className="w-full cursor-pointer accent-[#9b82f6]"
+            />
+          )}
+        </Field>
+      ) : null}
       <Field label="Prioridad">{() => <ChoiceGroup value={priority} onChange={setPriority} options={PRIORITIES} />}</Field>
       <Field label="Descripción (opcional)">
         {(id) => <Textarea id={id} value={description} onChange={(e) => setDescription(e.target.value)} />}
